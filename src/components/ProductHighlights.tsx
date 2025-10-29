@@ -1,33 +1,20 @@
-import { Card, CardContent } from "@/components/ui/card";
-import macrameImage from "@/assets/product-macrame-wall.jpg";
-import planterImage from "@/assets/product-ceramic-planter.jpg";
-import basketImage from "@/assets/product-woven-basket.jpg";
-import canvasImage from "@/assets/product-canvas-art.jpg";
-
-const products = [
-  {
-    title: "Macramé Wall Hangings",
-    description: "Intricate knotwork patterns handwoven with natural cotton rope and wooden beads. Each piece brings warmth and texture, connecting your space to the art of slow, mindful creation.",
-    image: macrameImage,
-  },
-  {
-    title: "Hand-Painted Planters",
-    description: "Artisanal ceramic planters featuring organic patterns in earthy tones. Made with sustainable materials and wrapped in natural jute—perfect homes for your green companions.",
-    image: planterImage,
-  },
-  {
-    title: "Woven Storage Baskets",
-    description: "Beautiful jute and seagrass baskets crafted by hand. Functional art that organizes your space while celebrating natural fibers and traditional weaving techniques.",
-    image: basketImage,
-  },
-  {
-    title: "Abstract Canvas Art",
-    description: "Nature-inspired watercolor designs in warm terracotta and olive hues. Each canvas tells a story of landscapes and organic forms, framed in sustainable wood to complete your boho gallery wall.",
-    image: canvasImage,
-  },
-];
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ShoppingCart } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { products } from "@/lib/products";
+import { toast } from "sonner";
 
 const ProductHighlights = () => {
+  const { addItem } = useCart();
+
+  const handleAddToCart = (product: typeof products[0]) => {
+    addItem(product);
+    toast.success(`${product.title} adicionado ao carrinho!`, {
+      duration: 2000,
+    });
+  };
+
   return (
     <section className="py-20 px-4 bg-gradient-natural">
       <div className="container mx-auto">
@@ -44,27 +31,41 @@ const ProductHighlights = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((product, index) => (
             <Card 
-              key={index}
-              className="group overflow-hidden border-border/50 shadow-soft hover:shadow-warm transition-all duration-500 hover:-translate-y-2 bg-card/80 backdrop-blur-sm animate-fade-in-up"
+              key={product.id}
+              className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="relative overflow-hidden aspect-square">
-                <img 
-                  src={product.image} 
+                <img
+                  src={product.image}
                   alt={product.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               
-              <CardContent className="p-6">
-                <h3 className="font-serif text-xl font-semibold mb-3 text-foreground">
-                  {product.title}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-serif text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
+                    {product.title}
+                  </h3>
+                  <p className="font-bold text-primary text-lg whitespace-nowrap ml-2">
+                    €{product.price.toFixed(2)}
+                  </p>
+                </div>
+                
+                <p className="text-muted-foreground text-sm leading-relaxed mb-4">
                   {product.description}
                 </p>
-              </CardContent>
+
+                <Button
+                  onClick={() => handleAddToCart(product)}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full transition-all hover:scale-105 shadow-soft"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Adicionar ao Carrinho
+                </Button>
+              </div>
             </Card>
           ))}
         </div>
