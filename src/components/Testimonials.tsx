@@ -25,6 +25,7 @@ const Testimonials = () => {
       return data as Testimonial[];
     },
   });
+
   return (
     <section className="py-20 px-4 bg-background">
       <div className="container mx-auto">
@@ -40,7 +41,7 @@ const Testimonials = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {testimonials.map((testimonial, index) => (
             <Card 
-              key={index}
+              key={testimonial.id}
               className="border-border/50 shadow-soft hover:shadow-warm transition-all duration-300 bg-card animate-fade-in-up"
               style={{ animationDelay: `${index * 150}ms` }}
             >

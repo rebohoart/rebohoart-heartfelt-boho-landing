@@ -1,0 +1,5 @@
+-- Insert existing testimonials
+INSERT INTO public.testimonials (name, role, text, active) VALUES
+  ('Sofia M.', 'Interior Designer', 'The macrame wall hanging transformed my living room. You can feel the love and craftsmanship in every knot. It''s not just decor - it''s a conversation piece that brings such warmth to the space.', true),
+  ('Joao P.', 'Boho Lifestyle Enthusiast', 'I''ve been following Rebohoart for months, and finally bought three pieces for my home. The quality is exceptional, and knowing each piece is handmade makes them even more special. Truly meaningful decor!', true),
+  ('Mariana L.', 'Sustainable Living Advocate', 'Finding artisans who care about sustainability AND beauty is rare. Rebohoart delivers both. The ceramic planters are stunning, and I love that they''re made with ethical materials. Highly recommend!', true);

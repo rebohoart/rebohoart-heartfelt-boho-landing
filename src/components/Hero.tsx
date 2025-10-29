@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-boho-interior.jpg";
-import { Mail } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Hero = () => {
@@ -49,7 +49,7 @@ const Hero = () => {
               asChild
             >
               <Link to="/contacto" className="flex items-center gap-2">
-                <Mail className="w-5 h-5" />
+                <MessageCircle className="w-5 h-5" />
                 Contact Us
               </Link>
             </Button>

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
 
 interface Testimonial {
@@ -125,7 +125,7 @@ export const TestimonialsManager = () => {
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-8 mt-8">
+    <div className="grid md:grid-cols-2 gap-8">
       {/* Form */}
       <Card className="p-6">
         <h2 className="font-serif text-2xl font-bold mb-4">
@@ -144,7 +144,7 @@ export const TestimonialsManager = () => {
           </div>
 
           <div>
-            <Label htmlFor="role">Função</Label>
+            <Label htmlFor="role">Função/Papel</Label>
             <Input
               id="role"
               value={formData.role}
@@ -200,7 +200,7 @@ export const TestimonialsManager = () => {
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">{testimonial.name}</h3>
                     <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                    <p className="text-sm mt-2">{testimonial.text.substring(0, 100)}...</p>
+                    <p className="text-sm mt-2 italic">"{testimonial.text}"</p>
                     <p className={`text-sm mt-2 ${testimonial.active ? 'text-green-600' : 'text-red-600'}`}>
                       {testimonial.active ? 'Visível' : 'Oculto'}
                     </p>
