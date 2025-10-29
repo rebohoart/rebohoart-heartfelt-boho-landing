@@ -3,6 +3,13 @@ import heroImage from "@/assets/hero-boho-interior.jpg";
 import { Instagram } from "lucide-react";
 
 const Hero = () => {
+  const scrollToProducts = () => {
+    const productsSection = document.getElementById('products-section');
+    if (productsSection) {
+      productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image */}
@@ -28,6 +35,7 @@ const Hero = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button 
               size="lg" 
+              onClick={scrollToProducts}
               className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-warm transition-all hover:scale-105 px-8 py-6 text-lg rounded-full font-medium"
             >
               Explore Our Collection
