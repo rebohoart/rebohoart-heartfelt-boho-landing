@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Instagram, Mail } from "lucide-react";
+import { Instagram } from "lucide-react";
 
 const FinalCTA = () => {
   return (
@@ -37,25 +37,15 @@ const FinalCTA = () => {
           </div>
           
           {/* Social Links */}
-          <div className="flex gap-6 justify-center items-center pt-8 border-t border-primary-foreground/20">
+          <div className="flex justify-center items-center pt-8 border-t border-primary-foreground/20">
             <a 
-              href="https://instagram.com/rebohoart" 
+              href="https://www.instagram.com/rebohoart/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground transition-colors group"
             >
               <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" />
               <span className="font-medium">@rebohoart</span>
-            </a>
-            
-            <span className="text-primary-foreground/40">·</span>
-            
-            <a 
-              href="mailto:hello@rebohoart.com"
-              className="flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground transition-colors group"
-            >
-              <Mail className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <span className="font-medium">Get in Touch</span>
             </a>
           </div>
         </div>

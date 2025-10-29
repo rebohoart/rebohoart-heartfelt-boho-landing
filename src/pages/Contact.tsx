@@ -1,52 +1,7 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Instagram, Mail, MessageCircle, MapPin, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Instagram } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-
-const contactSchema = z.object({
-  name: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
-  email: z.string().trim().email("Email inválido").max(255, "Email muito longo"),
-  subject: z.string().trim().min(1, "Assunto é obrigatório").max(200, "Assunto muito longo"),
-  message: z.string().trim().min(10, "Mensagem muito curta").max(1000, "Mensagem muito longa"),
-});
-
-type ContactFormValues = z.infer<typeof contactSchema>;
 
 const Contact = () => {
-  const form = useForm<ContactFormValues>({
-    resolver: zodResolver(contactSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-    },
-  });
-
-  const onSubmit = (data: ContactFormValues) => {
-    const whatsappMessage = encodeURIComponent(
-      `Nome: ${data.name}\nEmail: ${data.email}\nAssunto: ${data.subject}\n\nMensagem:\n${data.message}`
-    );
-
-    window.open(`https://wa.me/351912345678?text=${whatsappMessage}`, "_blank");
-
-    toast.success("Obrigado! Redirecionando para WhatsApp...");
-    form.reset();
-  };
-
   return (
     <main className="min-h-screen font-sans pt-20">
       {/* Hero Section */}
@@ -56,178 +11,98 @@ const Contact = () => {
             Vamos Conversar
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Tem alguma questão ou gostaria de fazer uma encomenda personalizada? 
-            Adoramos ouvir de si. Preencha o formulário ou contacte-nos diretamente.
+            Entre em contacto connosco através do Instagram. Adoramos ouvir de si 
+            e responder a todas as suas questões sobre os nossos produtos artesanais.
           </p>
         </div>
       </section>
 
-      {/* Contact Form & Info */}
+      {/* Contact Info */}
       <section className="py-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Form */}
-            <div className="lg:col-span-2">
-              <Card className="p-6 md:p-8">
-                <h2 className="font-serif text-2xl font-bold mb-6">
-                  Envie-nos uma Mensagem
+        <div className="container mx-auto max-w-4xl">
+          <div className="grid grid-cols-1 gap-8">
+            <Card className="p-8 md:p-12 text-center bg-gradient-warm">
+              <div className="max-w-2xl mx-auto">
+                <Instagram className="w-16 h-16 text-primary-foreground mx-auto mb-6" />
+                <h2 className="font-serif text-3xl font-bold mb-4 text-primary-foreground">
+                  Siga-nos no Instagram
                 </h2>
+                <p className="text-lg text-primary-foreground/90 mb-8">
+                  O Instagram é a nossa casa. É onde partilhamos os nossos produtos, 
+                  o processo criativo e onde pode fazer as suas encomendas através de mensagem direta.
+                </p>
+                <a
+                  href="https://www.instagram.com/rebohoart/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 bg-background text-foreground hover:bg-background/90 px-8 py-4 rounded-full font-semibold text-lg shadow-warm transition-all hover:scale-105"
+                >
+                  <Instagram className="w-6 h-6" />
+                  <span>@rebohoart</span>
+                </a>
+              </div>
+            </Card>
 
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nome</FormLabel>
-                            <FormControl>
-                              <Input placeholder="O seu nome" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="seuemail@exemplo.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="subject"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Assunto</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Como podemos ajudar?" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="message"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Mensagem</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Descreva o seu pedido ou questão..."
-                              className="min-h-[150px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      type="submit"
-                      className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-8 py-6 text-lg shadow-warm"
-                    >
-                      Enviar via WhatsApp
-                    </Button>
-                  </form>
-                </Form>
-              </Card>
-            </div>
-
-            {/* Contact Info */}
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-6">
-                <h3 className="font-serif text-xl font-bold mb-4">
-                  Informações de Contacto
+                <h3 className="font-serif text-xl font-bold mb-4 text-center">
+                  Como Fazer uma Encomenda
                 </h3>
-                <div className="space-y-4">
-                  <a
-                    href="mailto:hello@rebohoart.com"
-                    className="flex items-start gap-3 text-muted-foreground hover:text-primary transition-colors group"
-                  >
-                    <Mail className="w-5 h-5 mt-0.5 group-hover:scale-110 transition-transform" />
-                    <div>
-                      <p className="font-medium text-foreground">Email</p>
-                      <p className="text-sm">hello@rebohoart.com</p>
-                    </div>
-                  </a>
-
-                  <a
-                    href="https://wa.me/351912345678"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-3 text-muted-foreground hover:text-primary transition-colors group"
-                  >
-                    <MessageCircle className="w-5 h-5 mt-0.5 group-hover:scale-110 transition-transform" />
-                    <div>
-                      <p className="font-medium text-foreground">WhatsApp</p>
-                      <p className="text-sm">+351 912 345 678</p>
-                    </div>
-                  </a>
-
-                  <a
-                    href="https://instagram.com/rebohoart"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-3 text-muted-foreground hover:text-primary transition-colors group"
-                  >
-                    <Instagram className="w-5 h-5 mt-0.5 group-hover:scale-110 transition-transform" />
-                    <div>
-                      <p className="font-medium text-foreground">Instagram</p>
-                      <p className="text-sm">@rebohoart</p>
-                    </div>
-                  </a>
-                </div>
+                <ol className="space-y-3 text-muted-foreground">
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                    <span>Siga-nos no Instagram @rebohoart</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                    <span>Envie-nos uma mensagem direta (DM)</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                    <span>Diga-nos qual o produto que deseja</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">4</span>
+                    <span>Confirmaremos disponibilidade e detalhes</span>
+                  </li>
+                </ol>
               </Card>
 
               <Card className="p-6">
-                <h3 className="font-serif text-xl font-bold mb-4">
-                  Localização
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 text-muted-foreground">
-                    <MapPin className="w-5 h-5 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-foreground">Portugal</p>
-                      <p className="text-sm">Envios para toda a Europa</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 text-muted-foreground">
-                    <Clock className="w-5 h-5 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-foreground">Horário</p>
-                      <p className="text-sm">Seg-Sex: 9h-18h</p>
-                      <p className="text-sm">Sáb: 10h-14h</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 bg-gradient-warm text-primary-foreground">
-                <h3 className="font-serif text-xl font-bold mb-2">
+                <h3 className="font-serif text-xl font-bold mb-4 text-center">
                   Encomendas Personalizadas
                 </h3>
-                <p className="text-sm text-primary-foreground/90">
-                  Todos os nossos produtos podem ser personalizados. Entre em contacto 
-                  connosco para criar algo único para o seu espaço.
+                <p className="text-muted-foreground mb-4">
+                  Todos os nossos produtos podem ser personalizados de acordo com as suas 
+                  preferências. Cores, tamanhos e detalhes especiais - basta perguntar!
                 </p>
+                <div className="bg-accent/30 p-4 rounded-lg">
+                  <p className="text-sm text-foreground font-medium text-center">
+                    ✨ Cada peça é feita à mão com amor<br />
+                    🌿 Materiais sustentáveis e naturais<br />
+                    🇵🇹 Criado em Portugal
+                  </p>
+                </div>
               </Card>
             </div>
+
+            <Card className="p-8 text-center bg-accent/20">
+              <h3 className="font-serif text-2xl font-bold mb-3">
+                Pronto para começar?
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Visite o nosso Instagram e descubra todas as nossas criações artesanais
+              </p>
+              <a
+                href="https://www.instagram.com/rebohoart/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 rounded-full font-semibold shadow-warm transition-all hover:scale-105"
+              >
+                <Instagram className="w-5 h-5" />
+                Visitar Instagram
+              </a>
+            </Card>
           </div>
         </div>
       </section>

@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, Instagram, Mail } from "lucide-react";
+import { ShoppingCart, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import CartDrawer from "./CartDrawer";
-import ContactModal from "./ContactModal";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [contactOpen, setContactOpen] = useState(false);
   const { totalItems } = useCart();
 
   useEffect(() => {
@@ -45,24 +43,13 @@ const Navigation = () => {
                 asChild
               >
                 <a
-                  href="https://instagram.com/rebohoart"
+                  href="https://www.instagram.com/rebohoart/"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
                 >
                   <Instagram className="w-5 h-5" />
                 </a>
-              </Button>
-
-              {/* Contact */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-foreground hover:text-primary hover:bg-primary/10 rounded-full"
-                onClick={() => setContactOpen(true)}
-                aria-label="Contact"
-              >
-                <Mail className="w-5 h-5" />
               </Button>
 
               {/* Cart */}
@@ -86,7 +73,6 @@ const Navigation = () => {
       </header>
 
       <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
-      <ContactModal open={contactOpen} onOpenChange={setContactOpen} />
     </>
   );
 };

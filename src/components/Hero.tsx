@@ -39,7 +39,7 @@ const Hero = () => {
               className="border-2 border-foreground/20 hover:border-primary hover:bg-primary/10 transition-all px-8 py-6 text-lg rounded-full font-medium"
               asChild
             >
-              <a href="https://instagram.com/rebohoart" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+              <a href="https://www.instagram.com/rebohoart/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                 <Instagram className="w-5 h-5" />
                 Follow on Instagram
               </a>
@@ -47,7 +47,7 @@ const Hero = () => {
           </div>
           
           <p className="mt-8 text-sm text-muted-foreground italic">
-            Handcrafted in Portugal · Custom orders via DM
+            Handcrafted in Portugal · Encomendas por Instagram DM
           </p>
         </div>
       </div>

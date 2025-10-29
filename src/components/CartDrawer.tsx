@@ -29,13 +29,15 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
       .join("\n");
 
     const total = `\n\nTotal: €${totalPrice.toFixed(2)}`;
-    const whatsappMessage = encodeURIComponent(
-      `Olá! Gostaria de fazer um pedido:\n\n${message}${total}`
+    const instagramMessage = encodeURIComponent(
+      `Olá! Gostaria de fazer um pedido:\n\n${message}${total}\n\nPor favor, confirme a disponibilidade.`
     );
 
-    window.open(`https://wa.me/351912345678?text=${whatsappMessage}`, "_blank");
+    window.open(`https://www.instagram.com/rebohoart/`, "_blank");
     
-    toast.success("Redirecionando para WhatsApp...");
+    toast.success("Redirecionando para Instagram. Envie a sua mensagem por DM!", {
+      duration: 4000,
+    });
   };
 
   const handleRemoveItem = (productId: string, productTitle: string) => {
@@ -150,7 +152,7 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                 onClick={handleCheckout}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6 text-lg font-semibold shadow-warm"
               >
-                Finalizar Pedido via WhatsApp
+                Finalizar Pedido via Instagram
               </Button>
 
               <Button
