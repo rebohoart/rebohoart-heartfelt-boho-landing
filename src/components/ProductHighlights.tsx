@@ -2,11 +2,42 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { products } from "@/lib/products";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import macrameWall from "@/assets/product-macrame-wall.jpg";
+import ceramicPlanter from "@/assets/product-ceramic-planter.jpg";
+import wovenBasket from "@/assets/product-woven-basket.jpg";
+import canvasArt from "@/assets/product-canvas-art.jpg";
+
+// Map image filenames to actual imports
+const imageMap: Record<string, string> = {
+  'product-macrame-wall.jpg': macrameWall,
+  'product-ceramic-planter.jpg': ceramicPlanter,
+  'product-woven-basket.jpg': wovenBasket,
+  'product-canvas-art.jpg': canvasArt,
+};
 
 const ProductHighlights = () => {
   const { addItem } = useCart();
+
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Map image filenames to actual image imports
+      return data.map(product => ({
+        ...product,
+        image: imageMap[product.image] || product.image,
+      }));
+    },
+  });
 
   const handleAddToCart = (product: typeof products[0]) => {
     addItem(product);
@@ -15,8 +46,18 @@ const ProductHighlights = () => {
     });
   };
 
+  if (isLoading) {
+    return (
+      <section id="products-section" className="py-20 px-4 bg-gradient-natural">
+        <div className="container mx-auto text-center">
+          <p className="text-muted-foreground">A carregar produtos...</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="py-20 px-4 bg-gradient-natural">
+    <section id="products-section" className="py-20 px-4 bg-gradient-natural">
       <div className="container mx-auto">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4 text-foreground">
