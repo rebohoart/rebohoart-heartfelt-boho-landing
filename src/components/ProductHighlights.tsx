@@ -27,6 +27,7 @@ const ProductHighlights = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('active', true)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
