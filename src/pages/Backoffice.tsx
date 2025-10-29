@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus } from "lucide-react";
+import { TestimonialsManager } from "@/components/TestimonialsManager";
 
 interface Product {
   id: string;
@@ -157,7 +159,14 @@ const Backoffice = () => {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <Tabs defaultValue="products" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="products">Produtos</TabsTrigger>
+            <TabsTrigger value="testimonials">Testemunhos</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products">
+            <div className="grid md:grid-cols-2 gap-8">
           {/* Form */}
           <Card className="p-6">
             <h2 className="font-serif text-2xl font-bold mb-4">
@@ -292,6 +301,12 @@ const Backoffice = () => {
             )}
           </div>
         </div>
+          </TabsContent>
+
+          <TabsContent value="testimonials">
+            <TestimonialsManager />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

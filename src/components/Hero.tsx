@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-boho-interior.jpg";
-import { Instagram } from "lucide-react";
+import { Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Hero = () => {
   const scrollToProducts = () => {
@@ -47,10 +48,10 @@ const Hero = () => {
               className="border-2 border-foreground/20 hover:border-primary hover:bg-primary/10 transition-all px-8 py-6 text-lg rounded-full font-medium"
               asChild
             >
-              <a href="https://www.instagram.com/rebohoart/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                <Instagram className="w-5 h-5" />
-                Follow on Instagram
-              </a>
+              <Link to="/contacto" className="flex items-center gap-2">
+                <Mail className="w-5 h-5" />
+                Contact Us
+              </Link>
             </Button>
           </div>
           

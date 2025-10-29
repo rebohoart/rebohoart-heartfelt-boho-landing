@@ -1,25 +1,30 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Quote } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const testimonials = [
-  {
-    name: "Sofia M.",
-    role: "Interior Designer",
-    text: "The macramé wall hanging transformed my living room. You can feel the love and craftsmanship in every knot. It's not just décor—it's a conversation piece that brings such warmth to the space.",
-  },
-  {
-    name: "João P.",
-    role: "Boho Lifestyle Enthusiast",
-    text: "I've been following Rebohoart for months, and finally bought three pieces for my home. The quality is exceptional, and knowing each piece is handmade makes them even more special. Truly meaningful décor!",
-  },
-  {
-    name: "Mariana L.",
-    role: "Sustainable Living Advocate",
-    text: "Finding artisans who care about sustainability AND beauty is rare. Rebohoart delivers both. The ceramic planters are stunning, and I love that they're made with ethical materials. Highly recommend!",
-  },
-];
+interface Testimonial {
+  id: string;
+  name: string;
+  role: string;
+  text: string;
+  active: boolean;
+}
 
 const Testimonials = () => {
+  const { data: testimonials = [] } = useQuery({
+    queryKey: ['testimonials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      return data as Testimonial[];
+    },
+  });
   return (
     <section className="py-20 px-4 bg-background">
       <div className="container mx-auto">
