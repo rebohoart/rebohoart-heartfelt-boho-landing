@@ -8,81 +8,81 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Reboho Brand Guide Colors */
-    --background: 39 34% 91%;
-    --foreground: 20 32% 19%;
+    /* Reboho Brand Guide Colors - #e8e1d7, #d3c1a8, #412b21, #9a7346, #7e4f3a */
+    --background: 37 38% 89%;     /* #e8e1d7 */
+    --foreground: 18 31% 20%;     /* #412b21 */
 
-    --card: 39 34% 91%;
-    --card-foreground: 20 32% 19%;
+    --card: 37 38% 89%;
+    --card-foreground: 18 31% 20%;
 
-    --popover: 39 34% 91%;
-    --popover-foreground: 20 32% 19%;
+    --popover: 37 38% 89%;
+    --popover-foreground: 18 31% 20%;
 
     /* Primary: #9a7346 */
-    --primary: 27 40% 42%;
-    --primary-foreground: 39 34% 91%;
+    --primary: 27 42% 44%;
+    --primary-foreground: 37 38% 89%;
 
     /* Secondary: #5a5b3c */
-    --secondary: 67 11% 35%;
-    --secondary-foreground: 39 34% 91%;
+    --secondary: 61 21% 30%;
+    --secondary-foreground: 37 38% 89%;
 
     /* Muted: #d3c1a8 */
-    --muted: 37 31% 81%;
-    --muted-foreground: 67 11% 35%;
+    --muted: 37 34% 75%;
+    --muted-foreground: 18 31% 30%;
 
-    /* Accent: #85945f */
-    --accent: 71 23% 56%;
-    --accent-foreground: 20 32% 19%;
+    /* Accent: #85945f - green */
+    --accent: 71 23% 48%;
+    --accent-foreground: 37 38% 89%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 39 34% 91%;
+    --destructive-foreground: 37 38% 89%;
 
-    --border: 37 31% 81%;
-    --input: 37 31% 81%;
-    --ring: 27 40% 42%;
+    --border: 37 34% 75%;
+    --input: 37 34% 75%;
+    --ring: 27 42% 44%;
 
-    --radius: 0.5rem;
+    --radius: 0.25rem;
 
-    /* Gradients */
-    --gradient-warm: linear-gradient(135deg, hsl(27 40% 42%), hsl(40 34% 72%));
-    --gradient-natural: linear-gradient(180deg, hsl(39 34% 91%), hsl(37 31% 81%));
+    /* Gradients usando cores do brand guide */
+    --gradient-warm: linear-gradient(135deg, hsl(27 42% 44%), hsl(37 34% 75%));
+    --gradient-natural: linear-gradient(180deg, hsl(37 38% 89%), hsl(37 34% 75%));
     
     /* Shadows */
-    --shadow-soft: 0 4px 20px -2px hsl(27 40% 42% / 0.1);
-    --shadow-warm: 0 8px 30px -4px hsl(27 40% 42% / 0.15);
+    --shadow-soft: 0 4px 20px -2px hsl(27 42% 44% / 0.15);
+    --shadow-warm: 0 8px 30px -4px hsl(18 31% 20% / 0.1);
 
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    --background: 20 32% 19%;
-    --foreground: 39 34% 91%;
+    --background: 18 31% 20%;
+    --foreground: 37 38% 89%;
 
-    --card: 20 32% 19%;
-    --card-foreground: 39 34% 91%;
+    --card: 18 31% 25%;
+    --card-foreground: 37 38% 89%;
 
-    --popover: 20 32% 19%;
-    --popover-foreground: 39 34% 91%;
+    --popover: 18 31% 20%;
+    --popover-foreground: 37 38% 89%;
 
-    --primary: 27 40% 42%;
-    --primary-foreground: 39 34% 91%;
+    --primary: 27 42% 44%;
+    --primary-foreground: 37 38% 89%;
 
-    --secondary: 67 11% 35%;
-    --secondary-foreground: 39 34% 91%;
+    --secondary: 61 21% 30%;
+    --secondary-foreground: 37 38% 89%;
 
-    --muted: 27 40% 42%;
-    --muted-foreground: 37 31% 81%;
+    --muted: 18 31% 30%;
+    --muted-foreground: 37 34% 75%;
 
-    --accent: 71 23% 56%;
-    --accent-foreground: 39 34% 91%;
+    --accent: 71 23% 48%;
+    --accent-foreground: 37 38% 89%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 39 34% 91%;
+    --destructive-foreground: 37 38% 89%;
 
-    --border: 27 40% 42%;
-    --input: 27 40% 42%;
-    --ring: 71 23% 56%;
+    --border: 18 31% 30%;
+    --input: 18 31% 30%;
+    --ring: 71 23% 48%;
   }
 }
 
