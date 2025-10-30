@@ -25,7 +25,7 @@ const Hero = () => {
           <img 
             src={logo} 
             alt="Reboho" 
-            className="h-32 md:h-40 w-auto mx-auto mb-6"
+            className="h-48 md:h-64 lg:h-80 w-auto mx-auto mb-8"
           />
           
           <p className="text-lg md:text-xl text-foreground/80 mb-8 max-w-2xl mx-auto font-light">Peças artesanais feitas com o coração para decorar com significado.</p>
