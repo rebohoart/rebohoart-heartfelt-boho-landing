@@ -87,7 +87,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       id: `custom-${Date.now()}`,
       title: formData.title,
       description: formData.description,
-      image: uploadedImages[0] || "/src/assets/logo-reboho.png",
+      image: uploadedImages[0] || "/src/assets/logo-reboho-no-bg.png",
       images: uploadedImages,
       price: price,
       category: "Peça Personalizada",
@@ -103,7 +103,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-primary" />

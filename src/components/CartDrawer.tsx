@@ -80,11 +80,11 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                   className="flex gap-4 p-4 bg-card rounded-lg border border-border"
                 >
                   <img
-                    src={item.product.image || "/src/assets/logo-reboho.png"}
+                    src={item.product.image || "/src/assets/logo-reboho-no-bg.png"}
                     alt={`Imagem de ${item.product.title}`}
                     className="w-20 h-20 object-cover rounded-md"
                     onError={(e) => {
-                      e.currentTarget.src = "/src/assets/logo-reboho.png";
+                      e.currentTarget.src = "/src/assets/logo-reboho-no-bg.png";
                     }}
                   />
 
