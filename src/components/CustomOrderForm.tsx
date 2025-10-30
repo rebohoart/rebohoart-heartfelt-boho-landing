@@ -13,6 +13,7 @@ import {
 import { Sparkles, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { escapeHtml, validateImageFile } from "@/lib/sanitize";
 
 interface CustomOrderFormProps {
   open: boolean;
@@ -38,11 +39,18 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
 
     try {
       for (const file of Array.from(files)) {
+        // Validate file before upload
+        const validation = validateImageFile(file);
+        if (!validation.isValid) {
+          toast.error(validation.error || "Ficheiro inválido");
+          continue; // Skip this file and continue with others
+        }
+
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const { error: uploadError, data } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('custom-orders')
           .upload(filePath, file);
 
@@ -55,10 +63,12 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
         uploadedUrls.push(publicUrl);
       }
 
-      setUploadedImages([...uploadedImages, ...uploadedUrls]);
-      toast.success("Imagens carregadas com sucesso!");
+      if (uploadedUrls.length > 0) {
+        setUploadedImages([...uploadedImages, ...uploadedUrls]);
+        toast.success("Imagens carregadas com sucesso!");
+      }
     } catch (error: any) {
-      toast.error("Erro ao carregar imagens: " + error.message);
+      toast.error("Erro ao carregar imagens. Por favor, tente novamente.");
     } finally {
       setUploading(false);
     }
@@ -83,17 +93,26 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
     }
 
     try {
+      // Escape user input to prevent XSS attacks
+      const safeTitle = escapeHtml(formData.title);
+      const safeDescription = escapeHtml(formData.description).replace(/\n/g, '<br>');
+      const safeName = escapeHtml(formData.customerName);
+      const safeEmail = escapeHtml(formData.customerEmail);
+
+      // Sanitize URLs (already from our storage, but good practice)
+      const safeImages = uploadedImages.map(url => escapeHtml(url));
+
       const details = `
-        <strong>Título:</strong> ${formData.title}<br><br>
-        <strong>Descrição:</strong><br>${formData.description.replace(/\n/g, '<br>')}<br><br>
-        ${uploadedImages.length > 0 ? `<strong>Imagens de Referência:</strong><br>${uploadedImages.map((url, i) => `<a href="${url}">Imagem ${i + 1}</a>`).join('<br>')}` : ''}
+        <strong>Título:</strong> ${safeTitle}<br><br>
+        <strong>Descrição:</strong><br>${safeDescription}<br><br>
+        ${safeImages.length > 0 ? `<strong>Imagens de Referência:</strong><br>${safeImages.map((url, i) => `<a href="${url}">Imagem ${i + 1}</a>`).join('<br>')}` : ''}
       `;
 
       const response = await supabase.functions.invoke('send-order-email', {
         body: {
           type: 'custom',
-          customerName: formData.customerName,
-          customerEmail: formData.customerEmail,
+          customerName: safeName,
+          customerEmail: safeEmail,
           details: details,
         },
       });
@@ -105,7 +124,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       setUploadedImages([]);
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Error sending custom order:", error);
+      // Don't expose detailed error messages to users
       toast.error("Erro ao enviar pedido. Por favor, tente novamente.");
     }
   };
