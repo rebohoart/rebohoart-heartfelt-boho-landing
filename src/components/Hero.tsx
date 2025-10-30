@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-reboho-transparent.png";
 import { MessageCircle } from "lucide-react";
-import { Link } from "react-router-dom";
 const Hero = () => {
   const scrollToProducts = () => {
     const productsSection = document.getElementById('products-section');
@@ -35,11 +34,14 @@ const Hero = () => {
               Explorar
             </Button>
             
-            <Button size="lg" variant="outline" className="border-2 border-foreground/20 hover:border-primary hover:bg-primary/10 transition-all px-8 py-6 text-lg rounded-full font-medium" asChild>
-              <Link to="/contacto" className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5" />
-                Contacto
-              </Link>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-2 border-foreground/20 hover:border-primary hover:bg-primary/10 transition-all px-8 py-6 text-lg rounded-full font-medium"
+              onClick={() => window.open('https://www.instagram.com/direct/t/rebohoart', '_blank')}
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Contacto
             </Button>
           </div>
           

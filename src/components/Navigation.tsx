@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, Instagram } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import CartDrawer from "./CartDrawer";
@@ -36,23 +36,6 @@ const Navigation = () => {
 
             {/* Navigation Actions */}
             <div className="flex items-center gap-2 md:gap-4">
-              {/* Instagram */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-foreground hover:text-primary hover:bg-primary/10 rounded-full"
-                asChild
-              >
-                <a
-                  href="https://www.instagram.com/rebohoart/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="w-5 h-5" />
-                </a>
-              </Button>
-
               {/* Cart */}
               <Button
                 variant="ghost"

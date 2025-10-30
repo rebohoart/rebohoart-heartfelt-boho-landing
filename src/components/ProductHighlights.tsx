@@ -75,7 +75,7 @@ const ProductHighlights = () => {
           {products.map((product, index) => (
             <Card 
               key={product.id}
-              className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in bg-card"
+              className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in bg-card flex flex-col"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <ProductImageGallery 
@@ -83,7 +83,7 @@ const ProductHighlights = () => {
                 title={product.title} 
               />
               
-              <div className="p-6">
+              <div className="p-6 flex flex-col flex-1">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-serif text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
                     {product.title}
@@ -93,7 +93,7 @@ const ProductHighlights = () => {
                   </p>
                 </div>
                 
-                <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+                <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-1">
                   {product.description}
                 </p>
 
@@ -101,7 +101,7 @@ const ProductHighlights = () => {
                   onClick={() => handleAddToCart(product)}
                   variant="default"
                   size="default"
-                  className="w-full"
+                  className="w-full rounded-full mt-auto"
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Adicionar
