@@ -8,81 +8,81 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Boho earthy color palette */
-    --background: 35 45% 97%;
-    --foreground: 25 20% 25%;
+    /* Reboho Brand Guide Colors */
+    --background: 39 34% 91%;
+    --foreground: 20 32% 19%;
 
-    --card: 30 40% 95%;
-    --card-foreground: 25 20% 25%;
+    --card: 39 34% 91%;
+    --card-foreground: 20 32% 19%;
 
-    --popover: 35 45% 97%;
-    --popover-foreground: 25 20% 25%;
+    --popover: 39 34% 91%;
+    --popover-foreground: 20 32% 19%;
 
-    /* Terracotta primary */
-    --primary: 15 60% 62%;
-    --primary-foreground: 35 45% 97%;
+    /* Primary: #9a7346 */
+    --primary: 27 40% 42%;
+    --primary-foreground: 39 34% 91%;
 
-    /* Olive green secondary */
-    --secondary: 75 25% 45%;
-    --secondary-foreground: 35 45% 97%;
+    /* Secondary: #5a5b3c */
+    --secondary: 67 11% 35%;
+    --secondary-foreground: 39 34% 91%;
 
-    /* Sand muted tones */
-    --muted: 40 30% 88%;
-    --muted-foreground: 25 15% 45%;
+    /* Muted: #d3c1a8 */
+    --muted: 37 31% 81%;
+    --muted-foreground: 67 11% 35%;
 
-    /* Warm accent */
-    --accent: 35 50% 85%;
-    --accent-foreground: 25 20% 25%;
+    /* Accent: #85945f */
+    --accent: 71 23% 56%;
+    --accent-foreground: 20 32% 19%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 35 45% 97%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 39 34% 91%;
 
-    --border: 35 25% 85%;
-    --input: 35 25% 85%;
-    --ring: 15 60% 62%;
+    --border: 37 31% 81%;
+    --input: 37 31% 81%;
+    --ring: 27 40% 42%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     /* Gradients */
-    --gradient-warm: linear-gradient(135deg, hsl(15 60% 62%), hsl(35 50% 75%));
-    --gradient-natural: linear-gradient(180deg, hsl(35 45% 97%), hsl(40 30% 92%));
+    --gradient-warm: linear-gradient(135deg, hsl(27 40% 42%), hsl(40 34% 72%));
+    --gradient-natural: linear-gradient(180deg, hsl(39 34% 91%), hsl(37 31% 81%));
     
     /* Shadows */
-    --shadow-soft: 0 4px 20px -2px hsl(15 60% 62% / 0.1);
-    --shadow-warm: 0 8px 30px -4px hsl(15 60% 62% / 0.15);
+    --shadow-soft: 0 4px 20px -2px hsl(27 40% 42% / 0.1);
+    --shadow-warm: 0 8px 30px -4px hsl(27 40% 42% / 0.15);
 
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    --background: 25 20% 15%;
-    --foreground: 35 45% 95%;
+    --background: 20 32% 19%;
+    --foreground: 39 34% 91%;
 
-    --card: 25 20% 18%;
-    --card-foreground: 35 45% 95%;
+    --card: 20 32% 19%;
+    --card-foreground: 39 34% 91%;
 
-    --popover: 25 20% 15%;
-    --popover-foreground: 35 45% 95%;
+    --popover: 20 32% 19%;
+    --popover-foreground: 39 34% 91%;
 
-    --primary: 15 60% 62%;
-    --primary-foreground: 35 45% 97%;
+    --primary: 27 40% 42%;
+    --primary-foreground: 39 34% 91%;
 
-    --secondary: 75 25% 35%;
-    --secondary-foreground: 35 45% 95%;
+    --secondary: 67 11% 35%;
+    --secondary-foreground: 39 34% 91%;
 
-    --muted: 25 15% 25%;
-    --muted-foreground: 40 20% 65%;
+    --muted: 27 40% 42%;
+    --muted-foreground: 37 31% 81%;
 
-    --accent: 35 40% 30%;
-    --accent-foreground: 35 45% 95%;
+    --accent: 71 23% 56%;
+    --accent-foreground: 39 34% 91%;
 
-    --destructive: 0 62.8% 50%;
-    --destructive-foreground: 35 45% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 39 34% 91%;
 
-    --border: 25 15% 25%;
-    --input: 25 15% 25%;
-    --ring: 15 60% 62%;
+    --border: 27 40% 42%;
+    --input: 27 40% 42%;
+    --ring: 71 23% 56%;
   }
 }
 

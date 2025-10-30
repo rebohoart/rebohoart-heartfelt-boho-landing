@@ -25,12 +25,12 @@ const Hero = () => {
       <div className="relative z-10 container mx-auto px-4 py-20 text-center animate-fade-in-up">
         <div className="max-w-4xl mx-auto">
           <h1 className="font-serif text-5xl md:text-7xl font-bold mb-6 text-foreground leading-tight">
-            Handmade Boho Art <br />
-            <span className="text-primary">Made with Heart</span>
+            Arte Boho<br />
+            <span className="text-primary">Feita à Mão</span>
           </h1>
           
           <p className="text-lg md:text-xl text-foreground/80 mb-8 max-w-2xl mx-auto font-light">
-            Bring nature-inspired art to your space. Each piece is crafted with love to fill your home with meaning and authentic boho spirit.
+            Peças únicas que trazem natureza e calma ao teu espaço. Cada criação é feita com amor e materiais sustentáveis.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -39,7 +39,7 @@ const Hero = () => {
               onClick={scrollToProducts}
               className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-warm transition-all hover:scale-105 px-8 py-6 text-lg rounded-full font-medium"
             >
-              Explore Our Collection
+              Ver Coleção
             </Button>
             
             <Button 
@@ -50,13 +50,13 @@ const Hero = () => {
             >
               <Link to="/contacto" className="flex items-center gap-2">
                 <MessageCircle className="w-5 h-5" />
-                Contact Us
+                Contactar
               </Link>
             </Button>
           </div>
           
           <p className="mt-8 text-sm text-muted-foreground italic">
-            Handcrafted in Portugal · Encomendas por Instagram DM
+            Feito em Portugal · Encomendas via Instagram DM
           </p>
         </div>
       </div>

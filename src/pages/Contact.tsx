@@ -1,9 +1,12 @@
+import Navigation from "@/components/Navigation";
 import { Instagram } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const Contact = () => {
   return (
-    <main className="min-h-screen font-sans pt-20">
+    <>
+      <Navigation />
+      <main className="min-h-screen font-sans pt-20">
       {/* Hero Section */}
       <section className="py-16 px-4 bg-gradient-to-b from-accent/30 to-background">
         <div className="container mx-auto max-w-4xl text-center">
@@ -106,7 +109,8 @@ const Contact = () => {
           </div>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 };
 

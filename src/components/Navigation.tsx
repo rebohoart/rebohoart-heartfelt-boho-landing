@@ -3,6 +3,7 @@ import { ShoppingCart, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import CartDrawer from "./CartDrawer";
+import logo from "@/assets/logo-reboho.png";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -29,8 +30,8 @@ const Navigation = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <a href="/" className="font-serif text-2xl md:text-3xl font-bold text-foreground hover:text-primary transition-colors">
-              Rebohoart
+            <a href="/" className="flex items-center">
+              <img src={logo} alt="Reboho" className="h-8 md:h-10 w-auto" />
             </a>
 
             {/* Navigation Actions */}

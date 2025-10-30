@@ -62,11 +62,10 @@ const ProductHighlights = () => {
       <div className="container mx-auto">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4 text-foreground">
-            Our Artisan Collection
+            Coleção Artesanal
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Each piece is handcrafted with sustainable materials and ethical practices, 
-            carrying the story of slow artistry into your home
+            Cada peça é feita à mão com materiais sustentáveis e práticas éticas
           </p>
         </div>
         

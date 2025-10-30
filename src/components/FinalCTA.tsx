@@ -10,29 +10,36 @@ const FinalCTA = () => {
       
       <div className="container mx-auto relative z-10">
         <div className="max-w-3xl mx-auto text-center animate-fade-in">
-          <h2 className="font-serif text-4xl md:text-6xl font-bold mb-6 text-primary-foreground">
-            Bring Meaning Back to Your Home
+          <h2 className="font-serif text-4xl md:text-6xl font-bold mb-6 text-foreground">
+            Transforma o Teu Espaço
           </h2>
           
-          <p className="text-lg md:text-xl text-primary-foreground/90 mb-10 leading-relaxed">
-            Join the boho art movement. Select pieces that speak your story, connect with nature, 
-            and transform your space into a sanctuary of intentional beauty.
+          <p className="text-lg md:text-xl text-foreground/90 mb-10 leading-relaxed">
+            Escolhe peças que contam a tua história e trazem natureza para dentro de casa.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Button 
               size="lg"
-              className="bg-background text-foreground hover:bg-background/90 shadow-warm transition-all hover:scale-105 px-10 py-7 text-lg rounded-full font-semibold"
+              onClick={() => {
+                const section = document.getElementById('products-section');
+                section?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-warm transition-all hover:scale-105 px-10 py-7 text-lg rounded-full font-semibold"
             >
-              Shop the Collection
+              Ver Coleção
             </Button>
             
             <Button 
               size="lg"
               variant="outline"
-              className="border-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:border-primary-foreground transition-all px-10 py-7 text-lg rounded-full font-semibold"
+              onClick={() => {
+                const message = encodeURIComponent("Olá! Gostaria de fazer uma encomenda personalizada.");
+                window.open(`https://www.instagram.com/direct/t/rebohoart?text=${message}`, "_blank");
+              }}
+              className="border-2 border-foreground/30 text-foreground hover:bg-primary/10 hover:border-primary transition-all px-10 py-7 text-lg rounded-full font-semibold"
             >
-              Customize Your Piece
+              Encomendar Personalizada
             </Button>
           </div>
           
