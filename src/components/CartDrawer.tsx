@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import CheckoutForm from "./CheckoutForm";
 
 interface CartDrawerProps {
   open: boolean;
@@ -18,31 +19,14 @@ interface CartDrawerProps {
 const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
 
-  const handleCheckout = () => {
-    if (items.length === 0) return;
-
-    const message = items
-      .map(
-        (item) =>
-          `${item.product.title} x${item.quantity} - €${(item.product.price * item.quantity).toFixed(2)}`
-      )
-      .join("\n");
-
-    const total = `\n\nTotal: €${totalPrice.toFixed(2)}`;
-    const instagramMessage = encodeURIComponent(
-      `Olá! Gostaria de fazer um pedido:\n\n${message}${total}\n\nPor favor, confirme a disponibilidade.`
-    );
-
-    window.open(`https://www.instagram.com/rebohoart/`, "_blank");
-    
-    toast.success("Redirecionando para Instagram. Envie a sua mensagem por DM!", {
-      duration: 4000,
-    });
-  };
-
   const handleRemoveItem = (productId: string, productTitle: string) => {
     removeItem(productId);
     toast.success(`${productTitle} removido do carrinho`);
+  };
+
+  const handleCheckoutSuccess = () => {
+    clearCart();
+    onOpenChange(false);
   };
 
   return (
@@ -154,12 +138,11 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                 <span className="text-primary">€{totalPrice.toFixed(2)}</span>
               </div>
 
-              <Button
-                onClick={handleCheckout}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6 text-lg font-semibold shadow-warm"
-              >
-                Finalizar Pedido via Instagram
-              </Button>
+              <CheckoutForm 
+                items={items}
+                totalPrice={totalPrice}
+                onSuccess={handleCheckoutSuccess}
+              />
 
               <Button
                 variant="outline"

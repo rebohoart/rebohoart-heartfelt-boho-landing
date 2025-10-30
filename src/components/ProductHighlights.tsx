@@ -34,11 +34,17 @@ const ProductHighlights = () => {
       if (error) throw error;
       
       // Map image filenames to actual image imports
-      return data.map(product => ({
-        ...product,
-        image: imageMap[product.image] || product.image,
-        images: (product.images || [product.image]).map(img => imageMap[img] || img),
-      }));
+      return data.map(product => {
+        const imagesArray = product.images && product.images.length > 0 
+          ? product.images 
+          : [product.image];
+        
+        return {
+          ...product,
+          image: imageMap[product.image] || product.image,
+          images: imagesArray.map(img => imageMap[img] || img),
+        };
+      });
     },
   });
 
@@ -79,7 +85,7 @@ const ProductHighlights = () => {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <ProductImageGallery 
-                images={product.images || [product.image]} 
+                images={product.images && product.images.length > 0 ? product.images : [product.image]} 
                 title={product.title} 
               />
               

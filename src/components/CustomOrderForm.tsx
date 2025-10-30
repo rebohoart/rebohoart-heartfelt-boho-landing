@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Sparkles, Upload, X } from "lucide-react";
-import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,11 +20,11 @@ interface CustomOrderFormProps {
 }
 
 const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
-  const { addItem } = useCart();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    price: "",
+    customerName: "",
+    customerEmail: "",
   });
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -69,36 +68,46 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
     setUploadedImages(uploadedImages.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.description || !formData.price) {
+    if (!formData.title || !formData.description || !formData.customerName || !formData.customerEmail) {
       toast.error("Por favor, preencha todos os campos");
       return;
     }
 
-    const price = parseFloat(formData.price);
-    if (isNaN(price) || price <= 0) {
-      toast.error("Por favor, insira um preço válido");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.customerEmail)) {
+      toast.error("Por favor, insira um email válido");
       return;
     }
 
-    const customProduct = {
-      id: `custom-${Date.now()}`,
-      title: formData.title,
-      description: formData.description,
-      image: uploadedImages[0] || "/src/assets/logo-reboho-no-bg.png",
-      images: uploadedImages,
-      price: price,
-      category: "Peça Personalizada",
-    };
+    try {
+      const details = `
+        <strong>Título:</strong> ${formData.title}<br><br>
+        <strong>Descrição:</strong><br>${formData.description.replace(/\n/g, '<br>')}<br><br>
+        ${uploadedImages.length > 0 ? `<strong>Imagens de Referência:</strong><br>${uploadedImages.map((url, i) => `<a href="${url}">Imagem ${i + 1}</a>`).join('<br>')}` : ''}
+      `;
 
-    addItem(customProduct);
-    toast.success("Peça personalizada adicionada ao carrinho!");
-    
-    setFormData({ title: "", description: "", price: "" });
-    setUploadedImages([]);
-    onOpenChange(false);
+      const response = await supabase.functions.invoke('send-order-email', {
+        body: {
+          type: 'custom',
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          details: details,
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      toast.success("Pedido enviado com sucesso! Entraremos em contacto em breve.");
+      setFormData({ title: "", description: "", customerName: "", customerEmail: "" });
+      setUploadedImages([]);
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error("Error sending custom order:", error);
+      toast.error("Erro ao enviar pedido. Por favor, tente novamente.");
+    }
   };
 
   return (
@@ -110,11 +119,34 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
             Peça Personalizada
           </DialogTitle>
           <DialogDescription>
-            Descreve a tua ideia e adiciona ao carrinho. Confirmamos os detalhes por Instagram DM.
+            Descreve a tua ideia e recebe um orçamento personalizado.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="customerName">O Teu Nome</Label>
+            <Input
+              id="customerName"
+              placeholder="Ex: Maria Silva"
+              value={formData.customerName}
+              onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="customerEmail">O Teu Email</Label>
+            <Input
+              id="customerEmail"
+              type="email"
+              placeholder="Ex: maria@exemplo.com"
+              value={formData.customerEmail}
+              onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+              required
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="title">Título da Peça</Label>
             <Input
@@ -136,24 +168,6 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               className="min-h-[120px]"
               required
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="price">Orçamento Estimado (€)</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Ex: 50.00"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              required
-              aria-describedby="price-description"
-            />
-            <p id="price-description" className="text-xs text-muted-foreground">
-              Indique o orçamento aproximado para a sua peça personalizada
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -214,7 +228,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-full"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Adicionar ao Carrinho
+              Pedir Orçamento
             </Button>
           </div>
         </form>
