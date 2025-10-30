@@ -10,9 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Upload, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CustomOrderFormProps {
   open: boolean;
@@ -26,6 +27,47 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
     description: "",
     price: "",
   });
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError, data } = await supabase.storage
+          .from('custom-orders')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('custom-orders')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      setUploadedImages([...uploadedImages, ...uploadedUrls]);
+      toast.success("Imagens carregadas com sucesso!");
+    } catch (error: any) {
+      toast.error("Erro ao carregar imagens: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(uploadedImages.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +87,8 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       id: `custom-${Date.now()}`,
       title: formData.title,
       description: formData.description,
-      image: "",
+      image: uploadedImages[0] || "/src/assets/logo-reboho.png",
+      images: uploadedImages,
       price: price,
       category: "Peça Personalizada",
     };
@@ -54,6 +97,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
     toast.success("Peça personalizada adicionada ao carrinho!");
     
     setFormData({ title: "", description: "", price: "" });
+    setUploadedImages([]);
     onOpenChange(false);
   };
 
@@ -105,7 +149,55 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               required
+              aria-describedby="price-description"
             />
+            <p id="price-description" className="text-xs text-muted-foreground">
+              Indique o orçamento aproximado para a sua peça personalizada
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="images">Imagens de Referência (opcional)</Label>
+            <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+              <Input
+                id="images"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+                disabled={uploading}
+                aria-label="Upload de imagens de referência"
+              />
+              <label htmlFor="images" className="cursor-pointer">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {uploading ? "A carregar..." : "Clique para adicionar imagens"}
+                </p>
+              </label>
+            </div>
+            
+            {uploadedImages.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {uploadedImages.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Imagem de referência ${index + 1}`}
+                      className="w-full h-20 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Remover imagem ${index + 1}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">

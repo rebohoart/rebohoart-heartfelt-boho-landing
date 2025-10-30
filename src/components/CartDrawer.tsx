@@ -80,9 +80,12 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                   className="flex gap-4 p-4 bg-card rounded-lg border border-border"
                 >
                   <img
-                    src={item.product.image}
-                    alt={item.product.title}
+                    src={item.product.image || "/src/assets/logo-reboho.png"}
+                    alt={`Imagem de ${item.product.title}`}
                     className="w-20 h-20 object-cover rounded-md"
+                    onError={(e) => {
+                      e.currentTarget.src = "/src/assets/logo-reboho.png";
+                    }}
                   />
 
                   <div className="flex-1 min-w-0">
@@ -102,10 +105,11 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                         onClick={() =>
                           updateQuantity(item.product.id, item.quantity - 1)
                         }
+                        aria-label={`Diminuir quantidade de ${item.product.title}`}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-8 text-center font-medium">
+                      <span className="w-8 text-center font-medium" aria-label="Quantidade">
                         {item.quantity}
                       </span>
                       <Button
@@ -115,6 +119,7 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                         onClick={() =>
                           updateQuantity(item.product.id, item.quantity + 1)
                         }
+                        aria-label={`Aumentar quantidade de ${item.product.title}`}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -130,6 +135,7 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                       onClick={() =>
                         handleRemoveItem(item.product.id, item.product.title)
                       }
+                      aria-label={`Remover ${item.product.title} do carrinho`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

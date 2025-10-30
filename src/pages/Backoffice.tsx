@@ -11,8 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { Pencil, Trash2, Plus } from "lucide-react";
-import { TestimonialsManager } from "@/components/TestimonialsManager";
+import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 
 interface Product {
   id: string;
@@ -39,6 +38,8 @@ const Backoffice = () => {
     category: "",
     active: true,
   });
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['admin-products'],
@@ -60,18 +61,60 @@ const Backoffice = () => {
     }
   }, [user, isAdmin, loading, navigate]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      setUploadedImages([...uploadedImages, ...uploadedUrls]);
+      toast.success("Imagens carregadas com sucesso!");
+    } catch (error: any) {
+      toast.error("Erro ao carregar imagens: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeUploadedImage = (index: number) => {
+    setUploadedImages(uploadedImages.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      // Convert images string to array
-      const imagesArray = formData.images
-        ? formData.images.split('\n').map(img => img.trim()).filter(img => img.length > 0)
-        : [formData.image];
+      const imagesArray = uploadedImages.length > 0 ? uploadedImages : [formData.image];
+      const mainImage = uploadedImages.length > 0 ? uploadedImages[0] : formData.image;
 
       const productData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        image: mainImage,
         images: imagesArray,
+        price: formData.price,
+        category: formData.category,
+        active: formData.active,
       };
 
       if (editingProduct) {
@@ -144,6 +187,7 @@ const Backoffice = () => {
       category: product.category,
       active: product.active,
     });
+    setUploadedImages(product.images || [product.image]);
   };
 
   const resetForm = () => {
@@ -157,6 +201,7 @@ const Backoffice = () => {
       category: "",
       active: true,
     });
+    setUploadedImages([]);
   };
 
   if (loading || !user || !isAdmin) {
@@ -173,13 +218,7 @@ const Backoffice = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="products">Produtos</TabsTrigger>
-            <TabsTrigger value="testimonials">Testemunhos</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="products">
+        <Card className="p-6">
             <div className="grid md:grid-cols-2 gap-8">
           {/* Form */}
           <Card className="p-6">
@@ -209,28 +248,53 @@ const Backoffice = () => {
               </div>
 
               <div>
-                <Label htmlFor="image">Nome da Imagem Principal</Label>
-                <Input
-                  id="image"
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  placeholder="product-example.jpg"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="images">Imagens Adicionais (uma por linha)</Label>
-                <Textarea
-                  id="images"
-                  value={formData.images}
-                  onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-                  placeholder="product-example-2.jpg&#10;product-example-3.jpg"
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Adicione nomes de ficheiros de imagens, uma por linha. A primeira será a imagem principal.
-                </p>
+                <Label htmlFor="image-upload">Imagens do Produto</Label>
+                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={uploading}
+                    aria-label="Upload de imagens do produto"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer block">
+                    <Upload className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {uploading ? "A carregar..." : "Clique para adicionar imagens"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      A primeira imagem será a principal
+                    </p>
+                  </label>
+                </div>
+                
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-3 mt-4">
+                    {uploadedImages.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Imagem do produto ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-md border border-border"
+                        />
+                        <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded">
+                          {index === 0 ? "Principal" : index + 1}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeUploadedImage(index)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`Remover imagem ${index + 1}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -329,12 +393,7 @@ const Backoffice = () => {
             )}
           </div>
         </div>
-          </TabsContent>
-
-          <TabsContent value="testimonials">
-            <TestimonialsManager />
-          </TabsContent>
-        </Tabs>
+        </Card>
       </div>
     </div>
   );
