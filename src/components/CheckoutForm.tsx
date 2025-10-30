@@ -101,7 +101,7 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
         duration: 5000,
       });
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Don't expose detailed error messages to users
       toast.error("Erro ao enviar encomenda. Por favor, tente novamente.");
     } finally {
