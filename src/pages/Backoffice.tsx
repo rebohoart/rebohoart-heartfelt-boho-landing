@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
+import { validateImageFile } from "@/lib/sanitize";
 
 interface Product {
   id: string;
@@ -70,6 +71,13 @@ const Backoffice = () => {
 
     try {
       for (const file of Array.from(files)) {
+        // Validate file before upload
+        const validation = validateImageFile(file);
+        if (!validation.isValid) {
+          toast.error(validation.error || "Ficheiro inválido");
+          continue; // Skip this file and continue with others
+        }
+
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
@@ -87,11 +95,12 @@ const Backoffice = () => {
         uploadedUrls.push(publicUrl);
       }
 
-      setUploadedImages([...uploadedImages, ...uploadedUrls]);
-      toast.success("Imagens carregadas com sucesso!");
+      if (uploadedUrls.length > 0) {
+        setUploadedImages([...uploadedImages, ...uploadedUrls]);
+        toast.success("Imagens carregadas com sucesso!");
+      }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
-      toast.error("Erro ao carregar imagens: " + message);
+      toast.error("Erro ao carregar imagens. Por favor, tente novamente.");
     } finally {
       setUploading(false);
     }
