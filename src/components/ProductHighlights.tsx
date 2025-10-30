@@ -39,6 +39,8 @@ const ProductHighlights = () => {
           ? product.images 
           : [product.image];
         
+        console.log('Product:', product.title, 'raw images:', product.images, 'processed images:', imagesArray);
+        
         return {
           ...product,
           image: imageMap[product.image] || product.image,

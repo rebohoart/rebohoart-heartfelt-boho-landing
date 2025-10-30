@@ -10,17 +10,25 @@ interface ProductImageGalleryProps {
 const ProductImageGallery = ({ images, title }: ProductImageGalleryProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
+  console.log('ProductImageGallery - images:', images, 'length:', images?.length);
+  
   if (!images || images.length === 0) return null;
   
   const goToPrevious = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+    console.log('goToPrevious clicked, current:', currentIndex);
     setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
   
   const goToNext = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+    console.log('goToNext clicked, current:', currentIndex);
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
+  
+  console.log('Rendering image index:', currentIndex, 'of', images.length, 'url:', images[currentIndex]);
   
   return (
     <div className="relative overflow-hidden aspect-square group">
