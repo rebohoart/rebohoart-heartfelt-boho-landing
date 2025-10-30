@@ -67,7 +67,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
         setUploadedImages([...uploadedImages, ...uploadedUrls]);
         toast.success("Imagens carregadas com sucesso!");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erro ao carregar imagens. Por favor, tente novamente.");
     } finally {
       setUploading(false);
@@ -123,7 +123,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       setFormData({ title: "", description: "", customerName: "", customerEmail: "" });
       setUploadedImages([]);
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Don't expose detailed error messages to users
       toast.error("Erro ao enviar pedido. Por favor, tente novamente.");
     }
