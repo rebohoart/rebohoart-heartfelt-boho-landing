@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/logo-reboho.png";
+import logo from "@/assets/logo-reboho-transparent.png";
 import { MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 const Hero = () => {
