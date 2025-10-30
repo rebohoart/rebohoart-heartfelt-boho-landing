@@ -8,23 +8,70 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Validate environment variables
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  console.error('⚠️ Missing Supabase configuration!');
-  console.error('Please configure the following environment variables in Lovable:');
-  console.error('- VITE_SUPABASE_URL');
-  console.error('- VITE_SUPABASE_PUBLISHABLE_KEY');
+// Check if environment variables are properly configured
+const isConfigured = SUPABASE_URL &&
+                     SUPABASE_PUBLISHABLE_KEY &&
+                     SUPABASE_URL !== 'undefined' &&
+                     SUPABASE_PUBLISHABLE_KEY !== 'undefined' &&
+                     SUPABASE_URL.startsWith('https://');
+
+if (!isConfigured) {
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.error('⚠️  SUPABASE CONFIGURATION MISSING');
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.error('');
+  console.error('Please configure these environment variables in Lovable:');
+  console.error('');
+  console.error('1. VITE_SUPABASE_URL');
+  console.error('   Example: https://xxxxx.supabase.co');
+  console.error('');
+  console.error('2. VITE_SUPABASE_PUBLISHABLE_KEY');
+  console.error('   Example: eyJhbGc...(long key)');
+  console.error('');
   console.error('Get these from: https://app.supabase.com/project/_/settings/api');
+  console.error('');
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 
-// Use placeholder values if env vars are missing to prevent crashes
-const supabaseUrl = SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
+// Create a real client or a mock client
+export const supabase = isConfigured
+  ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    })
+  : // Mock client that won't crash the app
+    {
+      from: () => ({
+        select: () => Promise.resolve({ data: [], error: null }),
+        insert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+        update: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+        delete: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+        eq: function() { return this; },
+        order: function() { return this; },
+        limit: function() { return this; },
+        single: function() { return this; },
+        maybeSingle: function() { return this; },
+      }),
+      auth: {
+        signUp: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+        signInWithPassword: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+        signOut: () => Promise.resolve({ error: null }),
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      },
+      storage: {
+        from: () => ({
+          upload: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+          getPublicUrl: () => ({ data: { publicUrl: '' } }),
+        }),
+      },
+      functions: {
+        invoke: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+      },
+    } as any;
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
+// Export a flag to check if Supabase is configured
+export const isSupabaseConfigured = isConfigured;
