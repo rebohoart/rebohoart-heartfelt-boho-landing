@@ -14,11 +14,32 @@ import { Sparkles, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { escapeHtml, validateImageFile } from "@/lib/sanitize";
+import { z } from "zod";
 
 interface CustomOrderFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const customOrderSchema = z.object({
+  customerName: z.string()
+    .trim()
+    .min(2, { message: "Nome deve ter pelo menos 2 caracteres" })
+    .max(100, { message: "Nome não pode ter mais de 100 caracteres" })
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, { message: "Nome deve conter apenas letras" }),
+  customerEmail: z.string()
+    .trim()
+    .email({ message: "Email inválido" })
+    .max(255, { message: "Email não pode ter mais de 255 caracteres" }),
+  title: z.string()
+    .trim()
+    .min(3, { message: "Título deve ter pelo menos 3 caracteres" })
+    .max(200, { message: "Título não pode ter mais de 200 caracteres" }),
+  description: z.string()
+    .trim()
+    .min(10, { message: "Descrição deve ter pelo menos 10 caracteres" })
+    .max(2000, { message: "Descrição não pode ter mais de 2000 caracteres" }),
+});
 
 const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
   const [formData, setFormData] = useState({
@@ -80,15 +101,11 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.title || !formData.description || !formData.customerName || !formData.customerEmail) {
-      toast.error("Por favor, preencha todos os campos");
-      return;
-    }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.customerEmail)) {
-      toast.error("Por favor, insira um email válido");
+    // Validate form data with Zod schema
+    const validation = customOrderSchema.safeParse(formData);
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
       return;
     }
 
@@ -151,6 +168,8 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               value={formData.customerName}
               onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
               required
+              minLength={2}
+              maxLength={100}
             />
           </div>
 
@@ -163,6 +182,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               value={formData.customerEmail}
               onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
               required
+              maxLength={255}
             />
           </div>
 
@@ -174,6 +194,8 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
+              minLength={3}
+              maxLength={200}
             />
           </div>
 
@@ -186,6 +208,8 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="min-h-[120px]"
               required
+              minLength={10}
+              maxLength={2000}
             />
           </div>
 

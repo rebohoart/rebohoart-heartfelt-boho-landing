@@ -74,9 +74,6 @@ const ProductHighlights = () => {
           <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4 text-foreground">
             Peças Disponíveis
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Cada peça é feita à mão com materiais sustentáveis e práticas éticas
-          </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
