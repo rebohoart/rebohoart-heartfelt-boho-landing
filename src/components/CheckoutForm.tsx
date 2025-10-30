@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { escapeHtml } from "@/lib/sanitize";
 
 interface CheckoutFormProps {
   items: Array<{
@@ -44,15 +45,22 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
     setIsSubmitting(true);
 
     try {
+      // Escape user input to prevent XSS attacks
+      const safeName = escapeHtml(formData.name);
+      const safeEmail = escapeHtml(formData.email);
+
       const details = items
         .map(
-          (item) =>
-            `<tr>
-              <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.product.title}</td>
+          (item) => {
+            // Escape product title (even though it comes from DB, good practice)
+            const safeTitle = escapeHtml(item.product.title);
+            return `<tr>
+              <td style="padding: 10px; border-bottom: 1px solid #eee;">${safeTitle}</td>
               <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
               <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">€${item.product.price.toFixed(2)}</td>
               <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">€${(item.product.price * item.quantity).toFixed(2)}</td>
-            </tr>`
+            </tr>`;
+          }
         )
         .join("");
 
@@ -81,8 +89,8 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
       const response = await supabase.functions.invoke("send-order-email", {
         body: {
           type: "cart",
-          customerName: formData.name,
-          customerEmail: formData.email,
+          customerName: safeName,
+          customerEmail: safeEmail,
           details: emailDetails,
         },
       });
@@ -94,7 +102,7 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
       });
       onSuccess();
     } catch (error: any) {
-      console.error("Error sending order:", error);
+      // Don't expose detailed error messages to users
       toast.error("Erro ao enviar encomenda. Por favor, tente novamente.");
     } finally {
       setIsSubmitting(false);
