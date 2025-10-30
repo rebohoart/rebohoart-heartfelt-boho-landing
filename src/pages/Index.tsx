@@ -2,7 +2,7 @@ import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
 import ProductHighlights from "@/components/ProductHighlights";
 import CustomOrderButton from "@/components/CustomOrderButton";
-import FinalCTA from "@/components/FinalCTA";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -12,8 +12,8 @@ const Index = () => {
         <Hero />
         <ProductHighlights />
         <CustomOrderButton />
-        <FinalCTA />
       </main>
+      <Footer />
     </>
   );
 };

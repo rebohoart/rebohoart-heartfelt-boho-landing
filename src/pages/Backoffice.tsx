@@ -19,6 +19,7 @@ interface Product {
   title: string;
   description: string;
   image: string;
+  images?: string[];
   price: number;
   category: string;
   active: boolean;
@@ -33,6 +34,7 @@ const Backoffice = () => {
     title: "",
     description: "",
     image: "",
+    images: "",
     price: 0,
     category: "",
     active: true,
@@ -62,10 +64,20 @@ const Backoffice = () => {
     e.preventDefault();
 
     try {
+      // Convert images string to array
+      const imagesArray = formData.images
+        ? formData.images.split('\n').map(img => img.trim()).filter(img => img.length > 0)
+        : [formData.image];
+
+      const productData = {
+        ...formData,
+        images: imagesArray,
+      };
+
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
-          .update(formData)
+          .update(productData)
           .eq('id', editingProduct.id);
 
         if (error) throw error;
@@ -73,7 +85,7 @@ const Backoffice = () => {
       } else {
         const { error } = await supabase
           .from('products')
-          .insert([formData]);
+          .insert([productData]);
 
         if (error) throw error;
         toast.success("Produto criado!");
@@ -127,6 +139,7 @@ const Backoffice = () => {
       title: product.title,
       description: product.description,
       image: product.image,
+      images: product.images ? product.images.join('\n') : product.image,
       price: product.price,
       category: product.category,
       active: product.active,
@@ -139,6 +152,7 @@ const Backoffice = () => {
       title: "",
       description: "",
       image: "",
+      images: "",
       price: 0,
       category: "",
       active: true,
@@ -195,7 +209,7 @@ const Backoffice = () => {
               </div>
 
               <div>
-                <Label htmlFor="image">Nome da Imagem</Label>
+                <Label htmlFor="image">Nome da Imagem Principal</Label>
                 <Input
                   id="image"
                   value={formData.image}
@@ -203,6 +217,20 @@ const Backoffice = () => {
                   placeholder="product-example.jpg"
                   required
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="images">Imagens Adicionais (uma por linha)</Label>
+                <Textarea
+                  id="images"
+                  value={formData.images}
+                  onChange={(e) => setFormData({ ...formData, images: e.target.value })}
+                  placeholder="product-example-2.jpg&#10;product-example-3.jpg"
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Adicione nomes de ficheiros de imagens, uma por linha. A primeira será a imagem principal.
+                </p>
               </div>
 
               <div>

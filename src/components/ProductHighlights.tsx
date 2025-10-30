@@ -5,6 +5,7 @@ import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import ProductImageGallery from "@/components/ProductImageGallery";
 import macrameWall from "@/assets/product-macrame-wall.jpg";
 import ceramicPlanter from "@/assets/product-ceramic-planter.jpg";
 import wovenBasket from "@/assets/product-woven-basket.jpg";
@@ -36,6 +37,7 @@ const ProductHighlights = () => {
       return data.map(product => ({
         ...product,
         image: imageMap[product.image] || product.image,
+        images: (product.images || [product.image]).map(img => imageMap[img] || img),
       }));
     },
   });
@@ -73,17 +75,13 @@ const ProductHighlights = () => {
           {products.map((product, index) => (
             <Card 
               key={product.id}
-              className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in"
+              className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in bg-card"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className="relative overflow-hidden aspect-square">
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
+              <ProductImageGallery 
+                images={product.images || [product.image]} 
+                title={product.title} 
+              />
               
               <div className="p-6">
                 <div className="flex items-start justify-between mb-2">
@@ -101,7 +99,9 @@ const ProductHighlights = () => {
 
                 <Button
                   onClick={() => handleAddToCart(product)}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full transition-all hover:scale-105 shadow-soft"
+                  variant="default"
+                  size="default"
+                  className="w-full"
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Adicionar ao Carrinho
