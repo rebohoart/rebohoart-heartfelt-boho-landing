@@ -45,7 +45,8 @@ const ProductImageGallery = ({ images, title }: ProductImageGalleryProps) => {
             variant="ghost"
             size="icon"
             onClick={goToPrevious}
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 transition-all z-10"
+            aria-label="Imagem anterior"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -54,18 +55,20 @@ const ProductImageGallery = ({ images, title }: ProductImageGalleryProps) => {
             variant="ghost"
             size="icon"
             onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 transition-all z-10"
+            aria-label="Próxima imagem"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
           
           {/* Dots Indicator */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
             {images.map((_, index) => (
               <button
                 key={index}
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   setCurrentIndex(index);
                 }}
                 className={`w-2 h-2 rounded-full transition-all ${
