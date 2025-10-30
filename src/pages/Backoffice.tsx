@@ -89,8 +89,9 @@ const Backoffice = () => {
 
       setUploadedImages([...uploadedImages, ...uploadedUrls]);
       toast.success("Imagens carregadas com sucesso!");
-    } catch (error: any) {
-      toast.error("Erro ao carregar imagens: " + error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast.error("Erro ao carregar imagens: " + message);
     } finally {
       setUploading(false);
     }
@@ -137,8 +138,9 @@ const Backoffice = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       resetForm();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro ao processar pedido";
+      toast.error(message);
     }
   };
 
@@ -155,8 +157,9 @@ const Backoffice = () => {
       toast.success("Produto eliminado!");
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro ao eliminar produto";
+      toast.error(message);
     }
   };
 
@@ -171,8 +174,9 @@ const Backoffice = () => {
       toast.success(product.active ? "Produto ocultado" : "Produto ativado");
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro ao atualizar produto";
+      toast.error(message);
     }
   };
 
