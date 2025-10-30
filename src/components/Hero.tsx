@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-boho-interior.jpg";
+import heroImage from "@/assets/hero-boho-minimal.jpg";
 import { MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 

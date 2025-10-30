@@ -3,7 +3,7 @@ import { ShoppingCart, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import CartDrawer from "./CartDrawer";
-import logo from "@/assets/logo-reboho.png";
+import logo from "@/assets/logo-reboho-white.png";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);

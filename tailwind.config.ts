@@ -50,8 +50,8 @@ export default {
         },
       },
       fontFamily: {
-        serif: ['Cormorant Garamond', 'serif'],
-        sans: ['Quicksand', 'sans-serif'],
+        serif: ['Cinzel', 'serif'],
+        sans: ['Montserrat', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-warm': 'var(--gradient-warm)',
