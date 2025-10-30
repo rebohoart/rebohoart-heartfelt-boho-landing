@@ -104,7 +104,7 @@ const ProductHighlights = () => {
                   className="w-full"
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  Adicionar ao Carrinho
+                  Adicionar
                 </Button>
               </div>
             </Card>
