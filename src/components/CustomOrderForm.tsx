@@ -21,6 +21,12 @@ interface CustomOrderFormProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const getMinDeliveryDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 7); // Add 7 days
+  return date;
+};
+
 const customOrderSchema = z.object({
   customerName: z.string()
     .trim()
@@ -39,6 +45,13 @@ const customOrderSchema = z.object({
     .trim()
     .min(10, { message: "Descrição deve ter pelo menos 10 caracteres" })
     .max(2000, { message: "Descrição não pode ter mais de 2000 caracteres" }),
+  deliveryDeadline: z.string()
+    .min(1, { message: "Data limite de entrega é obrigatória" })
+    .refine((date) => {
+      const selectedDate = new Date(date);
+      const minDate = getMinDeliveryDate();
+      return selectedDate >= minDate;
+    }, { message: "A data limite deve ser pelo menos 1 semana a partir de hoje" }),
 });
 
 const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
@@ -47,6 +60,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
     description: "",
     customerName: "",
     customerEmail: "",
+    deliveryDeadline: "",
   });
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -115,6 +129,14 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       const safeDescription = escapeHtml(formData.description).replace(/\n/g, '<br>');
       const safeName = escapeHtml(formData.customerName);
       const safeEmail = escapeHtml(formData.customerEmail);
+      const safeDeadline = escapeHtml(formData.deliveryDeadline);
+
+      // Format the deadline date for display
+      const formattedDeadline = new Date(formData.deliveryDeadline).toLocaleDateString('pt-PT', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
 
       // Sanitize URLs (already from our storage, but good practice)
       const safeImages = uploadedImages.map(url => escapeHtml(url));
@@ -122,6 +144,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       const details = `
         <strong>Título:</strong> ${safeTitle}<br><br>
         <strong>Descrição:</strong><br>${safeDescription}<br><br>
+        <strong>Data Limite de Entrega:</strong> ${formattedDeadline}<br><br>
         ${safeImages.length > 0 ? `<strong>Imagens de Referência:</strong><br>${safeImages.map((url, i) => `<a href="${url}">Imagem ${i + 1}</a>`).join('<br>')}` : ''}
       `;
 
@@ -137,7 +160,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       if (response.error) throw response.error;
 
       toast.success("Pedido enviado com sucesso! Entraremos em contacto em breve.");
-      setFormData({ title: "", description: "", customerName: "", customerEmail: "" });
+      setFormData({ title: "", description: "", customerName: "", customerEmail: "", deliveryDeadline: "" });
       setUploadedImages([]);
       onOpenChange(false);
     } catch (error: unknown) {
@@ -211,6 +234,21 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               minLength={10}
               maxLength={2000}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="deliveryDeadline">Data Limite de Entrega</Label>
+            <Input
+              id="deliveryDeadline"
+              type="date"
+              value={formData.deliveryDeadline}
+              onChange={(e) => setFormData({ ...formData, deliveryDeadline: e.target.value })}
+              min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Mínimo de 1 semana a partir de hoje
+            </p>
           </div>
 
           <div className="space-y-2">
