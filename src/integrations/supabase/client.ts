@@ -8,7 +8,20 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+// Validate environment variables
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error('⚠️ Missing Supabase configuration!');
+  console.error('Please configure the following environment variables in Lovable:');
+  console.error('- VITE_SUPABASE_URL');
+  console.error('- VITE_SUPABASE_PUBLISHABLE_KEY');
+  console.error('Get these from: https://app.supabase.com/project/_/settings/api');
+}
+
+// Use placeholder values if env vars are missing to prevent crashes
+const supabaseUrl = SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   auth: {
     storage: localStorage,
     persistSession: true,
