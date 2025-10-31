@@ -86,13 +86,22 @@ const Auth = () => {
           return;
         }
 
+        // Construct the redirect URL for password reset
+        // IMPORTANT: This URL must be in the Supabase "Redirect URLs" whitelist
+        // Configure at: Supabase Dashboard > Authentication > URL Configuration
+        const redirectUrl = `${window.location.origin}/auth`;
+        console.log('🔐 Sending password reset email to:', trimmedEmail);
+        console.log('🔗 Redirect URL:', redirectUrl);
+
         const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: redirectUrl,
         });
 
         if (error) {
+          console.error('❌ Error sending password reset email:', error);
           toast.error("Erro ao enviar email de recuperação");
         } else {
+          console.log('✅ Password reset email sent successfully');
           toast.success("Email de recuperação enviado! Verifique a sua caixa de entrada.");
           setIsRecovery(false);
           setEmail("");
