@@ -34,6 +34,11 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader>
           <SheetTitle className="font-serif text-2xl">A minha encomenda</SheetTitle>
+          <SheetDescription>
+            {items.length === 0
+              ? "Nenhum item"
+              : `${items.length} ${items.length === 1 ? "item" : "itens"}`}
+          </SheetDescription>
         </SheetHeader>
 
         {items.length === 0 ? (
