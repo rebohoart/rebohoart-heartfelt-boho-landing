@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@4.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,11 +24,10 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending email:", { type, customerName, customerEmail });
 
     const isCustomOrder = type === "custom";
-    // Store email can be configured via environment variable or falls back to default
-   const recipientEmail = "seu-email@dominio.com";
-    
-    const subject = isCustomOrder 
-      ? "Novo Pedido de Orçamento - Peça Personalizada" 
+    const recipientEmail = Deno.env.get("STORE_EMAIL") || "catarinarebocho30@gmail.com";
+
+    const subject = isCustomOrder
+      ? "Novo Pedido de Orcamento - Peca Personalizada"
       : "Nova Encomenda ReBoho";
 
     const emailHtml = `
@@ -56,54 +53,68 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             <div class="content">
               ${isCustomOrder ? `
-                <h2>📋 Detalhes do Pedido de Orçamento</h2>
+                <h2>Detalhes do Pedido de Orcamento</h2>
                 <div class="info-block">
                   <p><span class="label">Cliente:</span> ${customerName}</p>
                   <p><span class="label">Email:</span> ${customerEmail}</p>
                 </div>
-                <h2>💡 Descrição da Peça</h2>
+                <h2>Descricao da Peca</h2>
                 <div class="info-block">
                   ${details}
                 </div>
                 <p style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
-                  ⏰ <strong>Próximo passo:</strong> Entre em contacto com o cliente para discutir o orçamento e disponibilidade.
+                  <strong>Proximo passo:</strong> Entre em contacto com o cliente para discutir o orcamento e disponibilidade.
                 </p>
               ` : `
-                <h2>🛍️ Detalhes da Encomenda</h2>
+                <h2>Detalhes da Encomenda</h2>
                 <div class="info-block">
                   <p><span class="label">Cliente:</span> ${customerName}</p>
                   <p><span class="label">Email:</span> ${customerEmail}</p>
                 </div>
-                <h2>📦 Produtos</h2>
+                <h2>Produtos</h2>
                 <div class="info-block">
                   ${details}
                 </div>
                 <p style="margin-top: 20px; padding: 15px; background: #d1ecf1; border-radius: 5px;">
-                  ℹ️ <strong>Nota:</strong> O cliente foi informado para aguardar novas indicações.
+                  <strong>Nota:</strong> O cliente foi informado para aguardar novas indicacoes.
                 </p>
               `}
             </div>
             <div class="footer">
-              <p>ReBoho Art • Email automático do sistema</p>
+              <p>ReBoho Art - Email automatico do sistema</p>
             </div>
           </div>
         </body>
       </html>
     `;
 
+    // Configure SMTP client with Gmail
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.gmail.com",
+        port: 465,
+        tls: true,
+        auth: {
+          username: Deno.env.get("GMAIL_USER") || "",
+          password: Deno.env.get("GMAIL_APP_PASSWORD") || "",
+        },
+      },
+    });
+
     // Send email to shop owner
-    const emailResponse = await resend.emails.send({
-      from: "ReBoho <onboarding@resend.dev>",
-      to: [recipientEmail],
+    await client.send({
+      from: Deno.env.get("GMAIL_USER") || "",
+      to: recipientEmail,
       subject: subject,
+      content: "auto",
       html: emailHtml,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email sent successfully to store owner");
 
-    // Send confirmation email to customer (for both cart orders and custom quote requests)
+    // Send confirmation email to customer
     const customerSubject = isCustomOrder
-      ? "Pedido de Orçamento Recebido - ReBoho Art"
+      ? "Pedido de Orcamento Recebido - ReBoho Art"
       : "Encomenda Recebida - ReBoho Art";
 
     const customerEmailHtml = isCustomOrder ? `
@@ -123,26 +134,26 @@ const handler = async (req: Request): Promise<Response> => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>✨ Pedido de Orçamento Recebido!</h1>
+              <h1>Pedido de Orcamento Recebido!</h1>
             </div>
             <div class="content">
-              <p>Olá ${customerName},</p>
-              <p>Recebemos o teu pedido de orçamento para uma peça personalizada! 🎨</p>
+              <p>Ola ${customerName},</p>
+              <p>Recebemos o teu pedido de orcamento para uma peca personalizada!</p>
               <div class="info-block">
-                <p><strong>📋 Resumo do Pedido:</strong></p>
+                <p><strong>Resumo do Pedido:</strong></p>
                 ${details}
               </div>
               <div class="highlight">
-                <p><strong>📬 Próximos passos:</strong></p>
+                <p><strong>Proximos passos:</strong></p>
                 <p>Vamos analisar o teu pedido e entraremos em contacto contigo em breve com:</p>
                 <ul>
-                  <li>Orçamento detalhado</li>
-                  <li>Prazo de execução</li>
-                  <li>Sugestões criativas</li>
+                  <li>Orcamento detalhado</li>
+                  <li>Prazo de execucao</li>
+                  <li>Sugestoes criativas</li>
                 </ul>
               </div>
-              <p>Aguarda as nossas indicações. Qualquer dúvida, não hesites em contactar-nos!</p>
-              <p style="margin-top: 30px;">Com carinho,<br><strong>ReBoho Art</strong> 🌿</p>
+              <p>Aguarda as nossas indicacoes. Qualquer duvida, nao hesites em contactar-nos!</p>
+              <p style="margin-top: 30px;">Com carinho,<br><strong>ReBoho Art</strong></p>
             </div>
           </div>
         </body>
@@ -163,34 +174,39 @@ const handler = async (req: Request): Promise<Response> => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>✨ Obrigada pela tua encomenda!</h1>
+              <h1>Obrigada pela tua encomenda!</h1>
             </div>
             <div class="content">
-              <p>Olá ${customerName},</p>
-              <p>Recebemos a tua encomenda com sucesso! 🎉</p>
+              <p>Ola ${customerName},</p>
+              <p>Recebemos a tua encomenda com sucesso!</p>
               <div class="highlight">
-                <p><strong>📬 Próximos passos:</strong></p>
+                <p><strong>Proximos passos:</strong></p>
                 <p>Iremos entrar em contacto contigo brevemente com:</p>
                 <ul>
-                  <li>Confirmação de disponibilidade</li>
-                  <li>Informações de pagamento</li>
+                  <li>Confirmacao de disponibilidade</li>
+                  <li>Informacoes de pagamento</li>
                   <li>Detalhes de envio</li>
                 </ul>
               </div>
-              <p>Aguarda as nossas indicações. Qualquer dúvida, não hesites em contactar-nos!</p>
-              <p style="margin-top: 30px;">Com carinho,<br><strong>ReBoho Art</strong> 🌿</p>
+              <p>Aguarda as nossas indicacoes. Qualquer duvida, nao hesites em contactar-nos!</p>
+              <p style="margin-top: 30px;">Com carinho,<br><strong>ReBoho Art</strong></p>
             </div>
           </div>
         </body>
       </html>
     `;
 
-    await resend.emails.send({
-      from: "ReBoho <onboarding@resend.dev>",
-      to: [customerEmail],
+    await client.send({
+      from: Deno.env.get("GMAIL_USER") || "",
+      to: customerEmail,
       subject: customerSubject,
+      content: "auto",
       html: customerEmailHtml,
     });
+
+    await client.close();
+
+    console.log("Email sent successfully to customer");
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
