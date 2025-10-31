@@ -27,7 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const isCustomOrder = type === "custom";
     // Store email can be configured via environment variable or falls back to default
-    const recipientEmail = Deno.env.get("STORE_EMAIL") || "catarinarebocho30@gmail.com";
+   const recipientEmail = "seu-email@dominio.com";
     
     const subject = isCustomOrder 
       ? "Novo Pedido de Orçamento - Peça Personalizada" 
