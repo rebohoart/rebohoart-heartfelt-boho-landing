@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Email - ReBoho</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #D4A574;
+      margin-top: 0;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    button {
+      background: #D4A574;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover {
+      background: #B8956A;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
+      display: none;
+    }
+    .result.success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      display: block;
+    }
+    .result.error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      display: block;
+    }
+    .result.loading {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+      display: block;
+    }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .info {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    .info strong {
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Teste Direto de Email - ReBoho</h1>
+
+    <div class="info">
+      <strong>⚠️ Importante:</strong> Este é um teste direto da função de email.
+      Preencha os campos abaixo e clique em "Enviar Teste". O resultado completo
+      (incluindo erros detalhados) será mostrado abaixo.
+    </div>
+
+    <form id="testForm">
+      <div class="form-group">
+        <label for="supabaseUrl">Supabase URL:</label>
+        <input
+          type="text"
+          id="supabaseUrl"
+          value="https://jjfqljrbgoymwwvyyvam.supabase.co"
+          placeholder="https://seu-projeto.supabase.co"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="supabaseKey">Supabase Anon Key:</label>
+        <input
+          type="text"
+          id="supabaseKey"
+          placeholder="Cole a sua Anon Key aqui"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="customerName">Nome do Cliente (Teste):</label>
+        <input
+          type="text"
+          id="customerName"
+          value="Teste Cliente"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="customerEmail">Email do Cliente (Teste):</label>
+        <input
+          type="email"
+          id="customerEmail"
+          value="teste@example.com"
+          required
+        >
+      </div>
+
+      <button type="submit">🚀 Enviar Teste de Email</button>
+    </form>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('testForm');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const supabaseUrl = document.getElementById('supabaseUrl').value.trim();
+      const supabaseKey = document.getElementById('supabaseKey').value.trim();
+      const customerName = document.getElementById('customerName').value.trim();
+      const customerEmail = document.getElementById('customerEmail').value.trim();
+
+      if (!supabaseUrl || !supabaseKey) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = '<strong>❌ Erro:</strong> Por favor, preencha a URL e a Anon Key do Supabase.';
+        return;
+      }
+
+      // Show loading
+      resultDiv.className = 'result loading';
+      resultDiv.innerHTML = '<strong>⏳ Enviando...</strong> Aguarde...';
+
+      try {
+        const functionUrl = `${supabaseUrl}/functions/v1/send-order-email`;
+
+        console.log('=== TESTE DE EMAIL ===');
+        console.log('URL da função:', functionUrl);
+        console.log('Nome:', customerName);
+        console.log('Email:', customerEmail);
+
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': supabaseKey
+          },
+          body: JSON.stringify({
+            type: 'cart',
+            customerName: customerName,
+            customerEmail: customerEmail,
+            details: `
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 10px;">Produto Teste</td>
+                  <td style="padding: 10px; text-align: center;">1</td>
+                  <td style="padding: 10px; text-align: right;">€25.00</td>
+                  <td style="padding: 10px; text-align: right;">€25.00</td>
+                </tr>
+              </table>
+            `
+          })
+        });
+
+        console.log('Status da resposta:', response.status);
+        console.log('Headers da resposta:', [...response.headers.entries()]);
+
+        let responseData;
+        const contentType = response.headers.get('content-type');
+
+        if (contentType && contentType.includes('application/json')) {
+          responseData = await response.json();
+        } else {
+          const textData = await response.text();
+          console.log('Resposta (texto):', textData);
+          responseData = { rawResponse: textData };
+        }
+
+        console.log('Dados da resposta:', responseData);
+
+        if (response.ok) {
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = `
+            <strong>✅ Sucesso!</strong> Email enviado com sucesso.
+            <pre>${JSON.stringify(responseData, null, 2)}</pre>
+            <p><strong>Próximos passos:</strong></p>
+            <ul>
+              <li>Verifique a caixa de entrada de: <strong>${customerEmail}</strong></li>
+              <li>Verifique também a pasta SPAM</li>
+              <li>O email da loja também deve ter recebido a notificação</li>
+            </ul>
+          `;
+        } else {
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+            <strong>❌ Erro ${response.status}:</strong> Falha ao enviar email.
+            <pre>${JSON.stringify(responseData, null, 2)}</pre>
+            <p><strong>Possíveis causas:</strong></p>
+            <ul>
+              <li><strong>Missing environment variables:</strong> Os secrets (GMAIL_USER, GMAIL_APP_PASSWORD) não estão configurados no Supabase</li>
+              <li><strong>Invalid credentials:</strong> A App Password do Gmail está incorreta</li>
+              <li><strong>Authentication failed:</strong> O email em GMAIL_USER está incorreto</li>
+              <li><strong>Function not found:</strong> A Edge Function não foi deployada</li>
+            </ul>
+            <p><strong>Como resolver:</strong></p>
+            <ol>
+              <li>Vá para: <a href="https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions" target="_blank">Supabase Functions</a></li>
+              <li>Clique em "Manage secrets"</li>
+              <li>Verifique se tem os 3 secrets: GMAIL_USER, GMAIL_APP_PASSWORD, STORE_EMAIL</li>
+              <li>Se não tiver, adicione-os conforme o guia DIAGNOSTICO_EMAIL_AGORA.md</li>
+            </ol>
+          `;
+        }
+      } catch (error) {
+        console.error('Erro ao enviar:', error);
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <strong>❌ Erro de Rede:</strong> Não foi possível conectar à função.
+          <pre>${error.message}</pre>
+          <p><strong>Possíveis causas:</strong></p>
+          <ul>
+            <li><strong>URL incorreta:</strong> Verifique se a URL do Supabase está correta</li>
+            <li><strong>Anon Key incorreta:</strong> Verifique se a Anon Key está correta</li>
+            <li><strong>Função não existe:</strong> A Edge Function "send-order-email" não foi deployada</li>
+            <li><strong>CORS:</strong> Problema de permissões (menos provável)</li>
+          </ul>
+          <p><strong>Como resolver:</strong></p>
+          <ol>
+            <li>Verifique a URL e Anon Key no ficheiro .env</li>
+            <li>Vá para: <a href="https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/settings/api" target="_blank">Supabase API Settings</a></li>
+            <li>Copie a "URL" e "anon public" key corretamente</li>
+          </ol>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
