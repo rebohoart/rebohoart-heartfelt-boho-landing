@@ -10,8 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
 
 const authSchema = z.object({
-  email: z.string().trim().email({ message: "Email inválido" }).max(255),
-  password: z.string().trim().min(6, { message: "Password deve ter pelo menos 6 caracteres" }).max(100),
+  email: z.string().email({ message: "Email inválido" }).max(255),
+  password: z.string().min(6, { message: "Password deve ter pelo menos 6 caracteres" }).max(100),
 });
 
 const Auth = () => {
@@ -29,15 +29,19 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // Trim email and password to remove whitespace
+      const trimmedEmail = email.trim();
+      const trimmedPassword = password.trim();
+
       if (isRecovery) {
         // Password recovery mode - only validate email
-        const emailValidation = z.string().trim().email({ message: "Email inválido" }).max(255).safeParse(email);
+        const emailValidation = z.string().email({ message: "Email inválido" }).max(255).safeParse(trimmedEmail);
         if (!emailValidation.success) {
           toast.error(emailValidation.error.errors[0].message);
           return;
         }
 
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
           redirectTo: `${window.location.origin}/auth`,
         });
 
@@ -50,13 +54,13 @@ const Auth = () => {
         }
       } else if (isSignUp) {
         // Sign up mode - validate email and password
-        const validation = authSchema.safeParse({ email, password });
+        const validation = authSchema.safeParse({ email: trimmedEmail, password: trimmedPassword });
         if (!validation.success) {
           toast.error(validation.error.errors[0].message);
           return;
         }
 
-        const { error } = await signUp(email, password);
+        const { error } = await signUp(trimmedEmail, trimmedPassword);
         if (error) {
           toast.error(error.message);
         } else {
@@ -67,13 +71,13 @@ const Auth = () => {
         }
       } else {
         // Login mode - validate email and password
-        const validation = authSchema.safeParse({ email, password });
+        const validation = authSchema.safeParse({ email: trimmedEmail, password: trimmedPassword });
         if (!validation.success) {
           toast.error(validation.error.errors[0].message);
           return;
         }
 
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(trimmedEmail, trimmedPassword);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast.error("Email ou password incorretos");
