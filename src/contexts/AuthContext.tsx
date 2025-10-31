@@ -70,6 +70,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     console.log('📧 SignIn called with email:', email);
     console.log('🔑 Password length:', password.length);
+    console.log('🔑 Password characters breakdown:', {
+      hasSpaces: password.includes(' '),
+      hasNewlines: password.includes('\n'),
+      hasCarriageReturn: password.includes('\r'),
+      hasTab: password.includes('\t'),
+      startsWithSpace: password.startsWith(' '),
+      endsWithSpace: password.endsWith(' '),
+      charCodes: Array.from(password).map(c => c.charCodeAt(0))
+    });
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -80,6 +89,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('🚨 Supabase auth error:', error);
       console.error('Error code:', error.status);
       console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Full error object:', JSON.stringify(error, null, 2));
     } else {
       console.log('✅ Supabase auth successful, user:', data.user?.email);
       navigate('/backoffice');
