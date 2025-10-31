@@ -2,76 +2,25 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Fallback configuration for Lovable Cloud
+const FALLBACK_SUPABASE_URL = 'https://gyvtgzdkuhypteiyhtaq.supabase.co';
+const FALLBACK_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5dnRnemRrdWh5cHRlaXlodGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MzUyNDksImV4cCI6MjA3NzQxMTI0OX0.5RQlrroKXcEJn7jmkRcMYfi3b2U4dbh3OGqho1psctQ';
+
+// Use environment variables if available, otherwise use fallback
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Check if environment variables are properly configured
-const isConfigured = SUPABASE_URL &&
-                     SUPABASE_PUBLISHABLE_KEY &&
-                     SUPABASE_URL !== 'undefined' &&
-                     SUPABASE_PUBLISHABLE_KEY !== 'undefined' &&
-                     SUPABASE_URL.startsWith('https://');
-
-if (!isConfigured) {
-  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.error('⚠️  SUPABASE CONFIGURATION MISSING');
-  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.error('');
-  console.error('Please configure these environment variables in Lovable:');
-  console.error('');
-  console.error('1. VITE_SUPABASE_URL');
-  console.error('   Example: https://xxxxx.supabase.co');
-  console.error('');
-  console.error('2. VITE_SUPABASE_PUBLISHABLE_KEY');
-  console.error('   Example: eyJhbGc...(long key)');
-  console.error('');
-  console.error('Get these from: https://app.supabase.com/project/_/settings/api');
-  console.error('');
-  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-}
-
-// Create a real client or a mock client
-export const supabase = isConfigured
-  ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        storage: localStorage,
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    })
-  : // Mock client that won't crash the app
-    {
-      from: () => ({
-        select: () => Promise.resolve({ data: [], error: null }),
-        insert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        update: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        delete: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        eq: function() { return this; },
-        order: function() { return this; },
-        limit: function() { return this; },
-        single: function() { return this; },
-        maybeSingle: function() { return this; },
-      }),
-      auth: {
-        signUp: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        signInWithPassword: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        signOut: () => Promise.resolve({ error: null }),
-        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      },
-      storage: {
-        from: () => ({
-          upload: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-          getPublicUrl: () => ({ data: { publicUrl: '' } }),
-        }),
-      },
-      functions: {
-        invoke: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-      },
-    } as any;
+// Create Supabase client
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
 
 // Export a flag to check if Supabase is configured
-export const isSupabaseConfigured = isConfigured;
+export const isSupabaseConfigured = true;
