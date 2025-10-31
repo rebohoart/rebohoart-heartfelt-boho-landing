@@ -72,11 +72,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email,
       password,
     });
-    
+
     if (!error) {
-      navigate('/');
+      navigate('/backoffice');
     }
-    
+
     return { error };
   };
 
