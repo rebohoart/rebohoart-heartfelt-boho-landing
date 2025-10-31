@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste Debug Avançado - Email ReBoho</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #D4A574;
+      margin-top: 0;
+    }
+    .info {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #D4A574;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #B8956A;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log-section {
+      margin-top: 20px;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .log-info {
+      background: #d1ecf1;
+      border-left: 4px solid #0c5460;
+    }
+    .log-success {
+      background: #d4edda;
+      border-left: 4px solid #155724;
+    }
+    .log-error {
+      background: #f8d7da;
+      border-left: 4px solid #721c24;
+    }
+    .log-warning {
+      background: #fff3cd;
+      border-left: 4px solid #856404;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .result.success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    .result.error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .clear-btn {
+      background: #6c757d;
+    }
+    .clear-btn:hover {
+      background: #5a6268;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Teste Debug Avançado - Email ReBoho</h1>
+
+    <div class="info">
+      <strong>ℹ️ Este teste mostra TODOS os detalhes da requisição HTTP</strong>
+      <p>Vai mostrar: URL, Headers, Body, Response, Erros CORS, etc.</p>
+    </div>
+
+    <form id="testForm">
+      <div class="form-group">
+        <label for="supabaseUrl">Supabase URL:</label>
+        <input
+          type="text"
+          id="supabaseUrl"
+          value="https://jjfqljrbgoymwwvyyvam.supabase.co"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="supabaseKey">Supabase Anon Key:</label>
+        <input
+          type="text"
+          id="supabaseKey"
+          value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqZnFsanJiZ295bXd3dnl5dmFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQwNDEsImV4cCI6MjA3NzM0MDA0MX0.Rqv7g7DTvhiDqtoWh6H6mVsc7U4jo-MS67SW2HuCf18"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="customerName">Nome do Cliente:</label>
+        <input
+          type="text"
+          id="customerName"
+          value="Teste Debug"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="customerEmail">Email do Cliente:</label>
+        <input
+          type="email"
+          id="customerEmail"
+          value="teste@example.com"
+        >
+      </div>
+
+      <button type="submit">🚀 Enviar Teste com Debug Completo</button>
+      <button type="button" class="clear-btn" onclick="clearLogs()">🗑️ Limpar Logs</button>
+    </form>
+
+    <div id="result"></div>
+
+    <div class="log-section">
+      <h3>📋 Logs Detalhados:</h3>
+      <div id="logs"></div>
+    </div>
+  </div>
+
+  <script>
+    const logsDiv = document.getElementById('logs');
+    const resultDiv = document.getElementById('result');
+
+    function addLog(message, type = 'info') {
+      const logEntry = document.createElement('div');
+      logEntry.className = `log-entry log-${type}`;
+      logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logsDiv.appendChild(logEntry);
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+      console.log(`[${type.toUpperCase()}]`, message);
+    }
+
+    function clearLogs() {
+      logsDiv.innerHTML = '';
+      resultDiv.innerHTML = '';
+      addLog('Logs limpos', 'info');
+    }
+
+    const form = document.getElementById('testForm');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearLogs();
+
+      const supabaseUrl = document.getElementById('supabaseUrl').value.trim();
+      const supabaseKey = document.getElementById('supabaseKey').value.trim();
+      const customerName = document.getElementById('customerName').value.trim();
+      const customerEmail = document.getElementById('customerEmail').value.trim();
+
+      addLog('=== INÍCIO DO TESTE ===', 'info');
+      addLog(`Supabase URL: ${supabaseUrl}`, 'info');
+      addLog(`Anon Key (primeiros 50 chars): ${supabaseKey.substring(0, 50)}...`, 'info');
+      addLog(`Nome: ${customerName}`, 'info');
+      addLog(`Email: ${customerEmail}`, 'info');
+
+      const functionUrl = `${supabaseUrl}/functions/v1/send-order-email`;
+      addLog(`URL da função: ${functionUrl}`, 'info');
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': supabaseKey
+      };
+
+      const body = {
+        type: 'cart',
+        customerName: customerName,
+        customerEmail: customerEmail,
+        details: `<table><tr><td>Produto Teste Debug</td><td>1</td><td>€25.00</td></tr></table>`
+      };
+
+      addLog('=== HEADERS DA REQUISIÇÃO ===', 'info');
+      Object.keys(headers).forEach(key => {
+        if (key === 'Authorization' || key === 'apikey') {
+          addLog(`${key}: ${headers[key].substring(0, 30)}...`, 'info');
+        } else {
+          addLog(`${key}: ${headers[key]}`, 'info');
+        }
+      });
+
+      addLog('=== BODY DA REQUISIÇÃO ===', 'info');
+      addLog(JSON.stringify(body, null, 2), 'info');
+
+      resultDiv.innerHTML = '<p>⏳ Enviando requisição...</p>';
+
+      try {
+        addLog('Fazendo requisição fetch...', 'info');
+
+        const startTime = Date.now();
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(body)
+        });
+        const endTime = Date.now();
+
+        addLog(`Requisição completada em ${endTime - startTime}ms`, 'success');
+
+        addLog('=== RESPOSTA HTTP ===', 'info');
+        addLog(`Status: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+        addLog(`OK: ${response.ok}`, response.ok ? 'success' : 'error');
+        addLog(`Type: ${response.type}`, 'info');
+        addLog(`URL: ${response.url}`, 'info');
+
+        addLog('=== HEADERS DA RESPOSTA ===', 'info');
+        for (const [key, value] of response.headers.entries()) {
+          addLog(`${key}: ${value}`, 'info');
+        }
+
+        let responseData;
+        const contentType = response.headers.get('content-type');
+
+        addLog(`Content-Type: ${contentType}`, 'info');
+
+        if (contentType && contentType.includes('application/json')) {
+          responseData = await response.json();
+          addLog('Resposta parseada como JSON', 'success');
+        } else {
+          const textData = await response.text();
+          addLog('Resposta recebida como texto', 'warning');
+          addLog(`Texto recebido: ${textData.substring(0, 200)}${textData.length > 200 ? '...' : ''}`, 'warning');
+          try {
+            responseData = JSON.parse(textData);
+            addLog('Consegui parsear texto como JSON', 'success');
+          } catch (e) {
+            addLog('Não consegui parsear como JSON', 'error');
+            responseData = { rawResponse: textData };
+          }
+        }
+
+        addLog('=== DADOS DA RESPOSTA ===', 'info');
+        addLog(JSON.stringify(responseData, null, 2), 'info');
+
+        if (response.ok) {
+          const details = responseData.details || {};
+          const debug = responseData.debug || [];
+
+          addLog('✅ Resposta HTTP OK (200-299)', 'success');
+
+          if (details.storeEmail) {
+            addLog(`Email da Loja: ${details.storeEmail.sent ? '✅ Enviado' : '❌ Falhou'}`, details.storeEmail.sent ? 'success' : 'error');
+            if (details.storeEmail.error) {
+              addLog(`Erro: ${details.storeEmail.error}`, 'error');
+            }
+          }
+
+          if (details.customerEmail) {
+            addLog(`Email do Cliente: ${details.customerEmail.sent ? '✅ Enviado' : '❌ Falhou'}`, details.customerEmail.sent ? 'success' : 'error');
+            if (details.customerEmail.error) {
+              addLog(`Erro: ${details.customerEmail.error}`, 'error');
+            }
+          }
+
+          if (debug && debug.length > 0) {
+            addLog('=== DEBUG LOGS DA EDGE FUNCTION ===', 'info');
+            debug.forEach(log => {
+              if (log.includes('✓') || log.includes('success')) {
+                addLog(log, 'success');
+              } else if (log.includes('✗') || log.includes('Failed') || log.includes('ERROR')) {
+                addLog(log, 'error');
+              } else if (log.includes('WARNING')) {
+                addLog(log, 'warning');
+              } else {
+                addLog(log, 'info');
+              }
+            });
+          }
+
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = '<h3>✅ Teste Completado</h3><p>Veja os logs acima para detalhes completos.</p>';
+
+        } else {
+          addLog(`❌ Erro HTTP ${response.status}`, 'error');
+          addLog(JSON.stringify(responseData, null, 2), 'error');
+
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+            <h3>❌ Erro ${response.status}</h3>
+            <pre>${JSON.stringify(responseData, null, 2)}</pre>
+            <p><strong>Possíveis causas:</strong></p>
+            <ul>
+              <li>Verify JWT pode estar marcado (deve estar desmarcado)</li>
+              <li>Anon Key pode estar incorreta</li>
+              <li>Função pode não estar deployada</li>
+              <li>CORS pode estar bloqueando</li>
+            </ul>
+          `;
+        }
+
+      } catch (error) {
+        addLog('=== ERRO DE REDE/EXCEÇÃO ===', 'error');
+        addLog(`Tipo de erro: ${error.name}`, 'error');
+        addLog(`Mensagem: ${error.message}`, 'error');
+        addLog(`Stack: ${error.stack}`, 'error');
+
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          addLog('⚠️ ERRO DE CORS OU REDE', 'error');
+          addLog('Possíveis causas:', 'warning');
+          addLog('1. CORS bloqueado (Verify JWT marcado?)', 'warning');
+          addLog('2. URL da função incorreta', 'warning');
+          addLog('3. Função não está deployada', 'warning');
+          addLog('4. Problema de rede', 'warning');
+        }
+
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h3>❌ Erro de Rede/Exceção</h3>
+          <p><strong>Erro:</strong> ${error.message}</p>
+          <pre>${error.stack}</pre>
+          <p><strong>Isto geralmente significa:</strong></p>
+          <ul>
+            <li>❌ CORS está bloqueando (Verify JWT marcado?)</li>
+            <li>❌ URL da função incorreta</li>
+            <li>❌ Função não existe ou não está deployada</li>
+            <li>❌ Problema de rede</li>
+          </ul>
+          <p><strong>Solução:</strong></p>
+          <ol>
+            <li>Vá para: <a href="https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions" target="_blank">Supabase Functions</a></li>
+            <li>Clique em send-order-email</li>
+            <li><strong>DESMARQUE "Verify JWT"</strong></li>
+            <li>Salve e tente novamente</li>
+          </ol>
+        `;
+      }
+
+      addLog('=== FIM DO TESTE ===', 'info');
+    });
+  </script>
+</body>
+</html>
