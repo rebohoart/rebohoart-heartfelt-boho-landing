@@ -27,7 +27,7 @@
 
 #### Passo 1: Abrir o Editor
 
-1. Vai a: **https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email**
+1. Vai a: **https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email**
 2. Vais ver a página da função `send-order-email`
 3. Procura um botão **"Edit"** ou **"Code"** ou já vês o editor diretamente
 
@@ -148,7 +148,7 @@ grep "const debugLog" supabase/functions/send-order-email/index.ts
 supabase login
 
 # 4. Link ao projeto (se ainda não fez)
-supabase link --project-ref jjfqljrbgoymwwvyyvam
+supabase link --project-ref gyvtgzdkuhypteiyhtaq
 
 # 5. Deploy da função
 supabase functions deploy send-order-email --no-verify-jwt
@@ -197,7 +197,7 @@ supabase functions deploy send-order-email --no-verify-jwt
 
 ### Teste 2: Via Supabase Dashboard
 
-1. Vai a: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email
+1. Vai a: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email
 2. Procura um botão **"Test"** ou **"Run"**
 3. Testa a função diretamente no dashboard
 4. Vê se a resposta tem `details` e `debug`
@@ -250,7 +250,7 @@ Se **NÃO TEM** → ❌ Ficheiro errado ou precisa fazer git pull
 ### Problema: Não consigo encontrar o editor
 
 **Solução:**
-1. Vai a: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+1. Vai a: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 2. Clica na função `send-order-email` na lista
 3. Procura por tabs: "Code", "Details", "Logs"
 4. O editor deve estar no tab "Code" ou diretamente visível
@@ -285,7 +285,7 @@ Se **NÃO TEM** → ❌ Ficheiro errado ou precisa fazer git pull
 
 Antes de testar novamente, confirma:
 
-- [ ] Abri: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email
+- [ ] Abri: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email
 - [ ] Vi o editor de código
 - [ ] Apaguei TODO o código antigo
 - [ ] Colei o código de: `supabase/functions/send-order-email/index.ts`

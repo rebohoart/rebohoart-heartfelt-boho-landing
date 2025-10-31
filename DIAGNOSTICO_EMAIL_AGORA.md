@@ -54,9 +54,9 @@ abcdabcdabcdabcd
 
 **Passo 3.1: Ir para Secrets**
 
-1. Abra: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/settings/functions
+1. Abra: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/settings/functions
 2. Procure a secção **"Edge Function Secrets"** ou **"Secrets"**
-3. Ou vá direto para: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+3. Ou vá direto para: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 
 **Passo 3.2: Adicionar ou Atualizar Secrets**
 
@@ -85,7 +85,7 @@ Clique em **Save** ou **Add** para cada secret.
 
 **Passo 4.1: Ver Funções**
 
-1. Vá para: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+1. Vá para: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 2. Procure a função `send-order-email`
 3. Verifique o status:
    - ✅ **Deployed** - Bom! Vá para [Passo 5](#5️⃣-testar-emails)
@@ -107,7 +107,7 @@ Clique em **Save** ou **Add** para cada secret.
 
 ```bash
 cd /home/user/rebohoart-heartfelt-boho-landing
-supabase functions deploy send-order-email --project-ref jjfqljrbgoymwwvyyvam
+supabase functions deploy send-order-email --project-ref gyvtgzdkuhypteiyhtaq
 ```
 
 ---
@@ -141,7 +141,7 @@ supabase functions deploy send-order-email --project-ref jjfqljrbgoymwwvyyvam
 
 **Passo 6.1: Aceder aos Logs**
 
-1. Vá para: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email/logs
+1. Vá para: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email/logs
 2. Ou: Functions → send-order-email → Logs
 3. Ordene por **"Most recent"**
 
@@ -259,7 +259,7 @@ Se seguiu TODOS os passos acima e ainda não funciona:
 ### Se mesmo assim não funcionar:
 
 1. **Verifique os logs em tempo real:**
-   - Abra: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email/logs
+   - Abra: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email/logs
    - Deixe a página aberta
    - Faça uma encomenda teste
    - Veja o erro exato que aparece nos logs

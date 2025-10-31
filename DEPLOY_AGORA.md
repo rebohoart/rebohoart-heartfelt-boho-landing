@@ -12,7 +12,7 @@ Precisas fazer **deploy da versão nova** que tem os logs de debug.
 
 ### Passo 1: Ir para Supabase Functions
 
-**Link direto:** https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+**Link direto:** https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 
 ### Passo 2: Abrir a Função
 
@@ -234,7 +234,7 @@ Subject: Nova Encomenda ReBoho
 
 ## ✅ CHECKLIST RÁPIDA
 
-- [ ] Abri: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+- [ ] Abri: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 - [ ] Cliquei em `send-order-email` (ou criei nova função)
 - [ ] Copiei o código de `supabase/functions/send-order-email/index.ts`
 - [ ] Colei no editor do Supabase

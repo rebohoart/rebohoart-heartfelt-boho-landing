@@ -57,7 +57,7 @@ O sistema usa **Resend API** para enviar emails de encomendas e pedidos de orça
 #### 2. Adicionar API Key ao Supabase
 
 1. Abra o Supabase Dashboard: https://supabase.com/dashboard
-2. Selecione o projeto: **jjfqljrbgoymwwvyyvam**
+2. Selecione o projeto: **gyvtgzdkuhypteiyhtaq**
 3. Vá para **Edge Functions** (no menu lateral)
 4. Clique em **Manage secrets**
 5. Adicione um novo secret:
@@ -191,7 +191,7 @@ O Supabase tem um sistema de autenticação integrado que envia emails automatic
 #### 1. Configurar Template de Email
 
 1. Abra o Supabase Dashboard: https://supabase.com/dashboard
-2. Selecione o projeto: **jjfqljrbgoymwwvyyvam**
+2. Selecione o projeto: **gyvtgzdkuhypteiyhtaq**
 3. Vá para **Authentication** > **Email Templates**
 4. Clique em **"Reset Password"**
 5. Configure:

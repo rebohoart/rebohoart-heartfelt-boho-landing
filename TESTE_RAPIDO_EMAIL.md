@@ -21,7 +21,7 @@ Criei um ficheiro de teste que mostra o erro exato no browser.
 
 **Supabase URL:** (já está preenchido)
 ```
-https://jjfqljrbgoymwwvyyvam.supabase.co
+https://gyvtgzdkuhypteiyhtaq.supabase.co
 ```
 
 **Supabase Anon Key:** (cola esta key)
@@ -51,7 +51,7 @@ catarinarebocho30@gmail.com
 ```
 ❌ Problema: Os secrets não estão configurados no Supabase
 ✅ Solução:
-   1. Vá para: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+   1. Vá para: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
    2. Clique em "Manage secrets"
    3. Adicione os 3 secrets (ver abaixo)
 ```
@@ -69,7 +69,7 @@ catarinarebocho30@gmail.com
 ```
 ❌ Problema: Edge Function não foi deployada
 ✅ Solução:
-   1. Vá para: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+   1. Vá para: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
    2. Clique em "Create function" (se não existir)
    3. Nome: send-order-email
    4. DESMARQUE "Verify JWT"
@@ -125,7 +125,7 @@ Function invocation error: {...}
 
 Se o erro for "Missing environment variables", precisa adicionar estes secrets:
 
-**Link direto:** https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+**Link direto:** https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 
 ### Secret #1: GMAIL_USER
 ```
@@ -166,11 +166,11 @@ Antes de testar, confirma:
   - Link: https://myaccount.google.com/apppasswords
 
 - [ ] **3 Secrets adicionados** no Supabase
-  - Link: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+  - Link: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
   - Secrets: GMAIL_USER, GMAIL_APP_PASSWORD, STORE_EMAIL
 
 - [ ] **Edge Function deployada**
-  - Link: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+  - Link: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
   - Nome: `send-order-email`
   - Verify JWT: DESMARCADO ❌
 
@@ -212,7 +212,7 @@ Manda-me:
 Abre: test-email.html no browser
 
 # 2. Preencher
-- URL: https://jjfqljrbgoymwwvyyvam.supabase.co
+- URL: https://gyvtgzdkuhypteiyhtaq.supabase.co
 - Key: [cola a Anon Key do ficheiro .env]
 - Nome: Teste
 - Email: catarinarebocho30@gmail.com
@@ -234,7 +234,7 @@ Abre: test-email.html no browser
 ## 📚 Links Úteis
 
 - **Test Email HTML**: `file:///home/user/rebohoart-heartfelt-boho-landing/test-email.html`
-- **Supabase Functions**: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+- **Supabase Functions**: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 - **Gmail App Passwords**: https://myaccount.google.com/apppasswords
 - **Gmail Security**: https://myaccount.google.com/security
 - **Guia Completo (PT)**: DIAGNOSTICO_EMAIL_AGORA.md

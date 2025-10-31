@@ -21,7 +21,7 @@ I created a test file that shows the exact error in the browser.
 
 **Supabase URL:** (already filled)
 ```
-https://jjfqljrbgoymwwvyyvam.supabase.co
+https://gyvtgzdkuhypteiyhtaq.supabase.co
 ```
 
 **Supabase Anon Key:** (paste this key)
@@ -51,7 +51,7 @@ catarinarebocho30@gmail.com
 ```
 ❌ Problem: Secrets are not configured in Supabase
 ✅ Solution:
-   1. Go to: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+   1. Go to: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
    2. Click "Manage secrets"
    3. Add the 3 secrets (see below)
 ```
@@ -69,7 +69,7 @@ catarinarebocho30@gmail.com
 ```
 ❌ Problem: Edge Function was not deployed
 ✅ Solution:
-   1. Go to: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+   1. Go to: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
    2. Click "Create function" (if doesn't exist)
    3. Name: send-order-email
    4. UNCHECK "Verify JWT"
@@ -125,7 +125,7 @@ Function invocation error: {...}
 
 If the error is "Missing environment variables", you need to add these secrets:
 
-**Direct link:** https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+**Direct link:** https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 
 ### Secret #1: GMAIL_USER
 ```
@@ -166,11 +166,11 @@ Before testing, confirm:
   - Link: https://myaccount.google.com/apppasswords
 
 - [ ] **3 Secrets added** in Supabase
-  - Link: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+  - Link: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
   - Secrets: GMAIL_USER, GMAIL_APP_PASSWORD, STORE_EMAIL
 
 - [ ] **Edge Function deployed**
-  - Link: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+  - Link: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
   - Name: `send-order-email`
   - Verify JWT: UNCHECKED ❌
 
@@ -212,7 +212,7 @@ Send me:
 Open: test-email.html in browser
 
 # 2. Fill
-- URL: https://jjfqljrbgoymwwvyyvam.supabase.co
+- URL: https://gyvtgzdkuhypteiyhtaq.supabase.co
 - Key: [paste the Anon Key from .env file]
 - Name: Test
 - Email: catarinarebocho30@gmail.com
@@ -234,7 +234,7 @@ Open: test-email.html in browser
 ## 📚 Useful Links
 
 - **Test Email HTML**: `file:///home/user/rebohoart-heartfelt-boho-landing/test-email.html`
-- **Supabase Functions**: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+- **Supabase Functions**: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 - **Gmail App Passwords**: https://myaccount.google.com/apppasswords
 - **Gmail Security**: https://myaccount.google.com/security
 - **Complete Guide (EN)**: EMAIL_DEBUG_NOW.md

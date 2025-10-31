@@ -112,7 +112,7 @@ Se depois de seguir todos os passos ainda tiver problemas:
 
 Certifique-se que o ficheiro `.env` tem:
 ```
-VITE_SUPABASE_URL=https://jjfqljrbgoymwwvyyvam.supabase.co
+VITE_SUPABASE_URL=https://gyvtgzdkuhypteiyhtaq.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sua-chave-aqui
 ```
 

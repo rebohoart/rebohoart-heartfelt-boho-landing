@@ -54,9 +54,9 @@ abcdabcdabcdabcd
 
 **Step 3.1: Go to Secrets**
 
-1. Open: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/settings/functions
+1. Open: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/settings/functions
 2. Look for the **"Edge Function Secrets"** or **"Secrets"** section
-3. Or go directly to: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+3. Or go directly to: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 
 **Step 3.2: Add or Update Secrets**
 
@@ -85,7 +85,7 @@ Click **Save** or **Add** for each secret.
 
 **Step 4.1: View Functions**
 
-1. Go to: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+1. Go to: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 2. Look for the `send-order-email` function
 3. Check the status:
    - ✅ **Deployed** - Good! Go to [Step 5](#5️⃣-test-emails)
@@ -107,7 +107,7 @@ Click **Save** or **Add** for each secret.
 
 ```bash
 cd /home/user/rebohoart-heartfelt-boho-landing
-supabase functions deploy send-order-email --project-ref jjfqljrbgoymwwvyyvam
+supabase functions deploy send-order-email --project-ref gyvtgzdkuhypteiyhtaq
 ```
 
 ---
@@ -141,7 +141,7 @@ supabase functions deploy send-order-email --project-ref jjfqljrbgoymwwvyyvam
 
 **Step 6.1: Access Logs**
 
-1. Go to: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email/logs
+1. Go to: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email/logs
 2. Or: Functions → send-order-email → Logs
 3. Sort by **"Most recent"**
 
@@ -259,7 +259,7 @@ If you followed ALL steps above and it still doesn't work:
 ### If it still doesn't work:
 
 1. **Check logs in real-time:**
-   - Open: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email/logs
+   - Open: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email/logs
    - Leave page open
    - Make a test order
    - See the exact error that appears in logs
@@ -293,9 +293,9 @@ If you need additional help, provide this information:
 
 ## 🎯 DIRECT LINKS FOR YOUR PROJECT
 
-- **Supabase Dashboard**: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam
-- **Edge Functions**: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
-- **Function Logs**: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email/logs
+- **Supabase Dashboard**: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq
+- **Edge Functions**: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
+- **Function Logs**: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email/logs
 - **Gmail App Passwords**: https://myaccount.google.com/apppasswords
 - **Gmail 2-Step Verification**: https://myaccount.google.com/security
 
