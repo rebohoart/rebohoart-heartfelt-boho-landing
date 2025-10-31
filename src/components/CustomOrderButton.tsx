@@ -26,7 +26,7 @@ const CustomOrderButton = () => {
             className="bg-secondary hover:bg-secondary/90 text-secondary-foreground shadow-warm transition-all hover:scale-105 px-8 py-6 text-lg rounded-full font-medium"
           >
             <Sparkles className="w-5 h-5 mr-2" />
-            Encomendar
+            Pedir orçamento
           </Button>
         </div>
       </div>
