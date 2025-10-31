@@ -29,9 +29,10 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // Trim email and password to remove whitespace
+      // Trim email to remove whitespace
+      // IMPORTANT: Do NOT trim password - passwords must be used exactly as entered
       const trimmedEmail = email.trim();
-      const trimmedPassword = password.trim();
+      const trimmedPassword = password;
 
       if (isRecovery) {
         // Password recovery mode - only validate email
