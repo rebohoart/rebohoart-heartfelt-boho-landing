@@ -93,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email to shop owner
     const emailResponse = await resend.emails.send({
-      from: "ReBoho <noreply@rebohoart.pt>",
+      from: "ReBoho <onboarding@resend.dev>",
       to: [recipientEmail],
       subject: subject,
       html: emailHtml,
@@ -186,7 +186,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     await resend.emails.send({
-      from: "ReBoho <noreply@rebohoart.pt>",
+      from: "ReBoho <onboarding@resend.dev>",
       to: [customerEmail],
       subject: customerSubject,
       html: customerEmailHtml,
