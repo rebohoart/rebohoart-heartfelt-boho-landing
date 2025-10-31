@@ -25,6 +25,12 @@ interface Product {
   active: boolean;
 }
 
+interface SiteSetting {
+  id: string;
+  key: string;
+  value: string;
+}
+
 const Backoffice = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -41,6 +47,8 @@ const Backoffice = () => {
   });
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState<string>("");
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['admin-products'],
@@ -49,9 +57,22 @@ const Backoffice = () => {
         .from('products')
         .select('*')
         .order('created_at', { ascending: true });
-      
+
       if (error) throw error;
       return data as Product[];
+    },
+    enabled: !!user && isAdmin,
+  });
+
+  const { data: siteSettings } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*');
+
+      if (error) throw error;
+      return data as SiteSetting[];
     },
     enabled: !!user && isAdmin,
   });
@@ -61,6 +82,15 @@ const Backoffice = () => {
       navigate('/auth');
     }
   }, [user, isAdmin, loading, navigate]);
+
+  useEffect(() => {
+    if (siteSettings) {
+      const logoSetting = siteSettings.find(s => s.key === 'logo_url');
+      if (logoSetting) {
+        setCurrentLogo(logoSetting.value);
+      }
+    }
+  }, [siteSettings]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -217,6 +247,57 @@ const Backoffice = () => {
     setUploadedImages([]);
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoUploading(true);
+
+    try {
+      // Validate file before upload
+      const validation = validateImageFile(file);
+      if (!validation.isValid) {
+        toast.error(validation.error || "Ficheiro inválido");
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      // Update site settings with new logo URL
+      const { error: updateError } = await supabase
+        .from('site_settings')
+        .upsert({
+          key: 'logo_url',
+          value: publicUrl,
+        }, {
+          onConflict: 'key'
+        });
+
+      if (updateError) throw updateError;
+
+      setCurrentLogo(publicUrl);
+      queryClient.invalidateQueries({ queryKey: ['site-settings'] });
+      toast.success("Logo atualizado com sucesso!");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro ao carregar logo";
+      toast.error(message);
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
   if (loading || !user || !isAdmin) {
     return null;
   }
@@ -231,8 +312,15 @@ const Backoffice = () => {
           </Button>
         </div>
 
-        <Card className="p-6">
-            <div className="grid md:grid-cols-2 gap-8">
+        <Tabs defaultValue="products" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="products">Produtos</TabsTrigger>
+            <TabsTrigger value="settings">Configurações</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products">
+            <Card className="p-6">
+              <div className="grid md:grid-cols-2 gap-8">
           {/* Form */}
           <Card className="p-6">
             <h2 className="font-serif text-2xl font-bold mb-4">
@@ -407,6 +495,56 @@ const Backoffice = () => {
           </div>
         </div>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card className="p-6">
+              <h2 className="font-serif text-2xl font-bold mb-6">Configurações do Site</h2>
+
+              <div className="space-y-6">
+                {/* Logo Section */}
+                <div>
+                  <Label htmlFor="logo-upload" className="text-lg font-semibold">Logo da Marca</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Faça upload de um novo logo para aparecer na navegação do site.
+                  </p>
+
+                  {currentLogo && (
+                    <div className="mb-4 p-4 border border-border rounded-lg bg-background">
+                      <p className="text-sm text-muted-foreground mb-2">Logo atual:</p>
+                      <img
+                        src={currentLogo}
+                        alt="Logo atual"
+                        className="h-16 w-auto object-contain"
+                      />
+                    </div>
+                  )}
+
+                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                    <Input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      disabled={logoUploading}
+                      aria-label="Upload do logo"
+                    />
+                    <label htmlFor="logo-upload" className="cursor-pointer block">
+                      <Upload className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {logoUploading ? "A carregar..." : "Clique para fazer upload do novo logo"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Formatos aceites: PNG, JPG, SVG (recomendado: fundo transparente)
+                      </p>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
