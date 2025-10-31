@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Auth</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        input, button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+        }
+        input {
+            background: #2a2a2a;
+            border: 1px solid #0f0;
+            color: #0f0;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0c0;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #2a2a2a;
+            border: 1px solid #0f0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        .info { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Test Supabase Authentication</h1>
+    <p class="info">Este ficheiro testa a autenticação diretamente com o Supabase</p>
+
+    <div>
+        <label>Email:</label>
+        <input type="email" id="email" placeholder="seu-email@exemplo.com">
+    </div>
+
+    <div>
+        <label>Password:</label>
+        <input type="password" id="password" placeholder="sua-password">
+    </div>
+
+    <button onclick="testAuth()">🚀 Test Authentication</button>
+    <button onclick="showPassword()">👁️ Show/Hide Password</button>
+
+    <div id="result"></div>
+
+    <script>
+        const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || prompt('Cole o VITE_SUPABASE_URL:');
+        const SUPABASE_KEY = import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || prompt('Cole o VITE_SUPABASE_PUBLISHABLE_KEY:');
+
+        if (!SUPABASE_URL || !SUPABASE_KEY) {
+            document.getElementById('result').innerHTML = '<span class="error">❌ Configuração do Supabase não encontrada!</span>';
+        }
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function log(message, type = 'info') {
+            const result = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            result.innerHTML += `<span class="${color}">[${timestamp}] ${message}</span>\n`;
+        }
+
+        async function testAuth() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            document.getElementById('result').innerHTML = '';
+
+            log('🔐 Iniciando teste de autenticação...', 'info');
+            log(`📧 Email: ${email}`, 'info');
+            log(`🔑 Password length: ${password.length}`, 'info');
+            log(`🔑 Password (first 3 chars): ${password.substring(0, 3)}***`, 'info');
+            log('---', 'info');
+
+            try {
+                log('📡 Tentando login no Supabase...', 'info');
+
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) {
+                    log('❌ ERRO DE AUTENTICAÇÃO:', 'error');
+                    log(`Message: ${error.message}`, 'error');
+                    log(`Status: ${error.status}`, 'error');
+                    log(`Name: ${error.name}`, 'error');
+                    log('---', 'error');
+                    log('Detalhes completos:', 'error');
+                    log(JSON.stringify(error, null, 2), 'error');
+                } else {
+                    log('✅ LOGIN SUCCESSFUL!', 'success');
+                    log(`User ID: ${data.user.id}`, 'success');
+                    log(`Email: ${data.user.email}`, 'success');
+                    log(`Email confirmed: ${data.user.email_confirmed_at ? 'Yes' : 'No'}`, 'success');
+                    log('---', 'success');
+                    log('Session details:', 'success');
+                    log(JSON.stringify(data.session, null, 2), 'success');
+
+                    // Check admin status
+                    log('---', 'info');
+                    log('🔍 Verificando role de admin...', 'info');
+
+                    const { data: roleData, error: roleError } = await supabase
+                        .from('user_roles')
+                        .select('role')
+                        .eq('user_id', data.user.id);
+
+                    if (roleError) {
+                        log(`❌ Erro ao verificar role: ${roleError.message}`, 'error');
+                    } else {
+                        if (roleData && roleData.length > 0) {
+                            log(`✅ Roles encontradas: ${JSON.stringify(roleData)}`, 'success');
+                        } else {
+                            log('⚠️ Nenhuma role encontrada para este utilizador', 'error');
+                        }
+                    }
+                }
+            } catch (e) {
+                log('❌ ERRO INESPERADO:', 'error');
+                log(e.toString(), 'error');
+                log(e.stack, 'error');
+            }
+        }
+
+        function showPassword() {
+            const input = document.getElementById('password');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // Log config on load
+        log('⚙️ Supabase configurado', 'success');
+        log(`URL: ${SUPABASE_URL}`, 'info');
+        log(`Key: ${SUPABASE_KEY.substring(0, 20)}...`, 'info');
+    </script>
+</body>
+</html>

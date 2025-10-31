@@ -77,13 +77,18 @@ const Auth = () => {
           return;
         }
 
+        console.log('🔐 Attempting login with:', { email: trimmedEmail, passwordLength: trimmedPassword.length });
         const { error } = await signIn(trimmedEmail, trimmedPassword);
         if (error) {
+          console.error('❌ Login error:', error);
+          console.error('Error details:', JSON.stringify(error, null, 2));
           if (error.message.includes('Invalid login credentials')) {
             toast.error("Email ou password incorretos");
           } else {
-            toast.error(error.message);
+            toast.error(`Erro: ${error.message}`);
           }
+        } else {
+          console.log('✅ Login successful');
         }
       }
     } finally {
