@@ -36,7 +36,7 @@ UPDATE auth.users
 SET
   encrypted_password = crypt('123456', gen_salt('bf')),
   email_confirmed_at = COALESCE(email_confirmed_at, now()),
-  confirmed_at = COALESCE(confirmed_at, now()),
+  -- confirmed_at é uma coluna gerada e não pode ser atualizada manualmente
   updated_at = now(),
   last_sign_in_at = NULL  -- Resetar último login
 WHERE email = 'catarinarebocho30@gmail.com';
