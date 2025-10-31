@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,14 +14,36 @@ const authSchema = z.object({
   password: z.string().min(6, { message: "Password deve ter pelo menos 6 caracteres" }).max(100),
 });
 
+const passwordResetSchema = z.object({
+  password: z.string().min(6, { message: "Password deve ter pelo menos 6 caracteres" }).max(100),
+  confirmPassword: z.string().min(6, { message: "Password deve ter pelo menos 6 caracteres" }).max(100),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As passwords não coincidem",
+  path: ["confirmPassword"],
+});
+
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { signIn, signUp, updatePassword } = useAuth();
+
+  // Detect password recovery event from email link
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordReset(true);
+        setIsRecovery(false);
+        setIsSignUp(false);
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +56,29 @@ const Auth = () => {
       const trimmedEmail = email.trim();
       const trimmedPassword = password;
 
-      if (isRecovery) {
+      if (isPasswordReset) {
+        // Password reset mode - validate new password and confirmation
+        const validation = passwordResetSchema.safeParse({
+          password: trimmedPassword,
+          confirmPassword: confirmPassword
+        });
+
+        if (!validation.success) {
+          toast.error(validation.error.errors[0].message);
+          return;
+        }
+
+        const { error } = await updatePassword(trimmedPassword);
+
+        if (error) {
+          toast.error("Erro ao atualizar password");
+        } else {
+          toast.success("Password atualizada com sucesso! Pode agora fazer login.");
+          setIsPasswordReset(false);
+          setPassword("");
+          setConfirmPassword("");
+        }
+      } else if (isRecovery) {
         // Password recovery mode - only validate email
         const emailValidation = z.string().email({ message: "Email inválido" }).max(255).safeParse(trimmedEmail);
         if (!emailValidation.success) {
@@ -101,8 +145,14 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-natural px-4">
       <Card className="w-full max-w-md p-8">
         <h1 className="font-serif text-3xl font-bold text-center mb-6">
-          {isRecovery ? "Recuperar Password" : isSignUp ? "Criar Conta" : "Login"}
+          {isPasswordReset ? "Definir Nova Password" : isRecovery ? "Recuperar Password" : isSignUp ? "Criar Conta" : "Login"}
         </h1>
+
+        {isPasswordReset && (
+          <p className="text-sm text-muted-foreground text-center mb-6">
+            Defina a sua nova password. Deve ter pelo menos 6 caracteres.
+          </p>
+        )}
 
         {isRecovery && (
           <p className="text-sm text-muted-foreground text-center mb-6">
@@ -117,19 +167,21 @@ const Auth = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              maxLength={255}
-            />
-          </div>
+          {!isPasswordReset && (
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                maxLength={255}
+              />
+            </div>
+          )}
 
-          {!isRecovery && (
+          {!isRecovery && !isPasswordReset && (
             <div>
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -159,17 +211,76 @@ const Auth = () => {
             </div>
           )}
 
+          {isPasswordReset && (
+            <>
+              <div>
+                <Label htmlFor="new-password">Nova Password</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    maxLength={100}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showPassword ? "Esconder password" : "Mostrar password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="confirm-password">Confirmar Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    maxLength={100}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showConfirmPassword ? "Esconder password" : "Mostrar password"}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
           <Button
             type="submit"
             className="w-full"
             disabled={loading}
           >
-            {loading ? "A processar..." : isRecovery ? "Enviar Email" : isSignUp ? "Criar Conta" : "Entrar"}
+            {loading ? "A processar..." : isPasswordReset ? "Atualizar Password" : isRecovery ? "Enviar Email" : isSignUp ? "Criar Conta" : "Entrar"}
           </Button>
         </form>
 
         <div className="mt-4 flex flex-col gap-2 text-center">
-          {!isRecovery && !isSignUp && (
+          {!isRecovery && !isSignUp && !isPasswordReset && (
             <>
               <button
                 type="button"
@@ -196,14 +307,17 @@ const Auth = () => {
             </>
           )}
 
-          {(isRecovery || isSignUp) && (
+          {(isRecovery || isSignUp || isPasswordReset) && (
             <button
               type="button"
               onClick={() => {
                 setIsRecovery(false);
                 setIsSignUp(false);
+                setIsPasswordReset(false);
                 setPassword("");
+                setConfirmPassword("");
                 setShowPassword(false);
+                setShowConfirmPassword(false);
               }}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >

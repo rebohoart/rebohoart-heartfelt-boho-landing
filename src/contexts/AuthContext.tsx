@@ -11,6 +11,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,9 +120,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     navigate('/auth');
   };
 
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    return { error };
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, session, isAdmin, loading, signIn, signUp, signOut }}
+      value={{ user, session, isAdmin, loading, signIn, signUp, signOut, updatePassword }}
     >
       {children}
     </AuthContext.Provider>
