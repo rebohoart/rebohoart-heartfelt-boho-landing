@@ -4,11 +4,27 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import CartDrawer from "./CartDrawer";
 import logo from "@/assets/logo-reboho-transparent.png";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const { totalItems } = useCart();
+
+  const { data: siteSettings } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*');
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const logoUrl = siteSettings?.find(s => s.key === 'logo_url')?.value || logo;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,7 +47,7 @@ const Navigation = () => {
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
             <a href="/" className="flex items-center">
-              <img src={logo} alt="Reboho" className="h-8 md:h-10 w-auto" />
+              <img src={logoUrl} alt="Reboho" className="h-8 md:h-10 w-auto" />
             </a>
 
             {/* Navigation Actions */}
