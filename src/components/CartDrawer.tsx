@@ -34,11 +34,6 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader>
           <SheetTitle className="font-serif text-2xl">A minha encomenda</SheetTitle>
-          <SheetDescription>
-            {items.length === 0
-              ? "O seu carrinho está vazio"
-              : `${items.length} ${items.length === 1 ? "item" : "itens"} no carrinho`}
-          </SheetDescription>
         </SheetHeader>
 
         {items.length === 0 ? (
