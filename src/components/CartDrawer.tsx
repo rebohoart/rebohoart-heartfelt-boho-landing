@@ -149,7 +149,7 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                 onClick={() => onOpenChange(false)}
                 className="w-full rounded-full"
               >
-                Continuar a Comprar
+                Continuar a explorar
               </Button>
             </div>
           </>
