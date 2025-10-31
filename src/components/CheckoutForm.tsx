@@ -95,13 +95,26 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
         },
       });
 
-      if (response.error) throw response.error;
+      // Check for errors in response
+      if (response.error) {
+        console.error("Function invocation error:", response.error);
+        throw response.error;
+      }
+
+      // Check HTTP status
+      if (!response.data || response.data.success === false) {
+        console.error("Email sending failed:", response.data);
+        throw new Error(response.data?.error || "Failed to send email");
+      }
+
+      console.log("Order email sent successfully:", response.data);
 
       toast.success("Encomenda enviada com sucesso! Aguarda o nosso contacto.", {
         duration: 5000,
       });
       onSuccess();
     } catch (error: unknown) {
+      console.error("Checkout form error:", error);
       // Don't expose detailed error messages to users
       toast.error("Erro ao enviar encomenda. Por favor, tente novamente.");
     } finally {

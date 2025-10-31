@@ -21,7 +21,24 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { type, customerName, customerEmail, details }: OrderEmailRequest = await req.json();
 
-    console.log("Sending email:", { type, customerName, customerEmail });
+    console.log("=== EMAIL SENDING START ===");
+    console.log("Request type:", type);
+    console.log("Customer name:", customerName);
+    console.log("Customer email:", customerEmail);
+
+    // Verify environment variables
+    const gmailUser = Deno.env.get("GMAIL_USER");
+    const gmailPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+
+    if (!gmailUser || !gmailPassword) {
+      console.error("ERROR: Missing environment variables");
+      console.error("GMAIL_USER present:", !!gmailUser);
+      console.error("GMAIL_APP_PASSWORD present:", !!gmailPassword);
+      throw new Error("Email configuration error: Missing credentials");
+    }
+
+    console.log("Gmail user:", gmailUser);
+    console.log("Environment variables verified successfully");
 
     const isCustomOrder = type === "custom";
     const recipientEmail = Deno.env.get("STORE_EMAIL") || "catarinarebocho30@gmail.com";
@@ -88,6 +105,9 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
+    console.log("Configuring SMTP client...");
+    console.log("SMTP server: smtp.gmail.com:465");
+
     // Configure SMTP client with Gmail
     const client = new SMTPClient({
       connection: {
@@ -95,22 +115,33 @@ const handler = async (req: Request): Promise<Response> => {
         port: 465,
         tls: true,
         auth: {
-          username: Deno.env.get("GMAIL_USER") || "",
-          password: Deno.env.get("GMAIL_APP_PASSWORD") || "",
+          username: gmailUser,
+          password: gmailPassword,
         },
       },
     });
 
-    // Send email to shop owner
-    await client.send({
-      from: Deno.env.get("GMAIL_USER") || "",
-      to: recipientEmail,
-      subject: subject,
-      content: "auto",
-      html: emailHtml,
-    });
+    console.log("SMTP client configured successfully");
 
-    console.log("Email sent successfully to store owner");
+    // Send email to shop owner
+    console.log("Sending email to store owner:", recipientEmail);
+    console.log("From:", gmailUser);
+    console.log("Subject:", subject);
+
+    try {
+      await client.send({
+        from: gmailUser,
+        to: recipientEmail,
+        subject: subject,
+        content: "auto",
+        html: emailHtml,
+      });
+      console.log("✓ Email sent successfully to store owner:", recipientEmail);
+    } catch (error) {
+      console.error("✗ Failed to send email to store owner");
+      console.error("Error details:", error);
+      throw new Error(`Failed to send email to store: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 
     // Send confirmation email to customer
     const customerSubject = isCustomOrder
@@ -196,27 +227,57 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    await client.send({
-      from: Deno.env.get("GMAIL_USER") || "",
-      to: customerEmail,
-      subject: customerSubject,
-      content: "auto",
-      html: customerEmailHtml,
-    });
+    console.log("Sending confirmation email to customer:", customerEmail);
+    console.log("Subject:", customerSubject);
 
-    await client.close();
+    try {
+      await client.send({
+        from: gmailUser,
+        to: customerEmail,
+        subject: customerSubject,
+        content: "auto",
+        html: customerEmailHtml,
+      });
+      console.log("✓ Email sent successfully to customer:", customerEmail);
+    } catch (error) {
+      console.error("✗ Failed to send email to customer");
+      console.error("Error details:", error);
+      // Don't throw here - store owner already received the order
+      console.warn("Warning: Customer confirmation email failed, but order was received by store");
+    }
 
-    console.log("Email sent successfully to customer");
+    console.log("Closing SMTP connection...");
+    try {
+      await client.close();
+      console.log("✓ SMTP connection closed");
+    } catch (error) {
+      console.error("Warning: Error closing SMTP connection:", error);
+      // Non-critical error, continue
+    }
 
-    return new Response(JSON.stringify({ success: true }), {
+    console.log("=== EMAIL SENDING COMPLETED SUCCESSFULLY ===");
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: "Emails sent successfully"
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: unknown) {
-    console.error("Error sending email:", error);
+    console.error("=== EMAIL SENDING FAILED ===");
+    console.error("Error type:", error?.constructor?.name);
+    console.error("Error details:", error);
+
     const message = error instanceof Error ? error.message : "Unknown error occurred";
+
+    console.error("Final error message:", message);
+
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({
+        success: false,
+        error: message
+      }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
