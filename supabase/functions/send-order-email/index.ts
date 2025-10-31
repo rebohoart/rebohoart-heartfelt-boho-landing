@@ -18,31 +18,47 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const debugLog: string[] = [];
+  const log = (message: string) => {
+    console.log(message);
+    debugLog.push(message);
+  };
+
   try {
     const { type, customerName, customerEmail, details }: OrderEmailRequest = await req.json();
 
-    console.log("=== EMAIL SENDING START ===");
-    console.log("Request type:", type);
-    console.log("Customer name:", customerName);
-    console.log("Customer email:", customerEmail);
+    log("=== EMAIL SENDING START ===");
+    log(`Request type: ${type}`);
+    log(`Customer name: ${customerName}`);
+    log(`Customer email: ${customerEmail}`);
 
     // Verify environment variables
     const gmailUser = Deno.env.get("GMAIL_USER");
     const gmailPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+    const storeEmail = Deno.env.get("STORE_EMAIL") || "catarinarebocho30@gmail.com";
+
+    log("=== ENVIRONMENT VARIABLES CHECK ===");
+    log(`GMAIL_USER present: ${!!gmailUser}`);
+    log(`GMAIL_USER value: ${gmailUser || 'NOT SET'}`);
+    log(`GMAIL_APP_PASSWORD present: ${!!gmailPassword}`);
+    log(`GMAIL_APP_PASSWORD length: ${gmailPassword?.length || 0} chars`);
+    log(`STORE_EMAIL: ${storeEmail}`);
 
     if (!gmailUser || !gmailPassword) {
-      console.error("ERROR: Missing environment variables");
-      console.error("GMAIL_USER present:", !!gmailUser);
-      console.error("GMAIL_APP_PASSWORD present:", !!gmailPassword);
-      throw new Error("Email configuration error: Missing credentials");
+      const error = "Missing environment variables";
+      log(`ERROR: ${error}`);
+      throw new Error(error);
     }
 
-    console.log("Gmail user:", gmailUser);
-    console.log("Environment variables verified successfully");
+    // Validate Gmail credentials format
+    if (!gmailUser.includes('@gmail.com')) {
+      log('WARNING: GMAIL_USER does not look like a Gmail address');
+    }
+    if (gmailPassword.length !== 16) {
+      log(`WARNING: GMAIL_APP_PASSWORD length is ${gmailPassword.length}, expected 16`);
+    }
 
     const isCustomOrder = type === "custom";
-    const recipientEmail = Deno.env.get("STORE_EMAIL") || "catarinarebocho30@gmail.com";
-
     const subject = isCustomOrder
       ? "Novo Pedido de Orcamento - Peca Personalizada"
       : "Nova Encomenda ReBoho";
@@ -79,9 +95,6 @@ const handler = async (req: Request): Promise<Response> => {
                 <div class="info-block">
                   ${details}
                 </div>
-                <p style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
-                  <strong>Proximo passo:</strong> Entre em contacto com o cliente para discutir o orcamento e disponibilidade.
-                </p>
               ` : `
                 <h2>Detalhes da Encomenda</h2>
                 <div class="info-block">
@@ -92,9 +105,6 @@ const handler = async (req: Request): Promise<Response> => {
                 <div class="info-block">
                   ${details}
                 </div>
-                <p style="margin-top: 20px; padding: 15px; background: #d1ecf1; border-radius: 5px;">
-                  <strong>Nota:</strong> O cliente foi informado para aguardar novas indicacoes.
-                </p>
               `}
             </div>
             <div class="footer">
@@ -105,10 +115,13 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    console.log("Configuring SMTP client...");
-    console.log("SMTP server: smtp.gmail.com:465");
+    log("=== SMTP CLIENT CONFIGURATION ===");
+    log("Hostname: smtp.gmail.com");
+    log("Port: 465");
+    log("TLS: true");
+    log(`Auth username: ${gmailUser}`);
 
-    // Configure SMTP client with Gmail
+    // Configure SMTP client
     const client = new SMTPClient({
       connection: {
         hostname: "smtp.gmail.com",
@@ -121,26 +134,35 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
-    console.log("SMTP client configured successfully");
+    log("SMTP client created successfully");
 
     // Send email to shop owner
-    console.log("Sending email to store owner:", recipientEmail);
-    console.log("From:", gmailUser);
-    console.log("Subject:", subject);
+    log("=== SENDING EMAIL TO STORE ===");
+    log(`From: ${gmailUser}`);
+    log(`To: ${storeEmail}`);
+    log(`Subject: ${subject}`);
+
+    let storeEmailSuccess = false;
+    let storeEmailError = null;
 
     try {
       await client.send({
         from: gmailUser,
-        to: recipientEmail,
+        to: storeEmail,
         subject: subject,
         content: "auto",
         html: emailHtml,
       });
-      console.log("✓ Email sent successfully to store owner:", recipientEmail);
+      log(`✓ Email sent successfully to store: ${storeEmail}`);
+      storeEmailSuccess = true;
     } catch (error) {
-      console.error("✗ Failed to send email to store owner");
-      console.error("Error details:", error);
-      throw new Error(`Failed to send email to store: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      log("✗ Failed to send email to store");
+      log(`Error type: ${error?.constructor?.name}`);
+      log(`Error message: ${error instanceof Error ? error.message : String(error)}`);
+      log(`Error details: ${JSON.stringify(error, null, 2)}`);
+      storeEmailError = error;
+      // Store email is critical, so we throw
+      throw new Error(`Failed to send store email: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // Send confirmation email to customer
@@ -158,8 +180,6 @@ const handler = async (req: Request): Promise<Response> => {
             .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
             .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }
             h1 { margin: 0; font-size: 24px; }
-            .highlight { background: #f0f7ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
-            .info-block { background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #D4A574; }
           </style>
         </head>
         <body>
@@ -170,21 +190,8 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="content">
               <p>Ola ${customerName},</p>
               <p>Recebemos o teu pedido de orcamento para uma peca personalizada!</p>
-              <div class="info-block">
-                <p><strong>Resumo do Pedido:</strong></p>
-                ${details}
-              </div>
-              <div class="highlight">
-                <p><strong>Proximos passos:</strong></p>
-                <p>Vamos analisar o teu pedido e entraremos em contacto contigo em breve com:</p>
-                <ul>
-                  <li>Orcamento detalhado</li>
-                  <li>Prazo de execucao</li>
-                  <li>Sugestoes criativas</li>
-                </ul>
-              </div>
-              <p>Aguarda as nossas indicacoes. Qualquer duvida, nao hesites em contactar-nos!</p>
-              <p style="margin-top: 30px;">Com carinho,<br><strong>ReBoho Art</strong></p>
+              <p>Vamos analisar o teu pedido e entraremos em contacto contigo em breve.</p>
+              <p>Com carinho,<br><strong>ReBoho Art</strong></p>
             </div>
           </div>
         </body>
@@ -199,7 +206,6 @@ const handler = async (req: Request): Promise<Response> => {
             .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
             .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }
             h1 { margin: 0; font-size: 24px; }
-            .highlight { background: #f0f7ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
           </style>
         </head>
         <body>
@@ -210,25 +216,21 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="content">
               <p>Ola ${customerName},</p>
               <p>Recebemos a tua encomenda com sucesso!</p>
-              <div class="highlight">
-                <p><strong>Proximos passos:</strong></p>
-                <p>Iremos entrar em contacto contigo brevemente com:</p>
-                <ul>
-                  <li>Confirmacao de disponibilidade</li>
-                  <li>Informacoes de pagamento</li>
-                  <li>Detalhes de envio</li>
-                </ul>
-              </div>
-              <p>Aguarda as nossas indicacoes. Qualquer duvida, nao hesites em contactar-nos!</p>
-              <p style="margin-top: 30px;">Com carinho,<br><strong>ReBoho Art</strong></p>
+              <p>Iremos entrar em contacto contigo brevemente com informacoes de pagamento e envio.</p>
+              <p>Com carinho,<br><strong>ReBoho Art</strong></p>
             </div>
           </div>
         </body>
       </html>
     `;
 
-    console.log("Sending confirmation email to customer:", customerEmail);
-    console.log("Subject:", customerSubject);
+    log("=== SENDING EMAIL TO CUSTOMER ===");
+    log(`From: ${gmailUser}`);
+    log(`To: ${customerEmail}`);
+    log(`Subject: ${customerSubject}`);
+
+    let customerEmailSuccess = false;
+    let customerEmailError = null;
 
     try {
       await client.send({
@@ -238,45 +240,60 @@ const handler = async (req: Request): Promise<Response> => {
         content: "auto",
         html: customerEmailHtml,
       });
-      console.log("✓ Email sent successfully to customer:", customerEmail);
+      log(`✓ Email sent successfully to customer: ${customerEmail}`);
+      customerEmailSuccess = true;
     } catch (error) {
-      console.error("✗ Failed to send email to customer");
-      console.error("Error details:", error);
-      // Don't throw here - store owner already received the order
-      console.warn("Warning: Customer confirmation email failed, but order was received by store");
+      log("✗ Failed to send email to customer");
+      log(`Error type: ${error?.constructor?.name}`);
+      log(`Error message: ${error instanceof Error ? error.message : String(error)}`);
+      log(`Error details: ${JSON.stringify(error, null, 2)}`);
+      customerEmailError = error;
+      // Customer email is not critical, log but continue
     }
 
-    console.log("Closing SMTP connection...");
+    log("=== CLOSING SMTP CONNECTION ===");
     try {
       await client.close();
-      console.log("✓ SMTP connection closed");
+      log("✓ SMTP connection closed");
     } catch (error) {
-      console.error("Warning: Error closing SMTP connection:", error);
-      // Non-critical error, continue
+      log(`Warning: Error closing SMTP connection: ${error}`);
     }
 
-    console.log("=== EMAIL SENDING COMPLETED SUCCESSFULLY ===");
+    log("=== EMAIL SENDING COMPLETED ===");
 
+    // Return detailed response
     return new Response(JSON.stringify({
       success: true,
-      message: "Emails sent successfully"
+      message: "Email processing completed",
+      details: {
+        storeEmail: {
+          sent: storeEmailSuccess,
+          recipient: storeEmail,
+          error: storeEmailError ? String(storeEmailError) : null
+        },
+        customerEmail: {
+          sent: customerEmailSuccess,
+          recipient: customerEmail,
+          error: customerEmailError ? String(customerEmailError) : null
+        }
+      },
+      debug: debugLog
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: unknown) {
-    console.error("=== EMAIL SENDING FAILED ===");
-    console.error("Error type:", error?.constructor?.name);
-    console.error("Error details:", error);
+    log("=== EMAIL SENDING FAILED ===");
+    log(`Error type: ${error?.constructor?.name}`);
+    log(`Error message: ${error instanceof Error ? error.message : String(error)}`);
 
     const message = error instanceof Error ? error.message : "Unknown error occurred";
-
-    console.error("Final error message:", message);
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: message
+        error: message,
+        debug: debugLog
       }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
