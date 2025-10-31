@@ -26,8 +26,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending email:", { type, customerName, customerEmail });
 
     const isCustomOrder = type === "custom";
-    // Store email is always the same for all order types
-    const recipientEmail = "catarinarebocho30@gmail.com";
+    // Store email can be configured via environment variable or falls back to default
+    const recipientEmail = Deno.env.get("STORE_EMAIL") || "catarinarebocho30@gmail.com";
     
     const subject = isCustomOrder 
       ? "Novo Pedido de Orçamento - Peça Personalizada" 
