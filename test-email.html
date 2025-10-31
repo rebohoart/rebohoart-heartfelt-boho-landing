@@ -232,16 +232,50 @@
         console.log('Dados da resposta:', responseData);
 
         if (response.ok) {
+          const details = responseData.details || {};
+          const debug = responseData.debug || [];
+
+          const storeSuccess = details.storeEmail?.sent;
+          const customerSuccess = details.customerEmail?.sent;
+
           resultDiv.className = 'result success';
           resultDiv.innerHTML = `
-            <strong>✅ Sucesso!</strong> Email enviado com sucesso.
-            <pre>${JSON.stringify(responseData, null, 2)}</pre>
-            <p><strong>Próximos passos:</strong></p>
-            <ul>
-              <li>Verifique a caixa de entrada de: <strong>${customerEmail}</strong></li>
-              <li>Verifique também a pasta SPAM</li>
-              <li>O email da loja também deve ter recebido a notificação</li>
-            </ul>
+            <strong>✅ Função executada com sucesso!</strong>
+
+            <h3>📊 Resultado do Envio:</h3>
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">
+              <p><strong>Email da Loja:</strong> ${storeSuccess ? '✅ Enviado' : '❌ Falhou'}</p>
+              <p style="margin-left: 20px;">Para: ${details.storeEmail?.recipient || 'N/A'}</p>
+              ${details.storeEmail?.error ? `<p style="margin-left: 20px; color: red;">Erro: ${details.storeEmail.error}</p>` : ''}
+
+              <p style="margin-top: 10px;"><strong>Email do Cliente:</strong> ${customerSuccess ? '✅ Enviado' : '❌ Falhou'}</p>
+              <p style="margin-left: 20px;">Para: ${details.customerEmail?.recipient || 'N/A'}</p>
+              ${details.customerEmail?.error ? `<p style="margin-left: 20px; color: red;">Erro: ${details.customerEmail.error}</p>` : ''}
+            </div>
+
+            ${storeSuccess || customerSuccess ? `
+              <h3>✅ O que verificar:</h3>
+              <ul>
+                ${storeSuccess ? `<li>Verifica a caixa de entrada de: <strong>${details.storeEmail.recipient}</strong></li>` : ''}
+                ${customerSuccess ? `<li>Verifica a caixa de entrada de: <strong>${details.customerEmail.recipient}</strong></li>` : ''}
+                <li>Verifica também a pasta <strong>SPAM</strong></li>
+              </ul>
+            ` : ''}
+
+            ${!storeSuccess && !customerSuccess ? `
+              <h3>⚠️ Nenhum email foi enviado!</h3>
+              <p>Veja os logs de debug abaixo para identificar o problema.</p>
+            ` : ''}
+
+            <details style="margin-top: 20px;">
+              <summary style="cursor: pointer; font-weight: bold;">🔍 Ver Logs de Debug</summary>
+              <pre style="margin-top: 10px; max-height: 400px; overflow-y: auto;">${debug.join('\n')}</pre>
+            </details>
+
+            <details style="margin-top: 10px;">
+              <summary style="cursor: pointer; font-weight: bold;">📄 Resposta Completa (JSON)</summary>
+              <pre style="margin-top: 10px;">${JSON.stringify(responseData, null, 2)}</pre>
+            </details>
           `;
         } else {
           resultDiv.className = 'result error';
