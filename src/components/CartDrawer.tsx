@@ -40,7 +40,7 @@ const CartDrawer = ({
             <ShoppingBag className="w-16 h-16 text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground mb-6">Ainda não adicionou nenhum produto à sua encomenda.</p>
             <Button onClick={() => onOpenChange(false)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full">
-              Continuar a Comprar
+              Continuar a explorar
             </Button>
           </div> : <>
             {/* Items List */}
