@@ -18,7 +18,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
-  const { signIn } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +45,23 @@ const Auth = () => {
           toast.success("Email de recuperação enviado! Verifique a sua caixa de entrada.");
           setIsRecovery(false);
           setEmail("");
+        }
+      } else if (isSignUp) {
+        // Sign up mode - validate email and password
+        const validation = authSchema.safeParse({ email, password });
+        if (!validation.success) {
+          toast.error(validation.error.errors[0].message);
+          return;
+        }
+
+        const { error } = await signUp(email, password);
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success("Conta criada com sucesso! Por favor, verifique o seu email para confirmar.");
+          setIsSignUp(false);
+          setEmail("");
+          setPassword("");
         }
       } else {
         // Login mode - validate email and password
@@ -71,12 +89,18 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-natural px-4">
       <Card className="w-full max-w-md p-8">
         <h1 className="font-serif text-3xl font-bold text-center mb-6">
-          {isRecovery ? "Recuperar Password" : "Login"}
+          {isRecovery ? "Recuperar Password" : isSignUp ? "Criar Conta" : "Login"}
         </h1>
 
         {isRecovery && (
           <p className="text-sm text-muted-foreground text-center mb-6">
             Insira o seu email para receber um link de recuperação de password.
+          </p>
+        )}
+
+        {isSignUp && (
+          <p className="text-sm text-muted-foreground text-center mb-6">
+            Crie uma conta para aceder ao backoffice. Após criar a conta, contacte o administrador para receber permissões.
           </p>
         )}
 
@@ -113,21 +137,49 @@ const Auth = () => {
             className="w-full"
             disabled={loading}
           >
-            {loading ? "A processar..." : isRecovery ? "Enviar Email" : "Entrar"}
+            {loading ? "A processar..." : isRecovery ? "Enviar Email" : isSignUp ? "Criar Conta" : "Entrar"}
           </Button>
         </form>
 
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setIsRecovery(!isRecovery);
-              setPassword("");
-            }}
-            className="text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            {isRecovery ? "Voltar ao login" : "Esqueceu a password?"}
-          </button>
+        <div className="mt-4 flex flex-col gap-2 text-center">
+          {!isRecovery && !isSignUp && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(true);
+                  setPassword("");
+                }}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Não tem conta? Criar conta
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRecovery(true);
+                  setPassword("");
+                }}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Esqueceu a password?
+              </button>
+            </>
+          )}
+
+          {(isRecovery || isSignUp) && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsRecovery(false);
+                setIsSignUp(false);
+                setPassword("");
+              }}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Voltar ao login
+            </button>
+          )}
         </div>
       </Card>
     </div>
