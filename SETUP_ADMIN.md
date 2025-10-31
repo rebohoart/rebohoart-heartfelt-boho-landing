@@ -89,14 +89,21 @@ Se quiser verificar manualmente se o admin foi criado:
 
 ## ❌ Problemas Comuns
 
-### "Invalid login credentials"
+### "Invalid login credentials" ou "Password inválida"
 
-**Causa**: O usuário ainda não foi criado no sistema de autenticação.
+**Causa 1**: O usuário ainda não foi criado no sistema de autenticação.
 
 **Solução**:
 1. Tente fazer login primeiro (vai falhar mas vai criar o usuário)
 2. Depois execute o script SQL para adicionar permissões de admin
 3. Faça login novamente
+
+**Causa 2**: A password foi guardada com espaços ou caracteres invisíveis.
+
+**Solução**:
+Se o sistema de envio de emails ainda não está configurado, use o script SQL para resetar a password diretamente:
+- Ver ficheiro: `supabase/RESET_PASSWORD_SIMPLE.sql`
+- Guia completo: `GUIA_RESET_PASSWORD.md`
 
 ### "Não consigo aceder ao /backoffice"
 
