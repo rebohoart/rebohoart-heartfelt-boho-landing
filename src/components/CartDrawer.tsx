@@ -33,7 +33,7 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader>
-          <SheetTitle className="font-serif text-2xl">Carrinho de Compras</SheetTitle>
+          <SheetTitle className="font-serif text-2xl">A minha encomenda</SheetTitle>
           <SheetDescription>
             {items.length === 0
               ? "O seu carrinho está vazio"
