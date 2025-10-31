@@ -12,7 +12,7 @@
 
 1. Vá para: https://supabase.com/dashboard
 2. Faça login no Supabase
-3. Selecione o projeto: **jjfqljrbgoymwwvyyvam**
+3. Selecione o projeto: **gyvtgzdkuhypteiyhtaq**
 
 ### ✅ PASSO 2: Abrir o SQL Editor
 

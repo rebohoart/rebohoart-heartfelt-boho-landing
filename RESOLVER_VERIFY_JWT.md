@@ -28,10 +28,10 @@ Quando **desmarcado** ❌:
 
 ### Passo 1: Abrir a Função
 
-**Link direto:** https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email
+**Link direto:** https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email
 
 Ou:
-1. Vai a: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+1. Vai a: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 2. Clica em **`send-order-email`**
 
 ### Passo 2: Procurar "Verify JWT"
@@ -95,7 +95,7 @@ Não consegues ver a opção? Tenta:
 
 ### Via Settings da Função:
 
-1. Vai a: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email
+1. Vai a: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email
 2. Procura por tabs/abas:
    - **"Settings"**
    - **"Configuration"**
@@ -121,7 +121,7 @@ Se "Verify JWT" já está desmarcado mas ainda não funciona:
 ### Problema 2: Anon Key Incorreta
 
 **Verificar:**
-1. Vai a: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/settings/api
+1. Vai a: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/settings/api
 2. Copia a **"anon public"** key
 3. Compara com a key no `test-email-debug.html`
 
@@ -149,7 +149,7 @@ Deve estar no início do ficheiro. Se não estiver, adiciona.
 
 **URL correta:**
 ```
-https://jjfqljrbgoymwwvyyvam.supabase.co/functions/v1/send-order-email
+https://gyvtgzdkuhypteiyhtaq.supabase.co/functions/v1/send-order-email
 ```
 
 Verifica:
@@ -227,9 +227,9 @@ Com os logs vou ver **exatamente** qual é o problema!
 
 ## 📞 LINKS ÚTEIS
 
-- **Supabase Functions:** https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
-- **Função send-order-email:** https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions/send-order-email
-- **API Settings (Anon Key):** https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/settings/api
+- **Supabase Functions:** https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
+- **Função send-order-email:** https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions/send-order-email
+- **API Settings (Anon Key):** https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/settings/api
 - **Teste HTML Debug:** `file:///home/user/rebohoart-heartfelt-boho-landing/test-email-debug.html`
 
 ---

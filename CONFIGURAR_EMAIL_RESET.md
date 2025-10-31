@@ -15,7 +15,7 @@ O template de email no Supabase precisa ser configurado para incluir o link de r
 ### Passo 1: Aceder às Configurações de Email
 
 1. Abra o Supabase Dashboard: https://supabase.com/dashboard
-2. Selecione o seu projeto: **jjfqljrbgoymwwvyyvam**
+2. Selecione o seu projeto: **gyvtgzdkuhypteiyhtaq**
 3. No menu lateral, vá para **Authentication** > **Email Templates**
 
 ### Passo 2: Selecionar o Template "Reset Password"

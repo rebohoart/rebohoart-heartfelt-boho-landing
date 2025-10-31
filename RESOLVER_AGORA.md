@@ -6,7 +6,7 @@
 
 1. Abra: https://supabase.com/dashboard
 2. Faça login no Supabase
-3. Selecione o projeto: **jjfqljrbgoymwwvyyvam**
+3. Selecione o projeto: **gyvtgzdkuhypteiyhtaq**
 4. Clique em **"SQL Editor"** (ícone `</>` no menu lateral esquerdo)
 5. Clique em **"New query"**
 

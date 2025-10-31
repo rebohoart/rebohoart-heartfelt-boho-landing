@@ -35,7 +35,7 @@ Agora precisa adicionar 3 secrets na Edge Function do Supabase:
 
 ### Aceder aos Secrets:
 
-1. Va para: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+1. Va para: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 2. Clique em **"Manage secrets"** ou **"Secrets"**
 
 ### Adicionar os Secrets:
@@ -59,7 +59,7 @@ Agora precisa adicionar 3 secrets na Edge Function do Supabase:
 
 ### Opcao A: Via Dashboard (Manual)
 
-1. Va para: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+1. Va para: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 2. Se a funcao `send-order-email` ja existe:
    - Clique nela
    - Clique em "Edit" ou "Code"
@@ -79,7 +79,7 @@ Agora precisa adicionar 3 secrets na Edge Function do Supabase:
 Se tiver o Supabase CLI instalado:
 
 ```bash
-supabase functions deploy send-order-email --project-ref jjfqljrbgoymwwvyyvam
+supabase functions deploy send-order-email --project-ref gyvtgzdkuhypteiyhtaq
 ```
 
 ---

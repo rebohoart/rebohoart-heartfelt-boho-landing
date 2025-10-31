@@ -20,7 +20,7 @@ Se o sistema de envio de emails ainda não está configurado ou não está funci
 
 1. Abra o browser e vá para: https://supabase.com/dashboard
 2. Faça login na sua conta Supabase
-3. Selecione o projeto: **jjfqljrbgoymwwvyyvam**
+3. Selecione o projeto: **gyvtgzdkuhypteiyhtaq**
 
 ### Passo 2: Abrir o SQL Editor
 

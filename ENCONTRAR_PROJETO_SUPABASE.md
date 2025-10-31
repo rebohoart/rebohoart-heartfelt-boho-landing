@@ -2,7 +2,7 @@
 
 ## 🎯 PROBLEMA
 
-O link https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions não funciona - projeto não existe ou não tens acesso.
+O link https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions não funciona - projeto não existe ou não tens acesso.
 
 ## ✅ SOLUÇÕES
 
@@ -27,15 +27,15 @@ O link https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions nã
 
 O teu `.env` diz que a URL é:
 ```
-https://jjfqljrbgoymwwvyyvam.supabase.co
+https://gyvtgzdkuhypteiyhtaq.supabase.co
 ```
 
 Se esta URL **funciona** quando acedes (não dá erro 404):
-- ✅ O projeto `jjfqljrbgoymwwvyyvam` **existe**
+- ✅ O projeto `gyvtgzdkuhypteiyhtaq` **existe**
 - ❌ Mas pode estar noutro organization ou conta
 
 **Para verificar:**
-1. Tenta aceder: https://jjfqljrbgoymwwvyyvam.supabase.co
+1. Tenta aceder: https://gyvtgzdkuhypteiyhtaq.supabase.co
 2. Se carregar (mesmo que mostre erro de API), o projeto existe
 3. Verifica se estás logado na conta correta no Supabase Dashboard
 
@@ -60,7 +60,7 @@ Se tens múltiplas organizations:
 1. Vai a: https://supabase.com/dashboard
 2. No topo da página, vê se há um **dropdown de organizações**
 3. Seleciona cada organização
-4. Vê se o projeto `jjfqljrbgoymwwvyyvam` aparece numa delas
+4. Vê se o projeto `gyvtgzdkuhypteiyhtaq` aparece numa delas
 
 ---
 
@@ -77,7 +77,7 @@ O ID é: **ABC123XYZ**
 
 ### Passo 2: Verificar se é o Mesmo
 
-**O ID no ficheiro `.env` é:** `jjfqljrbgoymwwvyyvam`
+**O ID no ficheiro `.env` é:** `gyvtgzdkuhypteiyhtaq`
 
 Se o ID que encontraste é **DIFERENTE**, então precisamos atualizar os ficheiros!
 
@@ -85,7 +85,7 @@ Se o ID que encontraste é **DIFERENTE**, então precisamos atualizar os ficheir
 
 ## 📋 DEPOIS DE ENCONTRAR O ID CORRETO
 
-### Se o ID for o mesmo (`jjfqljrbgoymwwvyyvam`):
+### Se o ID for o mesmo (`gyvtgzdkuhypteiyhtaq`):
 
 **Problema:** Não tens acesso a esse projeto ou está noutra conta
 
@@ -104,7 +104,7 @@ Manda-me o **ID correto** que vou atualizar todos os ficheiros.
 
 ## 🔧 CRIAR NOVO PROJETO (se necessário)
 
-Se não consegues aceder ao projeto `jjfqljrbgoymwwvyyvam`, podes criar um novo:
+Se não consegues aceder ao projeto `gyvtgzdkuhypteiyhtaq`, podes criar um novo:
 
 ### Passo 1: Criar Projeto
 
@@ -139,7 +139,7 @@ Vou atualizar todos os ficheiros com as informações corretas!
 
 ## 🆘 O QUE FAZER AGORA
 
-**Opção A: Se tens acesso ao projeto `jjfqljrbgoymwwvyyvam`**
+**Opção A: Se tens acesso ao projeto `gyvtgzdkuhypteiyhtaq`**
 1. Verifica que estás na conta certa
 2. Vai a: https://supabase.com/dashboard
 3. Procura o projeto na lista

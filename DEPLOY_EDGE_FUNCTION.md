@@ -22,7 +22,7 @@ Atualizei a Edge Function `send-order-email` para incluir:
 
 #### Passo 1: Ir para Edge Functions
 
-1. Abra: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+1. Abra: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 2. Procure pela função `send-order-email`
 3. Se existir, clique nela
 4. Se NÃO existir, clique em **"New function"**
@@ -56,7 +56,7 @@ cd /home/user/rebohoart-heartfelt-boho-landing
 supabase login
 
 # 3. Link ao projeto (se ainda não fez)
-supabase link --project-ref jjfqljrbgoymwwvyyvam
+supabase link --project-ref gyvtgzdkuhypteiyhtaq
 
 # 4. Deploy da função
 supabase functions deploy send-order-email
@@ -181,7 +181,7 @@ supabase functions list
 1. Gera nova App Password: https://myaccount.google.com/apppasswords
 2. Copia os 16 caracteres **SEM ESPAÇOS**
 3. Atualiza o secret no Supabase:
-   - Vai a: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+   - Vai a: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
    - Clica em "Manage secrets"
    - Edita `GMAIL_APP_PASSWORD`
    - Cola a nova password
@@ -221,7 +221,7 @@ supabase functions list
 **Causa**: Secrets não estão configurados
 
 **Solução**:
-1. Vai a: https://supabase.com/dashboard/project/jjfqljrbgoymwwvyyvam/functions
+1. Vai a: https://supabase.com/dashboard/project/gyvtgzdkuhypteiyhtaq/functions
 2. Clica em "Manage secrets"
 3. Adiciona os 3 secrets:
    - `GMAIL_USER` = `catarinarebocho30@gmail.com`
