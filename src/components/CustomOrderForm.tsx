@@ -157,13 +157,26 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
         },
       });
 
-      if (response.error) throw response.error;
+      // Check for errors in response
+      if (response.error) {
+        console.error("Function invocation error:", response.error);
+        throw response.error;
+      }
+
+      // Check HTTP status
+      if (!response.data || response.data.success === false) {
+        console.error("Email sending failed:", response.data);
+        throw new Error(response.data?.error || "Failed to send email");
+      }
+
+      console.log("Custom order email sent successfully:", response.data);
 
       toast.success("Pedido enviado com sucesso! Entraremos em contacto em breve.");
       setFormData({ title: "", description: "", customerName: "", customerEmail: "", deliveryDeadline: "" });
       setUploadedImages([]);
       onOpenChange(false);
     } catch (error: unknown) {
+      console.error("Custom order form error:", error);
       // Don't expose detailed error messages to users
       toast.error("Erro ao enviar pedido. Por favor, tente novamente.");
     }
