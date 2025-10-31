@@ -1,6 +1,18 @@
-# 🔐 Guia: Como Resetar Password sem Email
+# 🔐 Guia: Como Resetar Password
 
-Se o sistema de envio de emails ainda não está configurado, pode resetar a password diretamente no Supabase usando SQL.
+## 📧 Método Recomendado: Reset por Email
+
+**NOVO!** Agora o sistema tem suporte completo para reset de password por email.
+
+➡️ **Veja o guia completo**: `CONFIGURAR_EMAIL_RESET.md`
+
+Este guia explica como configurar o template de email no Supabase para que o link de reset apareça automaticamente nos emails.
+
+---
+
+## 🛠️ Método Alternativo: Reset Manual via SQL
+
+Se o sistema de envio de emails ainda não está configurado ou não está funcionando, pode resetar a password diretamente no Supabase usando SQL.
 
 ## 📋 Passo a Passo
 
