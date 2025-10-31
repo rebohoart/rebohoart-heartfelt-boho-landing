@@ -21,11 +21,7 @@ const Hero = () => {
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 py-20 text-center animate-fade-in-up">
         <div className="max-w-4xl mx-auto">
-          <img 
-            src={logo} 
-            alt="Reboho" 
-            className="h-48 md:h-64 lg:h-80 w-auto mx-auto mb-2"
-          />
+          <img src={logo} alt="Reboho" className="h-48 md:h-64 lg:h-80 w-auto mx-auto mb-2" />
           
           <p className="text-lg md:text-xl text-foreground/80 mb-8 max-w-2xl mx-auto font-light">Peças artesanais feitas com o coração para decorar com significado.</p>
           
@@ -34,20 +30,13 @@ const Hero = () => {
               Explorar
             </Button>
             
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-2 border-foreground/20 hover:border-primary hover:bg-primary/10 transition-all px-8 py-6 text-lg rounded-full font-medium"
-              onClick={() => window.open('https://www.instagram.com/direct/t/rebohoart', '_blank')}
-            >
+            <Button size="lg" variant="outline" className="border-2 border-foreground/20 hover:border-primary hover:bg-primary/10 transition-all px-8 py-6 text-lg rounded-full font-medium" onClick={() => window.open('https://www.instagram.com/direct/t/rebohoart', '_blank')}>
               <MessageCircle className="w-5 h-5 mr-2" />
               Contacto
             </Button>
           </div>
           
-          <p className="mt-8 text-sm text-muted-foreground italic">
-            Feito à mão em Portugal · Encomendas por Instagram DM
-          </p>
+          <p className="mt-8 text-sm text-muted-foreground italic">Feito à mão em Portugal </p>
         </div>
       </div>
       
