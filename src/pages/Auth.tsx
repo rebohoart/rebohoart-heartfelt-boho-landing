@@ -82,19 +82,56 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await updatePassword(trimmedPassword);
+        try {
+          // Check if there's an active session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          console.log('🔐 Current session check:', { hasSession: !!session, sessionError });
 
-        if (error) {
-          console.error('❌ Error updating password:', error);
-          toast.error("Erro ao atualizar password");
-        } else {
-          console.log('✅ Password updated successfully');
-          toast.success("Password atualizada com sucesso! Pode agora fazer login.");
-          setIsPasswordReset(false);
-          setPassword("");
-          setConfirmPassword("");
+          if (sessionError) {
+            console.error('❌ Error getting session:', sessionError);
+            toast.error("Erro ao verificar sessão. Por favor, tente novamente.");
+            setLoading(false);
+            return;
+          }
+
+          if (!session) {
+            console.error('❌ No active session found for password reset');
+            toast.error("Sessão expirada. Por favor, solicite um novo link de recuperação.");
+            setIsPasswordReset(false);
+            setPassword("");
+            setConfirmPassword("");
+            setLoading(false);
+            return;
+          }
+
+          console.log('🔐 Updating password for user:', session.user.email);
+          const { error } = await updatePassword(trimmedPassword);
+
+          if (error) {
+            console.error('❌ Error updating password:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+
+            // Provide more specific error messages
+            if (error.message.includes('session')) {
+              toast.error("Sessão expirada. Solicite um novo link de recuperação.");
+            } else if (error.message.includes('weak')) {
+              toast.error("Password muito fraca. Use pelo menos 6 caracteres.");
+            } else {
+              toast.error(`Erro ao atualizar password: ${error.message}`);
+            }
+          } else {
+            console.log('✅ Password updated successfully');
+            toast.success("Password atualizada com sucesso! Pode agora fazer login.");
+            setIsPasswordReset(false);
+            setPassword("");
+            setConfirmPassword("");
+          }
+        } catch (err) {
+          console.error('❌ Unexpected error updating password:', err);
+          toast.error("Erro inesperado ao atualizar password. Tente novamente.");
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       } else if (isRecovery) {
         // Password recovery mode - only validate email
         console.log('📧 Password recovery mode - sending reset email');
