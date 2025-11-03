@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const authSchema = z.object({
   email: z.string().email({ message: "Email inválido" }).max(255),
@@ -33,6 +34,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signIn, signUp, updatePassword } = useAuth();
+  const navigate = useNavigate();
 
   // Detect password recovery event from email link
   useEffect(() => {
@@ -69,6 +71,7 @@ const Auth = () => {
 
         if (!validation.success) {
           toast.error(validation.error.errors[0].message);
+          setLoading(false);
           return;
         }
 
@@ -82,11 +85,13 @@ const Auth = () => {
           setPassword("");
           setConfirmPassword("");
         }
+        setLoading(false);
       } else if (isRecovery) {
         // Password recovery mode - only validate email
         const emailValidation = z.string().email({ message: "Email inválido" }).max(255).safeParse(trimmedEmail);
         if (!emailValidation.success) {
           toast.error(emailValidation.error.errors[0].message);
+          setLoading(false);
           return;
         }
 
@@ -110,11 +115,13 @@ const Auth = () => {
           setIsRecovery(false);
           setEmail("");
         }
+        setLoading(false);
       } else if (isSignUp) {
         // Sign up mode - validate email and password
         const validation = authSchema.safeParse({ email: trimmedEmail, password: trimmedPassword });
         if (!validation.success) {
           toast.error(validation.error.errors[0].message);
+          setLoading(false);
           return;
         }
 
@@ -127,11 +134,13 @@ const Auth = () => {
           setEmail("");
           setPassword("");
         }
+        setLoading(false);
       } else {
         // Login mode - validate email and password
         const validation = authSchema.safeParse({ email: trimmedEmail, password: trimmedPassword });
         if (!validation.success) {
           toast.error(validation.error.errors[0].message);
+          setLoading(false);
           return;
         }
 
@@ -145,11 +154,18 @@ const Auth = () => {
           } else {
             toast.error(`Erro: ${error.message}`);
           }
+          setLoading(false);
         } else {
           console.log('✅ Login successful');
+          // Keep loading state true during navigation
+          // It will be reset when the component unmounts
+          navigate('/backoffice');
         }
       }
-    } finally {
+    } catch (error) {
+      // Catch any unexpected errors
+      console.error('Unexpected error during form submission:', error);
+      toast.error("Erro inesperado. Por favor, tente novamente.");
       setLoading(false);
     }
   };
