@@ -1,4 +1,9 @@
 project_id = "gyvtgzdkuhypteiyhtaq"
 
+[auth]
+# Enable leaked password protection to prevent users from using compromised passwords
+# This checks passwords against known breach databases
+enable_leaked_password_protection = true
+
 [functions.send-order-email]
 verify_jwt = false
