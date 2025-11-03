@@ -94,7 +94,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Full error object:', JSON.stringify(error, null, 2));
     } else {
       console.log('✅ Supabase auth successful, user:', data.user?.email);
-      navigate('/backoffice');
     }
 
     return { error };
