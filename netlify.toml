@@ -1,0 +1,16 @@
+[build]
+  # Comando para fazer o build do projeto
+  command = "npm run build"
+
+  # Diretório onde os arquivos de build serão gerados
+  publish = "dist"
+
+# Configuração de redirecionamento para SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Configurações de ambiente para Node.js
+[build.environment]
+  NODE_VERSION = "18"
