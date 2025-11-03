@@ -120,11 +120,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
+    console.log('🔑 updatePassword called, password length:', newPassword.length);
 
-    return { error };
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        console.error('❌ updateUser failed:', error);
+      } else {
+        console.log('✅ updateUser successful, user:', data.user?.email);
+      }
+
+      return { error };
+    } catch (err) {
+      console.error('❌ Exception in updatePassword:', err);
+      // Return error in expected format
+      return { error: err as AuthError };
+    }
   };
 
   return (
