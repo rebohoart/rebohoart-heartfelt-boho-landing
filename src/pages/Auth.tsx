@@ -30,10 +30,9 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
   const [isPasswordReset, setIsPasswordReset] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { signIn, signUp, updatePassword } = useAuth();
+  const { signIn, updatePassword } = useAuth();
   const navigate = useNavigate();
 
   // Detect password recovery event from email link
@@ -45,7 +44,6 @@ const Auth = () => {
         console.log('🔐 PASSWORD_RECOVERY event detected - switching to password reset mode');
         setIsPasswordReset(true);
         setIsRecovery(false);
-        setIsSignUp(false);
         toast.info("Por favor, defina a sua nova password");
       }
     });
@@ -143,25 +141,6 @@ const Auth = () => {
           setEmail("");
         }
         setLoading(false);
-      } else if (isSignUp) {
-        // Sign up mode - validate email and password
-        const validation = authSchema.safeParse({ email: trimmedEmail, password: trimmedPassword });
-        if (!validation.success) {
-          toast.error(validation.error.errors[0].message);
-          setLoading(false);
-          return;
-        }
-
-        const { error } = await signUp(trimmedEmail, trimmedPassword);
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success("Conta criada com sucesso! Por favor, verifique o seu email para confirmar.");
-          setIsSignUp(false);
-          setEmail("");
-          setPassword("");
-        }
-        setLoading(false);
       } else {
         // Login mode - validate email and password
         const validation = authSchema.safeParse({ email: trimmedEmail, password: trimmedPassword });
@@ -201,7 +180,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-natural px-4">
       <Card className="w-full max-w-md p-8">
         <h1 className="font-serif text-3xl font-bold text-center mb-6">
-          {isPasswordReset ? "Definir Nova Password" : isRecovery ? "Recuperar Password" : isSignUp ? "Criar Conta" : "Login"}
+          {isPasswordReset ? "Definir Nova Password" : isRecovery ? "Recuperar Password" : "Login"}
         </h1>
 
         {isPasswordReset && (
@@ -213,12 +192,6 @@ const Auth = () => {
         {isRecovery && (
           <p className="text-sm text-muted-foreground text-center mb-6">
             Insira o seu email para receber um link de recuperação de password.
-          </p>
-        )}
-
-        {isSignUp && (
-          <p className="text-sm text-muted-foreground text-center mb-6">
-            Crie uma conta para aceder ao backoffice. Após criar a conta, contacte o administrador para receber permissões.
           </p>
         )}
 
@@ -331,47 +304,32 @@ const Auth = () => {
             className="w-full"
             disabled={loading}
           >
-            {loading ? "A processar..." : isPasswordReset ? "Atualizar Password" : isRecovery ? "Enviar Email" : isSignUp ? "Criar Conta" : "Entrar"}
+            {loading ? "A processar..." : isPasswordReset ? "Atualizar Password" : isRecovery ? "Enviar Email" : "Entrar"}
           </Button>
         </form>
 
         <div className="mt-4 flex flex-col gap-2 text-center">
-          {!isRecovery && !isSignUp && !isPasswordReset && (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🔄 Switching to signup mode');
-                  setIsSignUp(true);
-                  setPassword("");
-                  setShowPassword(false);
-                }}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                Não tem conta? Criar conta
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🔑 Switching to password recovery mode');
-                  setIsRecovery(true);
-                  setPassword("");
-                  setShowPassword(false);
-                }}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                Esqueceu a password?
-              </button>
-            </>
+          {!isRecovery && !isPasswordReset && (
+            <button
+              type="button"
+              onClick={() => {
+                console.log('🔑 Switching to password recovery mode');
+                setIsRecovery(true);
+                setPassword("");
+                setShowPassword(false);
+              }}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Esqueceu a password?
+            </button>
           )}
 
-          {(isRecovery || isSignUp || isPasswordReset) && (
+          {(isRecovery || isPasswordReset) && (
             <button
               type="button"
               onClick={() => {
                 console.log('🔙 Returning to login mode');
                 setIsRecovery(false);
-                setIsSignUp(false);
                 setIsPasswordReset(false);
                 setPassword("");
                 setConfirmPassword("");
