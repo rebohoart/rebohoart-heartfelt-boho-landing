@@ -38,15 +38,20 @@ const Auth = () => {
 
   // Detect password recovery event from email link
   useEffect(() => {
+    console.log('🔍 Setting up auth state change listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔔 Auth state changed:', event, session?.user?.email);
       if (event === 'PASSWORD_RECOVERY') {
+        console.log('🔐 PASSWORD_RECOVERY event detected - switching to password reset mode');
         setIsPasswordReset(true);
         setIsRecovery(false);
         setIsSignUp(false);
+        toast.info("Por favor, defina a sua nova password");
       }
     });
 
     return () => {
+      console.log('🔌 Unsubscribing from auth state changes');
       subscription.unsubscribe();
     };
   }, []);
@@ -64,12 +69,14 @@ const Auth = () => {
 
       if (isPasswordReset) {
         // Password reset mode - validate new password and confirmation
+        console.log('🔄 Password reset mode - updating password');
         const validation = passwordResetSchema.safeParse({
           password: trimmedPassword,
           confirmPassword: confirmPassword
         });
 
         if (!validation.success) {
+          console.error('❌ Password validation failed:', validation.error.errors[0].message);
           toast.error(validation.error.errors[0].message);
           setLoading(false);
           return;
@@ -78,8 +85,10 @@ const Auth = () => {
         const { error } = await updatePassword(trimmedPassword);
 
         if (error) {
+          console.error('❌ Error updating password:', error);
           toast.error("Erro ao atualizar password");
         } else {
+          console.log('✅ Password updated successfully');
           toast.success("Password atualizada com sucesso! Pode agora fazer login.");
           setIsPasswordReset(false);
           setPassword("");
@@ -88,8 +97,10 @@ const Auth = () => {
         setLoading(false);
       } else if (isRecovery) {
         // Password recovery mode - only validate email
+        console.log('📧 Password recovery mode - sending reset email');
         const emailValidation = z.string().email({ message: "Email inválido" }).max(255).safeParse(trimmedEmail);
         if (!emailValidation.success) {
+          console.error('❌ Email validation failed:', emailValidation.error.errors[0].message);
           toast.error(emailValidation.error.errors[0].message);
           setLoading(false);
           return;
@@ -314,6 +325,7 @@ const Auth = () => {
               <button
                 type="button"
                 onClick={() => {
+                  console.log('🔄 Switching to signup mode');
                   setIsSignUp(true);
                   setPassword("");
                   setShowPassword(false);
@@ -325,6 +337,7 @@ const Auth = () => {
               <button
                 type="button"
                 onClick={() => {
+                  console.log('🔑 Switching to password recovery mode');
                   setIsRecovery(true);
                   setPassword("");
                   setShowPassword(false);
@@ -340,6 +353,7 @@ const Auth = () => {
             <button
               type="button"
               onClick={() => {
+                console.log('🔙 Returning to login mode');
                 setIsRecovery(false);
                 setIsSignUp(false);
                 setIsPasswordReset(false);
