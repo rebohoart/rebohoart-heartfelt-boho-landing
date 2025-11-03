@@ -321,13 +321,13 @@ const Backoffice = () => {
           <TabsContent value="products">
             <Card className="p-6">
               <div className="grid md:grid-cols-2 gap-8">
-          {/* Form */}
-          <Card className="p-6">
-            <h2 className="font-serif text-2xl font-bold mb-4">
-              {editingProduct ? "Editar Produto" : "Adicionar Produto"}
-            </h2>
+                {/* Form */}
+                <div>
+                  <h2 className="font-serif text-2xl font-bold mb-4">
+                    {editingProduct ? "Editar Produto" : "Adicionar Produto"}
+                  </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="title">Título</Label>
                 <Input
@@ -440,7 +440,7 @@ const Backoffice = () => {
                 )}
               </div>
             </form>
-          </Card>
+          </div>
 
           {/* Products List */}
           <div className="space-y-4">
