@@ -98,6 +98,7 @@ const Backoffice = () => {
 
     setUploading(true);
     const uploadedUrls: string[] = [];
+    let hasErrors = false;
 
     try {
       for (const file of Array.from(files)) {
@@ -105,34 +106,54 @@ const Backoffice = () => {
         const validation = validateImageFile(file);
         if (!validation.isValid) {
           toast.error(validation.error || "Ficheiro inválido");
+          hasErrors = true;
           continue; // Skip this file and continue with others
         }
 
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+        const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('product-images')
-          .upload(filePath, file);
+        console.log('📤 Uploading file:', fileName);
 
-        if (uploadError) throw uploadError;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('❌ Upload error:', uploadError);
+          toast.error(`Erro ao carregar ${file.name}: ${uploadError.message}`);
+          hasErrors = true;
+          continue;
+        }
+
+        console.log('✅ Upload successful:', uploadData);
 
         const { data: { publicUrl } } = supabase.storage
           .from('product-images')
           .getPublicUrl(filePath);
 
+        console.log('🔗 Public URL:', publicUrl);
         uploadedUrls.push(publicUrl);
       }
 
       if (uploadedUrls.length > 0) {
         setUploadedImages([...uploadedImages, ...uploadedUrls]);
-        toast.success("Imagens carregadas com sucesso!");
+        toast.success(`${uploadedUrls.length} imagem(ns) carregada(s) com sucesso!`);
+      } else if (hasErrors) {
+        toast.error("Nenhuma imagem foi carregada devido a erros.");
       }
     } catch (error: unknown) {
-      toast.error("Erro ao carregar imagens. Por favor, tente novamente.");
+      console.error('❌ Unexpected error during upload:', error);
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast.error(`Erro ao carregar imagens: ${message}`);
     } finally {
       setUploading(false);
+      // Reset the input so the same file can be selected again
+      e.target.value = '';
     }
   };
 
@@ -258,6 +279,8 @@ const Backoffice = () => {
       const validation = validateImageFile(file);
       if (!validation.isValid) {
         toast.error(validation.error || "Ficheiro inválido");
+        setLogoUploading(false);
+        e.target.value = '';
         return;
       }
 
@@ -265,15 +288,27 @@ const Backoffice = () => {
       const fileName = `logo-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
+      console.log('📤 Uploading logo:', fileName);
 
-      if (uploadError) throw uploadError;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('❌ Logo upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ Logo upload successful:', uploadData);
 
       const { data: { publicUrl } } = supabase.storage
         .from('product-images')
         .getPublicUrl(filePath);
+
+      console.log('🔗 Logo public URL:', publicUrl);
 
       // Update site settings with new logo URL
       const { error: updateError } = await supabase
@@ -285,16 +320,24 @@ const Backoffice = () => {
           onConflict: 'key'
         });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Error updating site settings:', updateError);
+        throw updateError;
+      }
+
+      console.log('✅ Site settings updated successfully');
 
       setCurrentLogo(publicUrl);
       queryClient.invalidateQueries({ queryKey: ['site-settings'] });
       toast.success("Logo atualizado com sucesso!");
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro ao carregar logo";
-      toast.error(message);
+      console.error('❌ Unexpected error during logo upload:', error);
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast.error(`Erro ao carregar logo: ${message}`);
     } finally {
       setLogoUploading(false);
+      // Reset the input so the same file can be selected again
+      e.target.value = '';
     }
   };
 
