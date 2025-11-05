@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,12 +36,13 @@ const Auth = () => {
   const { signIn, updatePassword } = useAuth();
   const navigate = useNavigate();
 
+  // Use ref to persist state across renders
+  const hasTriggeredResetRef = useRef(false);
+  const urlCleanedRef = useRef(false);
+
   // Detect password recovery event from email link
   useEffect(() => {
     console.log('🔍 Setting up auth state change listener');
-
-    // Track if password reset has been triggered to prevent duplicates
-    let hasTriggeredReset = false;
 
     // Check URL for password recovery token (hash fragment or query params)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -55,33 +56,44 @@ const Auth = () => {
       hash: window.location.hash,
       search: window.location.search,
       hasAccessToken: !!hasAccessToken,
-      tokenType: tokenType
+      tokenType: tokenType,
+      hasTriggeredBefore: hasTriggeredResetRef.current
     });
 
     // If there's an access token and type is recovery, activate password reset mode
-    if (hasAccessToken && tokenType === 'recovery') {
+    // Only process if we haven't already triggered reset
+    if (hasAccessToken && tokenType === 'recovery' && !hasTriggeredResetRef.current) {
       console.log('🔐 Recovery token detected in URL - switching to password reset mode');
-      hasTriggeredReset = true;
+      hasTriggeredResetRef.current = true;
       setIsPasswordReset(true);
       setIsRecovery(false);
-      toast.info("Por favor, defina a sua nova password");
 
-      // Clean URL to prevent re-detection
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // Show toast after state is set
+      setTimeout(() => {
+        toast.info("Por favor, defina a sua nova password");
+      }, 100);
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔔 Auth state changed:', event, session?.user?.email);
 
       // Only process PASSWORD_RECOVERY if we haven't already triggered reset
-      if (event === 'PASSWORD_RECOVERY' && !hasTriggeredReset) {
+      if (event === 'PASSWORD_RECOVERY' && !hasTriggeredResetRef.current) {
         console.log('🔐 PASSWORD_RECOVERY event detected - switching to password reset mode');
-        hasTriggeredReset = true;
+        hasTriggeredResetRef.current = true;
         setIsPasswordReset(true);
         setIsRecovery(false);
-        toast.info("Por favor, defina a sua nova password");
 
-        // Clean URL to prevent re-detection
+        // Show toast after state is set
+        setTimeout(() => {
+          toast.info("Por favor, defina a sua nova password");
+        }, 100);
+      }
+
+      // Clean URL after session is established (not immediately)
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session && !urlCleanedRef.current) {
+        console.log('🧹 Cleaning URL after session established');
+        urlCleanedRef.current = true;
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
@@ -128,6 +140,19 @@ const Auth = () => {
           console.log('🔐 Updating password...');
           setIsProcessingReset(true);
 
+          // Check if there's an active session before attempting password update
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+          if (sessionError || !session) {
+            console.error('❌ No active session found:', sessionError);
+            toast.error("Sessão expirada ou inválida. Por favor, solicite um novo link de recuperação.");
+            setIsProcessingReset(false);
+            setLoading(false);
+            return;
+          }
+
+          console.log('✅ Active session found, proceeding with password update');
+
           const { error } = await updatePassword(trimmedPassword);
 
           if (error) {
@@ -137,8 +162,10 @@ const Auth = () => {
             // Provide more specific error messages
             if (error.message.includes('session') || error.message.includes('refresh_token_not_found')) {
               toast.error("Sessão expirada. Solicite um novo link de recuperação.");
-            } else if (error.message.includes('weak')) {
-              toast.error("Password muito fraca. Use pelo menos 6 caracteres.");
+            } else if (error.message.includes('weak') || error.message.includes('password')) {
+              toast.error("Password muito fraca. Use pelo menos 6 caracteres com letras e números.");
+            } else if (error.message.includes('same')) {
+              toast.error("A nova password não pode ser igual à anterior.");
             } else {
               toast.error(`Erro ao atualizar password: ${error.message}`);
             }
@@ -153,11 +180,12 @@ const Auth = () => {
             setShowPassword(false);
             setShowConfirmPassword(false);
 
-            // Wait a bit for the success message to be visible
+            // Wait a bit for the success message to be visible, then redirect to login
             setTimeout(() => {
               setIsPasswordReset(false);
               setIsProcessingReset(false);
-            }, 1000);
+              hasTriggeredResetRef.current = false; // Reset the ref for future use
+            }, 1500);
           }
         } catch (err) {
           console.error('❌ Unexpected error updating password:', err);
@@ -262,6 +290,7 @@ const Auth = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 maxLength={255}
+                autoComplete="email"
               />
             </div>
           )}
@@ -279,6 +308,7 @@ const Auth = () => {
                   minLength={6}
                   maxLength={100}
                   className="pr-10"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -310,6 +340,7 @@ const Auth = () => {
                     minLength={6}
                     maxLength={100}
                     className="pr-10"
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"
@@ -337,6 +368,7 @@ const Auth = () => {
                     minLength={6}
                     maxLength={100}
                     className="pr-10"
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"
@@ -392,6 +424,9 @@ const Auth = () => {
                 setConfirmPassword("");
                 setShowPassword(false);
                 setShowConfirmPassword(false);
+                // Reset refs when manually going back to login
+                hasTriggeredResetRef.current = false;
+                urlCleanedRef.current = false;
               }}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
