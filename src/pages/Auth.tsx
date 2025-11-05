@@ -187,8 +187,7 @@ const Auth = () => {
           setLoading(false);
         } else {
           console.log('✅ Login successful');
-          // Keep loading state true during navigation
-          // It will be reset when the component unmounts
+          setLoading(false);
           navigate('/backoffice');
         }
       }
