@@ -64,6 +64,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
   });
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -123,6 +124,8 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       // Escape user input to prevent XSS attacks
       const safeTitle = escapeHtml(formData.title);
@@ -179,6 +182,8 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
       console.error("Custom order form error:", error);
       // Don't expose detailed error messages to users
       toast.error("Erro ao enviar pedido. Por favor, tente novamente.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -206,6 +211,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               required
               minLength={2}
               maxLength={100}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -219,6 +225,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
               required
               maxLength={255}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -232,6 +239,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               required
               minLength={3}
               maxLength={200}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -246,6 +254,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               required
               minLength={10}
               maxLength={2000}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -258,6 +267,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               onChange={(e) => setFormData({ ...formData, deliveryDeadline: e.target.value })}
               min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
               required
+              disabled={isSubmitting}
             />
             <p className="text-xs text-muted-foreground">
               Mínimo de 1 semana a partir de hoje
@@ -314,15 +324,17 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="flex-1 rounded-full"
+              disabled={isSubmitting}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-full"
+              disabled={isSubmitting}
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Pedir Orçamento
+              {isSubmitting ? "A enviar..." : "Pedir Orçamento"}
             </Button>
           </div>
         </form>

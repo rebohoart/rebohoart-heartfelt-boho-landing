@@ -40,6 +40,9 @@ const Auth = () => {
   useEffect(() => {
     console.log('🔍 Setting up auth state change listener');
 
+    // Track if password reset has been triggered to prevent duplicates
+    let hasTriggeredReset = false;
+
     // Check URL for password recovery token (hash fragment or query params)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const queryParams = new URLSearchParams(window.location.search);
@@ -58,6 +61,7 @@ const Auth = () => {
     // If there's an access token and type is recovery, activate password reset mode
     if (hasAccessToken && tokenType === 'recovery') {
       console.log('🔐 Recovery token detected in URL - switching to password reset mode');
+      hasTriggeredReset = true;
       setIsPasswordReset(true);
       setIsRecovery(false);
       toast.info("Por favor, defina a sua nova password");
@@ -69,9 +73,10 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔔 Auth state changed:', event, session?.user?.email);
 
-      // Only process PASSWORD_RECOVERY if we're not already in reset mode or processing
-      if (event === 'PASSWORD_RECOVERY' && !isPasswordReset && !isProcessingReset) {
+      // Only process PASSWORD_RECOVERY if we haven't already triggered reset
+      if (event === 'PASSWORD_RECOVERY' && !hasTriggeredReset) {
         console.log('🔐 PASSWORD_RECOVERY event detected - switching to password reset mode');
+        hasTriggeredReset = true;
         setIsPasswordReset(true);
         setIsRecovery(false);
         toast.info("Por favor, defina a sua nova password");
@@ -81,7 +86,7 @@ const Auth = () => {
       }
 
       // If password was updated successfully, clear the reset flag
-      if (event === 'USER_UPDATED' && isProcessingReset) {
+      if (event === 'USER_UPDATED') {
         console.log('✅ USER_UPDATED event - password changed successfully');
         setIsProcessingReset(false);
       }
@@ -91,7 +96,7 @@ const Auth = () => {
       console.log('🔌 Unsubscribing from auth state changes');
       subscription.unsubscribe();
     };
-  }, [isPasswordReset, isProcessingReset]);
+  }, []); // Empty dependencies - only run once on mount
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
