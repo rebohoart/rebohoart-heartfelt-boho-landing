@@ -113,6 +113,14 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Safety timeout to prevent infinite loading state
+    const timeoutId = setTimeout(() => {
+      console.error('⏱️ Login timeout - resetting loading state');
+      setLoading(false);
+      setIsProcessingReset(false);
+      toast.error("Timeout - operação demorou muito tempo. Tente novamente.");
+    }, 30000); // 30 second timeout
+
     setLoading(true);
 
     try {
@@ -132,7 +140,6 @@ const Auth = () => {
         if (!validation.success) {
           console.error('❌ Password validation failed:', validation.error.errors[0].message);
           toast.error(validation.error.errors[0].message);
-          setLoading(false);
           return;
         }
 
@@ -147,7 +154,6 @@ const Auth = () => {
             console.error('❌ No active session found:', sessionError);
             toast.error("Sessão expirada ou inválida. Por favor, solicite um novo link de recuperação.");
             setIsProcessingReset(false);
-            setLoading(false);
             return;
           }
 
@@ -191,8 +197,6 @@ const Auth = () => {
           console.error('❌ Unexpected error updating password:', err);
           toast.error("Erro inesperado ao atualizar password. Tente novamente.");
           setIsProcessingReset(false);
-        } finally {
-          setLoading(false);
         }
       } else if (isRecovery) {
         // Password recovery mode - only validate email
@@ -201,7 +205,6 @@ const Auth = () => {
         if (!emailValidation.success) {
           console.error('❌ Email validation failed:', emailValidation.error.errors[0].message);
           toast.error(emailValidation.error.errors[0].message);
-          setLoading(false);
           return;
         }
 
@@ -225,38 +228,50 @@ const Auth = () => {
           setIsRecovery(false);
           setEmail("");
         }
-        setLoading(false);
       } else {
         // Login mode - validate email and password
         const validation = authSchema.safeParse({ email: trimmedEmail, password: trimmedPassword });
         if (!validation.success) {
           toast.error(validation.error.errors[0].message);
-          setLoading(false);
           return;
         }
 
         console.log('🔐 Attempting login with:', { email: trimmedEmail, passwordLength: trimmedPassword.length });
-        const { error } = await signIn(trimmedEmail, trimmedPassword);
-        if (error) {
-          console.error('❌ Login error:', error);
-          console.error('Error details:', JSON.stringify(error, null, 2));
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error("Email ou password incorretos");
+
+        try {
+          const { error } = await signIn(trimmedEmail, trimmedPassword);
+
+          if (error) {
+            console.error('❌ Login error:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            if (error.message.includes('Invalid login credentials')) {
+              toast.error("Email ou password incorretos");
+            } else {
+              toast.error(`Erro: ${error.message}`);
+            }
           } else {
-            toast.error(`Erro: ${error.message}`);
+            console.log('✅ Login successful, navigating to backoffice');
+
+            // Small delay to ensure auth state is properly updated
+            // This prevents race conditions with the AuthContext loading state
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            navigate('/backoffice');
           }
-          setLoading(false);
-        } else {
-          console.log('✅ Login successful');
-          setLoading(false);
-          navigate('/backoffice');
+        } catch (loginError) {
+          console.error('❌ Exception during login:', loginError);
+          toast.error("Erro ao fazer login. Tente novamente.");
         }
       }
     } catch (error) {
       // Catch any unexpected errors
-      console.error('Unexpected error during form submission:', error);
+      console.error('❌ Unexpected error during form submission:', error);
       toast.error("Erro inesperado. Por favor, tente novamente.");
+    } finally {
+      // ALWAYS clear timeout and reset loading state
+      clearTimeout(timeoutId);
       setLoading(false);
+      console.log('🔄 Loading state reset to false');
     }
   };
 
