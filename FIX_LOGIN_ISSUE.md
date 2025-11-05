@@ -162,10 +162,11 @@ Pode haver sessões antigas a causar conflito.
 ```sql
 -- Ver sessões ativas
 SELECT
+  id,
   user_id,
   created_at,
   updated_at,
-  expires_at
+  not_after
 FROM auth.sessions
 ORDER BY updated_at DESC;
 
