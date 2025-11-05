@@ -38,6 +38,30 @@ const Auth = () => {
   // Detect password recovery event from email link
   useEffect(() => {
     console.log('🔍 Setting up auth state change listener');
+
+    // Check URL for password recovery token (hash fragment or query params)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const queryParams = new URLSearchParams(window.location.search);
+
+    // Check for access_token in hash or query params (indicates password recovery)
+    const hasAccessToken = hashParams.get('access_token') || queryParams.get('access_token');
+    const tokenType = hashParams.get('type') || queryParams.get('type');
+
+    console.log('🔍 URL Check:', {
+      hash: window.location.hash,
+      search: window.location.search,
+      hasAccessToken: !!hasAccessToken,
+      tokenType: tokenType
+    });
+
+    // If there's an access token and type is recovery, activate password reset mode
+    if (hasAccessToken && tokenType === 'recovery') {
+      console.log('🔐 Recovery token detected in URL - switching to password reset mode');
+      setIsPasswordReset(true);
+      setIsRecovery(false);
+      toast.info("Por favor, defina a sua nova password");
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔔 Auth state changed:', event, session?.user?.email);
       if (event === 'PASSWORD_RECOVERY') {
