@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "glm-4.6": {
+      "command": "node",
+      "args": ["/caminho/para/glm-mcp-server/build/index.js"],
+      "env": {
+        "GLM_API_KEY": "sua_api_key_aqui"
+      }
+    }
+  }
+}
