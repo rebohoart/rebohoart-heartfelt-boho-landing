@@ -32,6 +32,7 @@ const Auth = () => {
   const [isPasswordReset, setIsPasswordReset] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isProcessingReset, setIsProcessingReset] = useState(false);
   const { signIn, updatePassword } = useAuth();
   const navigate = useNavigate();
 
@@ -60,15 +61,29 @@ const Auth = () => {
       setIsPasswordReset(true);
       setIsRecovery(false);
       toast.info("Por favor, defina a sua nova password");
+
+      // Clean URL to prevent re-detection
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔔 Auth state changed:', event, session?.user?.email);
-      if (event === 'PASSWORD_RECOVERY') {
+
+      // Only process PASSWORD_RECOVERY if we're not already in reset mode or processing
+      if (event === 'PASSWORD_RECOVERY' && !isPasswordReset && !isProcessingReset) {
         console.log('🔐 PASSWORD_RECOVERY event detected - switching to password reset mode');
         setIsPasswordReset(true);
         setIsRecovery(false);
         toast.info("Por favor, defina a sua nova password");
+
+        // Clean URL to prevent re-detection
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // If password was updated successfully, clear the reset flag
+      if (event === 'USER_UPDATED' && isProcessingReset) {
+        console.log('✅ USER_UPDATED event - password changed successfully');
+        setIsProcessingReset(false);
       }
     });
 
@@ -76,7 +91,7 @@ const Auth = () => {
       console.log('🔌 Unsubscribing from auth state changes');
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isPasswordReset, isProcessingReset]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +121,8 @@ const Auth = () => {
 
         try {
           console.log('🔐 Updating password...');
+          setIsProcessingReset(true);
+
           const { error } = await updatePassword(trimmedPassword);
 
           if (error) {
@@ -120,16 +137,27 @@ const Auth = () => {
             } else {
               toast.error(`Erro ao atualizar password: ${error.message}`);
             }
+            setIsProcessingReset(false);
           } else {
             console.log('✅ Password updated successfully');
             toast.success("Password atualizada com sucesso! Pode agora fazer login.");
-            setIsPasswordReset(false);
+
+            // Clear form and reset state
             setPassword("");
             setConfirmPassword("");
+            setShowPassword(false);
+            setShowConfirmPassword(false);
+
+            // Wait a bit for the success message to be visible
+            setTimeout(() => {
+              setIsPasswordReset(false);
+              setIsProcessingReset(false);
+            }, 1000);
           }
         } catch (err) {
           console.error('❌ Unexpected error updating password:', err);
           toast.error("Erro inesperado ao atualizar password. Tente novamente.");
+          setIsProcessingReset(false);
         } finally {
           setLoading(false);
         }
@@ -354,6 +382,7 @@ const Auth = () => {
                 console.log('🔙 Returning to login mode');
                 setIsRecovery(false);
                 setIsPasswordReset(false);
+                setIsProcessingReset(false);
                 setPassword("");
                 setConfirmPassword("");
                 setShowPassword(false);
