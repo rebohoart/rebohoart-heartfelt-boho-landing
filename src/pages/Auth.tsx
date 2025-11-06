@@ -33,6 +33,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isProcessingReset, setIsProcessingReset] = useState(false);
+  const [isClearingSessions, setIsClearingSessions] = useState(false);
   const { signIn, updatePassword } = useAuth();
   const navigate = useNavigate();
 
@@ -111,28 +112,47 @@ const Auth = () => {
   }, []); // Empty dependencies - only run once on mount
 
   const handleClearSessions = async () => {
-    console.log('🧹 Clearing all sessions...');
+    if (isClearingSessions) {
+      console.log('⚠️ Clear sessions already in progress, ignoring click');
+      return;
+    }
 
-    // Sign out from Supabase
-    await supabase.auth.signOut();
+    try {
+      setIsClearingSessions(true);
+      console.log('🧹 Clearing all sessions...');
 
-    // Clear all Supabase keys from localStorage
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('sb-')) {
-        localStorage.removeItem(key);
-        console.log('🗑️ Removed:', key);
+      // Sign out from Supabase
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) {
+        console.error('❌ Error signing out:', signOutError);
+        // Continue anyway to clear local storage
       }
-    });
 
-    // Clear mock session too
-    localStorage.removeItem('mock_admin_session');
+      // Clear all Supabase keys from localStorage
+      let clearedCount = 0;
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+          clearedCount++;
+          console.log('🗑️ Removed:', key);
+        }
+      });
 
-    toast.success("Todas as sessões foram limpas. Pode agora fazer login.");
+      // Clear mock session too
+      localStorage.removeItem('mock_admin_session');
 
-    // Reload page to reset all state
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+      console.log(`✅ Cleared ${clearedCount} Supabase sessions from localStorage`);
+      toast.success("Todas as sessões foram limpas. A recarregar página...");
+
+      // Reload page to reset all state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('❌ Error clearing sessions:', error);
+      toast.error("Erro ao limpar sessões. Por favor, tente novamente.");
+      setIsClearingSessions(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -484,8 +504,9 @@ const Auth = () => {
               onClick={handleClearSessions}
               variant="outline"
               className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/30"
+              disabled={isClearingSessions}
             >
-              🧹 Limpar todas as sessões
+              {isClearingSessions ? "A limpar sessões..." : "🧹 Limpar todas as sessões"}
             </Button>
           </div>
         </div>
