@@ -61,17 +61,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     // Set a safety timeout to prevent infinite loading state
+    // This timeout is ONLY for cases where Supabase never responds at all
     const safetyTimeout = setTimeout(() => {
       console.warn('⚠️ Auth initialization timeout - forcing loading to false');
       setLoading(false);
     }, 10000); // 10 second timeout
 
+    // Track if we've received any response from Supabase to avoid timeout false positives
+    let hasReceivedAuthResponse = false;
+
     // Check for existing session first
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      // Clear timeout immediately when we get a response from Supabase
+      if (!hasReceivedAuthResponse) {
+        hasReceivedAuthResponse = true;
+        clearTimeout(safetyTimeout);
+      }
+
       if (error) {
         console.error('❌ Error getting session:', error);
         setLoading(false);
-        clearTimeout(safetyTimeout);
         return;
       }
 
@@ -80,22 +89,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        checkAdminStatus(session.user.id).finally(() => {
-          clearTimeout(safetyTimeout);
-        });
+        checkAdminStatus(session.user.id);
       } else {
         setLoading(false);
-        clearTimeout(safetyTimeout);
       }
     }).catch((error) => {
       console.error('❌ Unexpected error during session retrieval:', error);
+      if (!hasReceivedAuthResponse) {
+        hasReceivedAuthResponse = true;
+        clearTimeout(safetyTimeout);
+      }
       setLoading(false);
-      clearTimeout(safetyTimeout);
     });
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Clear timeout as soon as we get an auth state change
+        if (!hasReceivedAuthResponse) {
+          hasReceivedAuthResponse = true;
+          clearTimeout(safetyTimeout);
+        }
+
         console.log('🔔 Auth state changed:', event, session?.user?.email || 'No user');
         setSession(session);
         setUser(session?.user ?? null);
