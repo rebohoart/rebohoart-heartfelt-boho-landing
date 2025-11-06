@@ -1,7 +1,28 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-reboho-transparent.png";
 import { MessageCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
 const Hero = () => {
+  const [logoError, setLogoError] = useState(false);
+
+  const { data: siteSettings } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*');
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const customLogoUrl = siteSettings?.find(s => s.key === 'logo_url')?.value;
+  const logoUrl = (!logoError && customLogoUrl) ? customLogoUrl : logo;
+
   const scrollToProducts = () => {
     const productsSection = document.getElementById('products-section');
     if (productsSection) {
@@ -21,7 +42,17 @@ const Hero = () => {
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 py-20 text-center animate-fade-in-up">
         <div className="max-w-4xl mx-auto">
-          <img src={logo} alt="Reboho" className="h-48 md:h-64 lg:h-80 w-auto mx-auto mb-2" />
+          <img
+            src={logoUrl}
+            alt="Reboho"
+            className="h-48 md:h-64 lg:h-80 w-auto mx-auto mb-2"
+            onError={(e) => {
+              setLogoError(true);
+              if (e.currentTarget.src !== logo) {
+                e.currentTarget.src = logo;
+              }
+            }}
+          />
 
           <p className="text-lg md:text-xl text-foreground/80 mb-8 max-w-2xl mx-auto font-light">Peças artesanais feitas com o coração para decorar com significado.</p>
 
