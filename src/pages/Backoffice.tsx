@@ -31,6 +31,13 @@ interface SiteSetting {
   value: string;
 }
 
+interface Logo {
+  id: string;
+  url: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 const Backoffice = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -48,8 +55,6 @@ const Backoffice = () => {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
-  const [currentLogo, setCurrentLogo] = useState<string>("");
-  const [logoError, setLogoError] = useState<string>("");
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['admin-products'],
@@ -65,15 +70,16 @@ const Backoffice = () => {
     enabled: !!user && isAdmin,
   });
 
-  const { data: siteSettings } = useQuery({
-    queryKey: ['site-settings'],
+  const { data: logos = [], isLoading: logosLoading } = useQuery({
+    queryKey: ['logos'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('site_settings')
-        .select('*');
+        .from('logos')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as SiteSetting[];
+      return data as Logo[];
     },
     enabled: !!user && isAdmin,
   });
@@ -83,21 +89,6 @@ const Backoffice = () => {
       navigate('/auth');
     }
   }, [user, isAdmin, loading, navigate]);
-
-  useEffect(() => {
-    if (siteSettings) {
-      console.log('📋 Site settings loaded:', siteSettings);
-      const logoSetting = siteSettings.find(s => s.key === 'logo_url');
-      if (logoSetting) {
-        console.log('🖼️ Logo URL found:', logoSetting.value);
-        setCurrentLogo(logoSetting.value);
-        setLogoError("");
-      } else {
-        console.log('⚠️ No logo URL found in site settings');
-        setCurrentLogo("");
-      }
-    }
-  }, [siteSettings]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -280,7 +271,6 @@ const Backoffice = () => {
     if (!file) return;
 
     setLogoUploading(true);
-    setLogoError("");
 
     try {
       // Validate file before upload
@@ -297,16 +287,6 @@ const Backoffice = () => {
       const filePath = `${fileName}`;
 
       console.log('📤 Uploading logo:', fileName);
-      console.log('📦 File size:', (file.size / 1024).toFixed(2), 'KB');
-      console.log('📝 File type:', file.type);
-
-      // First, check if we can access the storage bucket
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      if (bucketsError) {
-        console.error('❌ Error listing buckets:', bucketsError);
-        throw new Error('Não foi possível acessar o storage. Verifique as permissões.');
-      }
-      console.log('✅ Storage buckets accessible:', buckets?.map(b => b.name));
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('product-images')
@@ -317,9 +297,6 @@ const Backoffice = () => {
 
       if (uploadError) {
         console.error('❌ Logo upload error:', uploadError);
-        if (uploadError.message.includes('new row violates row-level security')) {
-          throw new Error('Permissão negada. Certifique-se de que está autenticado como administrador.');
-        }
         throw uploadError;
       }
 
@@ -331,39 +308,81 @@ const Backoffice = () => {
 
       console.log('🔗 Logo public URL:', publicUrl);
 
-      // Update site settings with new logo URL
-      const { error: updateError } = await supabase
-        .from('site_settings')
-        .upsert({
-          key: 'logo_url',
-          value: publicUrl,
-        }, {
-          onConflict: 'key'
+      // Add logo to logos table (not active by default)
+      const { error: insertError } = await supabase
+        .from('logos')
+        .insert({
+          url: publicUrl,
+          is_active: false
         });
 
-      if (updateError) {
-        console.error('❌ Error updating site settings:', updateError);
-        if (updateError.message.includes('new row violates row-level security')) {
-          throw new Error('Permissão negada ao atualizar configurações. Certifique-se de que está autenticado como administrador.');
-        }
-        throw updateError;
+      if (insertError) {
+        console.error('❌ Error inserting logo:', insertError);
+        throw insertError;
       }
 
-      console.log('✅ Site settings updated successfully');
+      console.log('✅ Logo added to gallery');
 
-      setCurrentLogo(publicUrl);
-      setLogoError("");
-      queryClient.invalidateQueries({ queryKey: ['site-settings'] });
-      toast.success("Logo atualizado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ['logos'] });
+      toast.success("Logo adicionado à galeria!");
     } catch (error: unknown) {
       console.error('❌ Unexpected error during logo upload:', error);
       const message = error instanceof Error ? error.message : "Erro desconhecido";
-      setLogoError(message);
       toast.error(`Erro ao carregar logo: ${message}`);
     } finally {
       setLogoUploading(false);
-      // Reset the input so the same file can be selected again
       e.target.value = '';
+    }
+  };
+
+  const handleSetActiveLogo = async (logoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('logos')
+        .update({ is_active: true })
+        .eq('id', logoId);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['logos'] });
+      toast.success("Logo ativo atualizado!");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast.error(`Erro ao ativar logo: ${message}`);
+    }
+  };
+
+  const handleDeleteLogo = async (logoId: string, logoUrl: string) => {
+    if (!confirm("Tem a certeza que quer eliminar este logo?")) return;
+
+    try {
+      // Extract filename from URL
+      const urlParts = logoUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('product-images')
+        .remove([fileName]);
+
+      if (storageError) {
+        console.error('⚠️ Error deleting from storage:', storageError);
+        // Continue anyway, as the file might not exist
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('logos')
+        .delete()
+        .eq('id', logoId);
+
+      if (dbError) throw dbError;
+
+      queryClient.invalidateQueries({ queryKey: ['logos'] });
+      toast.success("Logo eliminado!");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast.error(`Erro ao eliminar logo: ${message}`);
     }
   };
 
@@ -573,46 +592,13 @@ const Backoffice = () => {
               <div className="space-y-6">
                 {/* Logo Section */}
                 <div>
-                  <Label htmlFor="logo-upload" className="text-lg font-semibold">Logo da Marca</Label>
+                  <Label htmlFor="logo-upload" className="text-lg font-semibold">Galeria de Logos</Label>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Faça upload de um novo logo para aparecer na navegação do site.
+                    Faça upload de logos e escolha qual deve aparecer no site.
                   </p>
 
-                  {currentLogo ? (
-                    <div className="mb-4 p-4 border border-border rounded-lg bg-background">
-                      <p className="text-sm text-muted-foreground mb-2">Logo atual:</p>
-                      {logoError ? (
-                        <div className="p-4 bg-destructive/10 text-destructive rounded-md">
-                          <p className="text-sm font-medium mb-1">Erro ao carregar o logo</p>
-                          <p className="text-xs">{logoError}</p>
-                          <p className="text-xs mt-2 text-muted-foreground break-all">URL: {currentLogo}</p>
-                        </div>
-                      ) : (
-                        <img
-                          src={currentLogo}
-                          alt="Logo atual"
-                          className="h-16 w-auto object-contain"
-                          onError={(e) => {
-                            console.error('❌ Error loading logo image:', currentLogo);
-                            setLogoError('Não foi possível carregar a imagem. Verifique se o URL está correto.');
-                            e.currentTarget.style.display = 'none';
-                          }}
-                          onLoad={() => {
-                            console.log('✅ Logo image loaded successfully');
-                            setLogoError("");
-                          }}
-                        />
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mb-4 p-4 border border-amber-300 bg-amber-50 rounded-lg">
-                      <p className="text-sm text-amber-800">
-                        ℹ️ Nenhum logo personalizado configurado. O site está usando o logo padrão.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                  {/* Upload Area */}
+                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center mb-6">
                     <Input
                       id="logo-upload"
                       type="file"
@@ -625,13 +611,67 @@ const Backoffice = () => {
                     <label htmlFor="logo-upload" className="cursor-pointer block">
                       <Upload className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground mb-1">
-                        {logoUploading ? "A carregar..." : "Clique para fazer upload do novo logo"}
+                        {logoUploading ? "A carregar..." : "Clique para adicionar um novo logo"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Formatos aceites: PNG, JPG, SVG (recomendado: fundo transparente)
                       </p>
                     </label>
                   </div>
+
+                  {/* Logos Gallery */}
+                  {logosLoading ? (
+                    <p className="text-center text-muted-foreground">A carregar logos...</p>
+                  ) : logos.length === 0 ? (
+                    <div className="p-8 border border-dashed border-border rounded-lg text-center">
+                      <p className="text-muted-foreground">
+                        Nenhum logo na galeria. Faça upload do primeiro logo acima.
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-3">Logos Disponíveis</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {logos.map((logo) => (
+                          <Card key={logo.id} className={`p-4 relative ${logo.is_active ? 'ring-2 ring-primary' : ''}`}>
+                            {logo.is_active && (
+                              <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-semibold">
+                                Ativo
+                              </div>
+                            )}
+                            <div className="aspect-square flex items-center justify-center mb-3 bg-muted rounded-md p-4">
+                              <img
+                                src={logo.url}
+                                alt="Logo"
+                                className="max-w-full max-h-full object-contain"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              {!logo.is_active && (
+                                <Button
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleSetActiveLogo(logo.id)}
+                                >
+                                  Ativar
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className={logo.is_active ? 'flex-1' : ''}
+                                onClick={() => handleDeleteLogo(logo.id, logo.url)}
+                                disabled={logo.is_active}
+                                title={logo.is_active ? 'Não pode eliminar o logo ativo' : 'Eliminar logo'}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
