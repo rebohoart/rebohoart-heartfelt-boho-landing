@@ -50,6 +50,7 @@ const Backoffice = () => {
   const [logoUploading, setLogoUploading] = useState(false);
   const [currentLogo, setCurrentLogo] = useState<string>("");
   const [logoError, setLogoError] = useState<string>("");
+  const [logoCacheBust, setLogoCacheBust] = useState<number>(Date.now());
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['admin-products'],
@@ -353,6 +354,7 @@ const Backoffice = () => {
 
       setCurrentLogo(publicUrl);
       setLogoError("");
+      setLogoCacheBust(Date.now()); // Force image reload by updating cache bust
       queryClient.invalidateQueries({ queryKey: ['site-settings'] });
       toast.success("Logo atualizado com sucesso!");
     } catch (error: unknown) {
@@ -589,7 +591,7 @@ const Backoffice = () => {
                         </div>
                       ) : (
                         <img
-                          src={currentLogo}
+                          src={`${currentLogo}?t=${logoCacheBust}`}
                           alt="Logo atual"
                           className="h-16 w-auto object-contain"
                           onError={(e) => {
