@@ -8,19 +8,21 @@ import { useQuery } from "@tanstack/react-query";
 const Hero = () => {
   const [logoError, setLogoError] = useState(false);
 
-  const { data: siteSettings } = useQuery({
-    queryKey: ['site-settings'],
+  const { data: logos } = useQuery({
+    queryKey: ['logos'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('site_settings')
-        .select('*');
+        .from('logos')
+        .select('*')
+        .eq('is_active', true)
+        .limit(1);
 
       if (error) throw error;
       return data;
     },
   });
 
-  const customLogoUrl = siteSettings?.find(s => s.key === 'logo_url')?.value;
+  const customLogoUrl = logos?.[0]?.url;
   const logoUrl = (!logoError && customLogoUrl) ? customLogoUrl : logo;
 
   const scrollToProducts = () => {
