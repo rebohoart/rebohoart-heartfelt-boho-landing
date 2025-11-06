@@ -279,8 +279,8 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-natural px-4">
-      <Card className="w-full max-w-md p-8 shadow-soft">
-        <h1 className="font-serif text-3xl font-bold text-center mb-6">
+      <Card className="w-full max-w-md p-8 shadow-soft border-2">
+        <h1 className="font-serif text-3xl font-bold text-center mb-6 text-primary">
           {isPasswordReset ? "Definir Nova Password" : isRecovery ? "Recuperar Password" : "Login"}
         </h1>
 
