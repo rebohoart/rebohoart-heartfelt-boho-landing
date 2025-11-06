@@ -24,21 +24,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('🔐 AuthContext initializing...');
+
+    // Set a safety timeout to prevent infinite loading state
+    const safetyTimeout = setTimeout(() => {
+      console.warn('⚠️ Auth initialization timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000); // 10 second timeout
+
     // Check for existing session first
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('❌ Error getting session:', error);
+        setLoading(false);
+        clearTimeout(safetyTimeout);
+        return;
+      }
+
+      console.log('✅ Session retrieved:', session?.user?.email || 'No session');
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        checkAdminStatus(session.user.id);
+        checkAdminStatus(session.user.id).finally(() => {
+          clearTimeout(safetyTimeout);
+        });
       } else {
         setLoading(false);
+        clearTimeout(safetyTimeout);
       }
+    }).catch((error) => {
+      console.error('❌ Unexpected error during session retrieval:', error);
+      setLoading(false);
+      clearTimeout(safetyTimeout);
     });
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔔 Auth state changed:', event, session?.user?.email || 'No user');
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -52,20 +76,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     return () => {
+      console.log('🔌 AuthContext cleanup');
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
 
   const checkAdminStatus = async (userId: string) => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
-    
-    setIsAdmin(!!data);
-    setLoading(false);
+    console.log('🔍 Checking admin status for user:', userId);
+
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ Error checking admin status:', error);
+        // If there's an error checking admin status, assume not admin but don't fail auth
+        setIsAdmin(false);
+      } else {
+        console.log('✅ Admin check result:', data ? 'Is admin' : 'Not admin');
+        setIsAdmin(!!data);
+      }
+    } catch (error) {
+      console.error('❌ Unexpected error checking admin status:', error);
+      setIsAdmin(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signIn = async (email: string, password: string) => {
