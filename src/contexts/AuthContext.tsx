@@ -200,16 +200,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    console.log('🔓 SignOut called');
+
     // Clear mock session if on localhost
     if (isLocalhost()) {
       localStorage.removeItem('mock_admin_session');
       console.log('🔓 Mock admin session cleared');
     }
 
-    await supabase.auth.signOut();
+    // Clear state first to prevent any race conditions
     setUser(null);
     setSession(null);
     setIsAdmin(false);
+
+    // Sign out from Supabase (this clears localStorage and cookies)
+    try {
+      await supabase.auth.signOut();
+      console.log('✅ Supabase signOut completed');
+    } catch (error) {
+      console.error('❌ Error during signOut:', error);
+    }
+
     navigate('/auth');
   };
 
