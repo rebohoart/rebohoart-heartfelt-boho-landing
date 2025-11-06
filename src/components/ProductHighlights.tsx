@@ -22,25 +22,38 @@ const imageMap: Record<string, string> = {
 const ProductHighlights = () => {
   const { addItem } = useCart();
 
-  const { data: products = [], isLoading } = useQuery({
+  const { data: products = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
+      console.log('🔍 Fetching products from Supabase...');
+
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('active', true)
         .order('created_at', { ascending: true });
-      
-      if (error) throw error;
-      
+
+      if (error) {
+        console.error('❌ Error fetching products:', error);
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+
+      console.log('✅ Products fetched successfully:', data?.length || 0, 'products');
+
       // Map image filenames to actual image imports
       return data.map(product => {
-        const imagesArray = product.images && product.images.length > 0 
-          ? product.images 
+        const imagesArray = product.images && product.images.length > 0
+          ? product.images
           : [product.image];
-        
+
         console.log('Product:', product.title, 'raw images:', product.images, 'processed images:', imagesArray);
-        
+
         return {
           ...product,
           image: imageMap[product.image] || product.image,
@@ -48,6 +61,9 @@ const ProductHighlights = () => {
         };
       });
     },
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const handleAddToCart = (product: typeof products[0]) => {
@@ -62,6 +78,42 @@ const ProductHighlights = () => {
       <section id="products-section" className="py-20 px-4 bg-gradient-natural">
         <div className="container mx-auto text-center">
           <p className="text-muted-foreground">A carregar produtos...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section id="products-section" className="py-20 px-4 bg-gradient-natural">
+        <div className="container mx-auto text-center">
+          <Card className="p-8 max-w-md mx-auto">
+            <p className="text-destructive font-semibold mb-2">Erro ao carregar produtos</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {error instanceof Error ? error.message : "Erro desconhecido"}
+            </p>
+            <Button onClick={() => refetch()} variant="outline">
+              Tentar novamente
+            </Button>
+            <p className="text-xs text-muted-foreground mt-4">
+              Se o problema persistir, por favor contacte o suporte.
+            </p>
+          </Card>
+        </div>
+      </section>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <section id="products-section" className="py-20 px-4 bg-gradient-natural">
+        <div className="container mx-auto text-center">
+          <Card className="p-8 max-w-md mx-auto">
+            <p className="text-muted-foreground mb-2">Nenhum produto disponível no momento</p>
+            <p className="text-xs text-muted-foreground">
+              Por favor, volte mais tarde.
+            </p>
+          </Card>
         </div>
       </section>
     );
