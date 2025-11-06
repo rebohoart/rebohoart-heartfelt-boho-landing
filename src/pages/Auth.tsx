@@ -24,6 +24,8 @@ const passwordResetSchema = z.object({
 });
 
 const Auth = () => {
+  // NOTE: Clear sessions button has been permanently removed
+  // If you still see it, please clear your browser cache (Ctrl+Shift+R or Cmd+Shift+R)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -277,7 +279,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-natural px-4">
-      <Card className="w-full max-w-md p-8">
+      <Card className="w-full max-w-md p-8 shadow-soft">
         <h1 className="font-serif text-3xl font-bold text-center mb-6">
           {isPasswordReset ? "Definir Nova Password" : isRecovery ? "Recuperar Password" : "Login"}
         </h1>
