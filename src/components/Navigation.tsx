@@ -13,39 +13,20 @@ const Navigation = () => {
   const [logoError, setLogoError] = useState(false);
   const { totalItems } = useCart();
 
-  const { data: siteSettings, error: settingsError } = useQuery({
+  const { data: siteSettings } = useQuery({
     queryKey: ['site-settings'],
     queryFn: async () => {
-      console.log('🔄 Fetching site settings...');
       const { data, error } = await supabase
         .from('site_settings')
         .select('*');
 
-      if (error) {
-        console.error('❌ Error fetching site settings:', error);
-        throw error;
-      }
-      console.log('✅ Site settings fetched:', data);
+      if (error) throw error;
       return data;
     },
   });
 
-  useEffect(() => {
-    if (settingsError) {
-      console.error('❌ Settings error:', settingsError);
-    }
-  }, [settingsError]);
-
   const customLogoUrl = siteSettings?.find(s => s.key === 'logo_url')?.value;
   const logoUrl = (!logoError && customLogoUrl) ? customLogoUrl : logo;
-
-  useEffect(() => {
-    if (customLogoUrl) {
-      console.log('🖼️ Using custom logo:', customLogoUrl);
-    } else {
-      console.log('🖼️ Using default logo');
-    }
-  }, [customLogoUrl]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,14 +54,10 @@ const Navigation = () => {
                 alt="Reboho"
                 className="h-8 md:h-10 w-auto"
                 onError={(e) => {
-                  console.error('❌ Error loading logo, falling back to default:', logoUrl);
                   setLogoError(true);
                   if (e.currentTarget.src !== logo) {
                     e.currentTarget.src = logo;
                   }
-                }}
-                onLoad={() => {
-                  console.log('✅ Logo loaded successfully');
                 }}
               />
             </a>
