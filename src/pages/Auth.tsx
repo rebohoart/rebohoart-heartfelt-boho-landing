@@ -33,7 +33,6 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isProcessingReset, setIsProcessingReset] = useState(false);
-  const [isClearingSessions, setIsClearingSessions] = useState(false);
   const { signIn, updatePassword } = useAuth();
   const navigate = useNavigate();
 
@@ -110,50 +109,6 @@ const Auth = () => {
       subscription.unsubscribe();
     };
   }, []); // Empty dependencies - only run once on mount
-
-  const handleClearSessions = async () => {
-    if (isClearingSessions) {
-      console.log('⚠️ Clear sessions already in progress, ignoring click');
-      return;
-    }
-
-    try {
-      setIsClearingSessions(true);
-      console.log('🧹 Clearing all sessions...');
-
-      // Sign out from Supabase
-      const { error: signOutError } = await supabase.auth.signOut();
-      if (signOutError) {
-        console.error('❌ Error signing out:', signOutError);
-        // Continue anyway to clear local storage
-      }
-
-      // Clear all Supabase keys from localStorage
-      let clearedCount = 0;
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('sb-')) {
-          localStorage.removeItem(key);
-          clearedCount++;
-          console.log('🗑️ Removed:', key);
-        }
-      });
-
-      // Clear mock session too
-      localStorage.removeItem('mock_admin_session');
-
-      console.log(`✅ Cleared ${clearedCount} Supabase sessions from localStorage`);
-      toast.success("Todas as sessões foram limpas. A recarregar página...");
-
-      // Reload page to reset all state
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error('❌ Error clearing sessions:', error);
-      toast.error("Erro ao limpar sessões. Por favor, tente novamente.");
-      setIsClearingSessions(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -493,22 +448,6 @@ const Auth = () => {
               Voltar ao login
             </button>
           )}
-
-          {/* Clear sessions button - useful for troubleshooting login issues */}
-          <div className="mt-6 pt-4 border-t border-gray-300">
-            <p className="text-xs text-gray-600 mb-2 text-center">
-              Problemas com o login?
-            </p>
-            <Button
-              type="button"
-              onClick={handleClearSessions}
-              variant="outline"
-              className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/30"
-              disabled={isClearingSessions}
-            >
-              {isClearingSessions ? "A limpar sessões..." : "🧹 Limpar todas as sessões"}
-            </Button>
-          </div>
         </div>
       </Card>
     </div>
