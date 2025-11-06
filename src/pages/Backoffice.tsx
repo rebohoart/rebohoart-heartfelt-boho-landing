@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import { validateImageFile } from "@/lib/sanitize";
+import Dashboard from "@/components/Dashboard";
 
 interface Product {
   id: string;
@@ -400,11 +401,16 @@ const Backoffice = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="products" className="w-full">
+        <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="mb-4">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="products">Produtos</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard">
+            <Dashboard />
+          </TabsContent>
 
           <TabsContent value="products">
             <Card className="p-6">

@@ -127,6 +127,25 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
     setIsSubmitting(true);
 
     try {
+      // Save custom order to database
+      const customOrderData = {
+        customer_name: formData.customerName,
+        customer_email: formData.customerEmail,
+        title: formData.title,
+        description: formData.description,
+        delivery_deadline: formData.deliveryDeadline,
+        images: uploadedImages.length > 0 ? uploadedImages : null
+      };
+
+      const { error: dbError } = await supabase
+        .from('custom_orders')
+        .insert([customOrderData]);
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw dbError;
+      }
+
       // Escape user input to prevent XSS attacks
       const safeTitle = escapeHtml(formData.title);
       const safeDescription = escapeHtml(formData.description).replace(/\n/g, '<br>');

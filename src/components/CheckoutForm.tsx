@@ -49,6 +49,29 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
       const safeName = escapeHtml(formData.name);
       const safeEmail = escapeHtml(formData.email);
 
+      // Save order to database
+      const orderData = {
+        customer_name: formData.name,
+        customer_email: formData.email,
+        total_amount: totalPrice,
+        items: items.map(item => ({
+          product_id: item.product.id,
+          product_title: item.product.title,
+          product_price: item.product.price,
+          quantity: item.quantity,
+          subtotal: item.product.price * item.quantity
+        }))
+      };
+
+      const { error: dbError } = await supabase
+        .from('orders')
+        .insert([orderData]);
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw dbError;
+      }
+
       const details = items
         .map(
           (item) => {
