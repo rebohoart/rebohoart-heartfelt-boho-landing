@@ -223,6 +223,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔓 Mock admin session cleared');
     }
 
+    // Clear cart data
+    localStorage.removeItem('rebohoart-cart');
+    console.log('🛒 Cart data cleared');
+
     // Clear state first to prevent any race conditions
     setUser(null);
     setSession(null);
@@ -234,6 +238,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('✅ Supabase signOut completed');
     } catch (error) {
       console.error('❌ Error during signOut:', error);
+    }
+
+    // Clear all Supabase-related localStorage keys
+    if (isLocalhost()) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        console.log(`🗑️ Removed localStorage key: ${key}`);
+      });
     }
 
     navigate('/auth');
