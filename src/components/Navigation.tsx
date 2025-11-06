@@ -10,21 +10,42 @@ import { useQuery } from "@tanstack/react-query";
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const { totalItems } = useCart();
 
-  const { data: siteSettings } = useQuery({
+  const { data: siteSettings, error: settingsError } = useQuery({
     queryKey: ['site-settings'],
     queryFn: async () => {
+      console.log('🔄 Fetching site settings...');
       const { data, error } = await supabase
         .from('site_settings')
         .select('*');
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching site settings:', error);
+        throw error;
+      }
+      console.log('✅ Site settings fetched:', data);
       return data;
     },
   });
 
-  const logoUrl = siteSettings?.find(s => s.key === 'logo_url')?.value || logo;
+  useEffect(() => {
+    if (settingsError) {
+      console.error('❌ Settings error:', settingsError);
+    }
+  }, [settingsError]);
+
+  const customLogoUrl = siteSettings?.find(s => s.key === 'logo_url')?.value;
+  const logoUrl = (!logoError && customLogoUrl) ? customLogoUrl : logo;
+
+  useEffect(() => {
+    if (customLogoUrl) {
+      console.log('🖼️ Using custom logo:', customLogoUrl);
+    } else {
+      console.log('🖼️ Using default logo');
+    }
+  }, [customLogoUrl]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -47,7 +68,21 @@ const Navigation = () => {
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
             <a href="/" className="flex items-center">
-              <img src={logoUrl} alt="Reboho" className="h-8 md:h-10 w-auto" />
+              <img
+                src={logoUrl}
+                alt="Reboho"
+                className="h-8 md:h-10 w-auto"
+                onError={(e) => {
+                  console.error('❌ Error loading logo, falling back to default:', logoUrl);
+                  setLogoError(true);
+                  if (e.currentTarget.src !== logo) {
+                    e.currentTarget.src = logo;
+                  }
+                }}
+                onLoad={() => {
+                  console.log('✅ Logo loaded successfully');
+                }}
+              />
             </a>
 
             {/* Navigation Actions */}

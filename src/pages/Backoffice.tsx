@@ -49,6 +49,7 @@ const Backoffice = () => {
   const [uploading, setUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [currentLogo, setCurrentLogo] = useState<string>("");
+  const [logoError, setLogoError] = useState<string>("");
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['admin-products'],
@@ -85,9 +86,15 @@ const Backoffice = () => {
 
   useEffect(() => {
     if (siteSettings) {
+      console.log('📋 Site settings loaded:', siteSettings);
       const logoSetting = siteSettings.find(s => s.key === 'logo_url');
       if (logoSetting) {
+        console.log('🖼️ Logo URL found:', logoSetting.value);
         setCurrentLogo(logoSetting.value);
+        setLogoError("");
+      } else {
+        console.log('⚠️ No logo URL found in site settings');
+        setCurrentLogo("");
       }
     }
   }, [siteSettings]);
@@ -273,6 +280,7 @@ const Backoffice = () => {
     if (!file) return;
 
     setLogoUploading(true);
+    setLogoError("");
 
     try {
       // Validate file before upload
@@ -289,6 +297,16 @@ const Backoffice = () => {
       const filePath = `${fileName}`;
 
       console.log('📤 Uploading logo:', fileName);
+      console.log('📦 File size:', (file.size / 1024).toFixed(2), 'KB');
+      console.log('📝 File type:', file.type);
+
+      // First, check if we can access the storage bucket
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      if (bucketsError) {
+        console.error('❌ Error listing buckets:', bucketsError);
+        throw new Error('Não foi possível acessar o storage. Verifique as permissões.');
+      }
+      console.log('✅ Storage buckets accessible:', buckets?.map(b => b.name));
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('product-images')
@@ -299,6 +317,9 @@ const Backoffice = () => {
 
       if (uploadError) {
         console.error('❌ Logo upload error:', uploadError);
+        if (uploadError.message.includes('new row violates row-level security')) {
+          throw new Error('Permissão negada. Certifique-se de que está autenticado como administrador.');
+        }
         throw uploadError;
       }
 
@@ -322,17 +343,22 @@ const Backoffice = () => {
 
       if (updateError) {
         console.error('❌ Error updating site settings:', updateError);
+        if (updateError.message.includes('new row violates row-level security')) {
+          throw new Error('Permissão negada ao atualizar configurações. Certifique-se de que está autenticado como administrador.');
+        }
         throw updateError;
       }
 
       console.log('✅ Site settings updated successfully');
 
       setCurrentLogo(publicUrl);
+      setLogoError("");
       queryClient.invalidateQueries({ queryKey: ['site-settings'] });
       toast.success("Logo atualizado com sucesso!");
     } catch (error: unknown) {
       console.error('❌ Unexpected error during logo upload:', error);
       const message = error instanceof Error ? error.message : "Erro desconhecido";
+      setLogoError(message);
       toast.error(`Erro ao carregar logo: ${message}`);
     } finally {
       setLogoUploading(false);
@@ -552,14 +578,37 @@ const Backoffice = () => {
                     Faça upload de um novo logo para aparecer na navegação do site.
                   </p>
 
-                  {currentLogo && (
+                  {currentLogo ? (
                     <div className="mb-4 p-4 border border-border rounded-lg bg-background">
                       <p className="text-sm text-muted-foreground mb-2">Logo atual:</p>
-                      <img
-                        src={currentLogo}
-                        alt="Logo atual"
-                        className="h-16 w-auto object-contain"
-                      />
+                      {logoError ? (
+                        <div className="p-4 bg-destructive/10 text-destructive rounded-md">
+                          <p className="text-sm font-medium mb-1">Erro ao carregar o logo</p>
+                          <p className="text-xs">{logoError}</p>
+                          <p className="text-xs mt-2 text-muted-foreground break-all">URL: {currentLogo}</p>
+                        </div>
+                      ) : (
+                        <img
+                          src={currentLogo}
+                          alt="Logo atual"
+                          className="h-16 w-auto object-contain"
+                          onError={(e) => {
+                            console.error('❌ Error loading logo image:', currentLogo);
+                            setLogoError('Não foi possível carregar a imagem. Verifique se o URL está correto.');
+                            e.currentTarget.style.display = 'none';
+                          }}
+                          onLoad={() => {
+                            console.log('✅ Logo image loaded successfully');
+                            setLogoError("");
+                          }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mb-4 p-4 border border-amber-300 bg-amber-50 rounded-lg">
+                      <p className="text-sm text-amber-800">
+                        ℹ️ Nenhum logo personalizado configurado. O site está usando o logo padrão.
+                      </p>
                     </div>
                   )}
 
