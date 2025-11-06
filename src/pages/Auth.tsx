@@ -110,6 +110,31 @@ const Auth = () => {
     };
   }, []); // Empty dependencies - only run once on mount
 
+  const handleClearSessions = async () => {
+    console.log('🧹 Clearing all sessions...');
+
+    // Sign out from Supabase
+    await supabase.auth.signOut();
+
+    // Clear all Supabase keys from localStorage
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-')) {
+        localStorage.removeItem(key);
+        console.log('🗑️ Removed:', key);
+      }
+    });
+
+    // Clear mock session too
+    localStorage.removeItem('mock_admin_session');
+
+    toast.success("Todas as sessões foram limpas. Pode agora fazer login.");
+
+    // Reload page to reset all state
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -448,6 +473,17 @@ const Auth = () => {
               Voltar ao login
             </button>
           )}
+
+          {/* Clear sessions button - useful for troubleshooting login issues */}
+          <div className="mt-2 pt-2 border-t border-border">
+            <button
+              type="button"
+              onClick={handleClearSessions}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+            >
+              Limpar todas as sessões
+            </button>
+          </div>
         </div>
       </Card>
     </div>
