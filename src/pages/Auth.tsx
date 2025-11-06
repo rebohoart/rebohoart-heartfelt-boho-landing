@@ -475,11 +475,11 @@ const Auth = () => {
           )}
 
           {/* Clear sessions button - useful for troubleshooting login issues */}
-          <div className="mt-2 pt-2 border-t border-border">
+          <div className="mt-4 pt-4 border-t border-border">
             <button
               type="button"
               onClick={handleClearSessions}
-              className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+              className="text-sm text-muted-foreground hover:text-destructive transition-colors underline"
             >
               Limpar todas as sessões
             </button>
