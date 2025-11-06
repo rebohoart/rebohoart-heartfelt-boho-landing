@@ -16,6 +16,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Mock admin credentials for localhost development
+const MOCK_ADMIN_EMAIL = "admin@localhost.com";
+const MOCK_ADMIN_PASSWORD = "admin123";
+
+// Check if we're running on localhost
+const isLocalhost = () => {
+  return window.location.hostname === 'localhost' ||
+         window.location.hostname === '127.0.0.1' ||
+         window.location.hostname === '::1';
+};
+
+// Mock user object for local development
+const createMockUser = (): User => ({
+  id: 'mock-admin-id',
+  email: MOCK_ADMIN_EMAIL,
+  app_metadata: {},
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+});
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -25,6 +46,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log('🔐 AuthContext initializing...');
+
+    // Check for mock session in localhost
+    if (isLocalhost()) {
+      const mockSession = localStorage.getItem('mock_admin_session');
+      if (mockSession) {
+        console.log('✅ Mock admin session found in localStorage');
+        const mockUser = createMockUser();
+        setUser(mockUser);
+        setIsAdmin(true);
+        setLoading(false);
+        return;
+      }
+    }
 
     // Set a safety timeout to prevent infinite loading state
     const safetyTimeout = setTimeout(() => {
@@ -111,6 +145,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     console.log('📧 SignIn called with email:', email);
+
+    // Mock authentication for localhost
+    if (isLocalhost() && email === MOCK_ADMIN_EMAIL && password === MOCK_ADMIN_PASSWORD) {
+      console.log('✅ Mock admin login successful');
+      const mockUser = createMockUser();
+      setUser(mockUser);
+      setIsAdmin(true);
+      localStorage.setItem('mock_admin_session', 'true');
+      return { error: null };
+    }
+
     console.log('🔑 Password length:', password.length);
     console.log('🔑 Password characters breakdown:', {
       hasSpaces: password.includes(' '),
@@ -155,7 +200,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    // Clear mock session if on localhost
+    if (isLocalhost()) {
+      localStorage.removeItem('mock_admin_session');
+      console.log('🔓 Mock admin session cleared');
+    }
+
     await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
     setIsAdmin(false);
     navigate('/auth');
   };
