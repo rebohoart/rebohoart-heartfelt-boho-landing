@@ -90,11 +90,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Fetch store email template (ordered by updated_at to ensure latest version)
     // Note: Using array access instead of .single() to avoid caching issues
+    // Adding timestamp to query to bust any caching
     const storeTemplateType = isCustomOrder ? 'custom_order_store' : 'cart_order_store';
     const { data: storeTemplates, error: storeTemplateError } = await supabase
       .from('email_templates')
       .select('*')
       .eq('template_type', storeTemplateType)
+      .gte('updated_at', '2000-01-01') // Cache-busting: always true but prevents caching
       .order('updated_at', { ascending: false })
       .limit(1);
 
@@ -110,11 +112,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Fetch customer email template (ordered by updated_at to ensure latest version)
     // Note: Using array access instead of .single() to avoid caching issues
+    // Adding timestamp to query to bust any caching
     const customerTemplateType = isCustomOrder ? 'custom_order_customer' : 'cart_order_customer';
     const { data: customerTemplates, error: customerTemplateError } = await supabase
       .from('email_templates')
       .select('*')
       .eq('template_type', customerTemplateType)
+      .gte('updated_at', '2000-01-01') // Cache-busting: always true but prevents caching
       .order('updated_at', { ascending: false })
       .limit(1);
 
