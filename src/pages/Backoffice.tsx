@@ -14,6 +14,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import { validateImageFile } from "@/lib/sanitize";
 import Dashboard from "@/components/Dashboard";
+import EmailTemplatesTab from "@/components/EmailTemplatesTab";
 
 interface Product {
   id: string;
@@ -405,6 +406,7 @@ const Backoffice = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="products">Produtos</TabsTrigger>
+            <TabsTrigger value="emails">Templates de Email</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
 
@@ -589,6 +591,13 @@ const Backoffice = () => {
           </div>
         </div>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="emails">
+            <Card className="p-6">
+              <h2 className="font-serif text-2xl font-bold mb-6">Templates de Email</h2>
+              <EmailTemplatesTab />
+            </Card>
           </TabsContent>
 
           <TabsContent value="settings">
