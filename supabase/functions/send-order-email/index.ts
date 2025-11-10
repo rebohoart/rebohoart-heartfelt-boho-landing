@@ -193,7 +193,7 @@ const handler = async (req: Request): Promise<Response> => {
         from: gmailUser,
         to: storeEmail,
         subject: subject,
-        content: "auto",
+        content: "text/html",
         html: emailHtml,
       });
       log(`✓ Email sent successfully to store: ${storeEmail}`);
@@ -230,7 +230,7 @@ const handler = async (req: Request): Promise<Response> => {
         from: gmailUser,
         to: customerEmail,
         subject: customerSubject,
-        content: "auto",
+        content: "text/html",
         html: customerEmailHtml,
       });
       log(`✓ Email sent successfully to customer: ${customerEmail}`);
