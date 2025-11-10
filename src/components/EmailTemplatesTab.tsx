@@ -81,8 +81,10 @@ const EmailTemplatesTab = () => {
 
       if (error) throw error;
 
+      // Aguardar pela invalidação e refetch dos dados
+      await queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+
       toast.success("Template atualizado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       cancelEdit();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro ao salvar template";
