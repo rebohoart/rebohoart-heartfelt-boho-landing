@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,26 @@ interface OrderEmailRequest {
   customerEmail: string;
   details: string;
 }
+
+interface EmailTemplate {
+  id: string;
+  template_type: string;
+  subject: string;
+  html_content: string;
+}
+
+// Helper function to replace template variables
+const replaceTemplateVariables = (
+  template: string,
+  variables: Record<string, string>
+): string => {
+  let result = template;
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    result = result.replace(regex, value);
+  }
+  return result;
+};
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -59,61 +80,55 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const isCustomOrder = type === "custom";
-    const subject = isCustomOrder
-      ? "Novo Pedido de Orcamento - Peca Personalizada"
-      : "Nova Encomenda ReBoho";
 
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }
-            .info-block { background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #D4A574; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-            h1 { margin: 0; font-size: 24px; }
-            h2 { color: #D4A574; font-size: 18px; margin-top: 0; }
-            .label { font-weight: bold; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>${subject}</h1>
-            </div>
-            <div class="content">
-              ${isCustomOrder ? `
-                <h2>Detalhes do Pedido de Orcamento</h2>
-                <div class="info-block">
-                  <p><span class="label">Cliente:</span> ${customerName}</p>
-                  <p><span class="label">Email:</span> ${customerEmail}</p>
-                </div>
-                <h2>Descricao da Peca</h2>
-                <div class="info-block">
-                  ${details}
-                </div>
-              ` : `
-                <h2>Detalhes da Encomenda</h2>
-                <div class="info-block">
-                  <p><span class="label">Cliente:</span> ${customerName}</p>
-                  <p><span class="label">Email:</span> ${customerEmail}</p>
-                </div>
-                <h2>Produtos</h2>
-                <div class="info-block">
-                  ${details}
-                </div>
-              `}
-            </div>
-            <div class="footer">
-              <p>ReBoho Art - Email automatico do sistema</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    log("=== FETCHING EMAIL TEMPLATES FROM DATABASE ===");
+
+    // Fetch store email template
+    const storeTemplateType = isCustomOrder ? 'custom_order_store' : 'cart_order_store';
+    const { data: storeTemplate, error: storeTemplateError } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('template_type', storeTemplateType)
+      .single();
+
+    if (storeTemplateError) {
+      log(`Error fetching store template: ${storeTemplateError.message}`);
+      throw new Error(`Failed to fetch store email template: ${storeTemplateError.message}`);
+    }
+
+    log(`Store template fetched: ${storeTemplateType}`);
+
+    // Fetch customer email template
+    const customerTemplateType = isCustomOrder ? 'custom_order_customer' : 'cart_order_customer';
+    const { data: customerTemplate, error: customerTemplateError } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('template_type', customerTemplateType)
+      .single();
+
+    if (customerTemplateError) {
+      log(`Error fetching customer template: ${customerTemplateError.message}`);
+      throw new Error(`Failed to fetch customer email template: ${customerTemplateError.message}`);
+    }
+
+    log(`Customer template fetched: ${customerTemplateType}`);
+
+    // Prepare template variables
+    const templateVariables = {
+      customerName,
+      customerEmail,
+      details,
+      subject: storeTemplate.subject,
+    };
+
+    // Replace variables in store email template
+    const subject = storeTemplate.subject;
+    const emailHtml = replaceTemplateVariables(storeTemplate.html_content, templateVariables);
 
     log("=== SMTP CLIENT CONFIGURATION ===");
     log("Hostname: smtp.gmail.com");
@@ -166,63 +181,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Send confirmation email to customer
-    const customerSubject = isCustomOrder
-      ? "Pedido de Orcamento Recebido - ReBoho Art"
-      : "Encomenda Recebida - ReBoho Art";
-
-    const customerEmailHtml = isCustomOrder ? `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }
-            h1 { margin: 0; font-size: 24px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Pedido de Orcamento Recebido!</h1>
-            </div>
-            <div class="content">
-              <p>Ola ${customerName},</p>
-              <p>Recebemos o teu pedido de orcamento para uma peca personalizada!</p>
-              <p>Vamos analisar o teu pedido e entraremos em contacto contigo em breve.</p>
-              <p>Com carinho,<br><strong>ReBoho Art</strong></p>
-            </div>
-          </div>
-        </body>
-      </html>
-    ` : `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }
-            h1 { margin: 0; font-size: 24px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Obrigada pela tua encomenda!</h1>
-            </div>
-            <div class="content">
-              <p>Ola ${customerName},</p>
-              <p>Recebemos a tua encomenda com sucesso!</p>
-              <p>Iremos entrar em contacto contigo brevemente com informacoes de pagamento e envio.</p>
-              <p>Com carinho,<br><strong>ReBoho Art</strong></p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    const customerSubject = customerTemplate.subject;
+    const customerEmailHtml = replaceTemplateVariables(customerTemplate.html_content, {
+      customerName,
+      customerEmail,
+      details,
+      subject: customerTemplate.subject,
+    });
 
     log("=== SENDING EMAIL TO CUSTOMER ===");
     log(`From: ${gmailUser}`);
