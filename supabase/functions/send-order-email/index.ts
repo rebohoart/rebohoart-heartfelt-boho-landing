@@ -81,10 +81,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     const isCustomOrder = type === "custom";
 
-    // Initialize Supabase client
+    // Initialize Supabase client with cache disabled
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      db: {
+        schema: 'public',
+      },
+      global: {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
+    });
 
     log("=== FETCHING EMAIL TEMPLATES FROM DATABASE ===");
 
@@ -109,6 +120,8 @@ const handler = async (req: Request): Promise<Response> => {
     const storeTemplate = storeTemplates[0];
     log(`Store template fetched: ${storeTemplateType} (updated_at: ${storeTemplate.updated_at})`);
     log(`Store template ID: ${storeTemplate.id}`);
+    log(`Store template subject: ${storeTemplate.subject}`);
+    log(`Store template content preview: ${storeTemplate.html_content.substring(0, 150)}...`);
 
     // Fetch customer email template (ordered by updated_at to ensure latest version)
     // Note: Using array access instead of .single() to avoid caching issues
@@ -131,6 +144,8 @@ const handler = async (req: Request): Promise<Response> => {
     const customerTemplate = customerTemplates[0];
     log(`Customer template fetched: ${customerTemplateType} (updated_at: ${customerTemplate.updated_at})`);
     log(`Customer template ID: ${customerTemplate.id}`);
+    log(`Customer template subject: ${customerTemplate.subject}`);
+    log(`Customer template content preview: ${customerTemplate.html_content.substring(0, 150)}...`);
 
     // Prepare template variables
     const templateVariables = {
