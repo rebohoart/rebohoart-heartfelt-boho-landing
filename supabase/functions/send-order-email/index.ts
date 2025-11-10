@@ -89,38 +89,44 @@ const handler = async (req: Request): Promise<Response> => {
     log("=== FETCHING EMAIL TEMPLATES FROM DATABASE ===");
 
     // Fetch store email template (ordered by updated_at to ensure latest version)
+    // Note: Using array access instead of .single() to avoid caching issues
     const storeTemplateType = isCustomOrder ? 'custom_order_store' : 'cart_order_store';
-    const { data: storeTemplate, error: storeTemplateError } = await supabase
+    const { data: storeTemplates, error: storeTemplateError } = await supabase
       .from('email_templates')
       .select('*')
       .eq('template_type', storeTemplateType)
       .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    if (storeTemplateError) {
-      log(`Error fetching store template: ${storeTemplateError.message}`);
-      throw new Error(`Failed to fetch store email template: ${storeTemplateError.message}`);
+    if (storeTemplateError || !storeTemplates || storeTemplates.length === 0) {
+      const errorMsg = storeTemplateError?.message || 'No template found';
+      log(`Error fetching store template: ${errorMsg}`);
+      throw new Error(`Failed to fetch store email template: ${errorMsg}`);
     }
 
+    const storeTemplate = storeTemplates[0];
     log(`Store template fetched: ${storeTemplateType} (updated_at: ${storeTemplate.updated_at})`);
+    log(`Store template ID: ${storeTemplate.id}`);
 
     // Fetch customer email template (ordered by updated_at to ensure latest version)
+    // Note: Using array access instead of .single() to avoid caching issues
     const customerTemplateType = isCustomOrder ? 'custom_order_customer' : 'cart_order_customer';
-    const { data: customerTemplate, error: customerTemplateError } = await supabase
+    const { data: customerTemplates, error: customerTemplateError } = await supabase
       .from('email_templates')
       .select('*')
       .eq('template_type', customerTemplateType)
       .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    if (customerTemplateError) {
-      log(`Error fetching customer template: ${customerTemplateError.message}`);
-      throw new Error(`Failed to fetch customer email template: ${customerTemplateError.message}`);
+    if (customerTemplateError || !customerTemplates || customerTemplates.length === 0) {
+      const errorMsg = customerTemplateError?.message || 'No template found';
+      log(`Error fetching customer template: ${errorMsg}`);
+      throw new Error(`Failed to fetch customer email template: ${errorMsg}`);
     }
 
+    const customerTemplate = customerTemplates[0];
     log(`Customer template fetched: ${customerTemplateType} (updated_at: ${customerTemplate.updated_at})`);
+    log(`Customer template ID: ${customerTemplate.id}`);
 
     // Prepare template variables
     const templateVariables = {
