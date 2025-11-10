@@ -88,12 +88,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     log("=== FETCHING EMAIL TEMPLATES FROM DATABASE ===");
 
-    // Fetch store email template
+    // Fetch store email template (ordered by updated_at to ensure latest version)
     const storeTemplateType = isCustomOrder ? 'custom_order_store' : 'cart_order_store';
     const { data: storeTemplate, error: storeTemplateError } = await supabase
       .from('email_templates')
       .select('*')
       .eq('template_type', storeTemplateType)
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .single();
 
     if (storeTemplateError) {
@@ -101,14 +103,16 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to fetch store email template: ${storeTemplateError.message}`);
     }
 
-    log(`Store template fetched: ${storeTemplateType}`);
+    log(`Store template fetched: ${storeTemplateType} (updated_at: ${storeTemplate.updated_at})`);
 
-    // Fetch customer email template
+    // Fetch customer email template (ordered by updated_at to ensure latest version)
     const customerTemplateType = isCustomOrder ? 'custom_order_customer' : 'cart_order_customer';
     const { data: customerTemplate, error: customerTemplateError } = await supabase
       .from('email_templates')
       .select('*')
       .eq('template_type', customerTemplateType)
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .single();
 
     if (customerTemplateError) {
@@ -116,7 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to fetch customer email template: ${customerTemplateError.message}`);
     }
 
-    log(`Customer template fetched: ${customerTemplateType}`);
+    log(`Customer template fetched: ${customerTemplateType} (updated_at: ${customerTemplate.updated_at})`);
 
     // Prepare template variables
     const templateVariables = {
