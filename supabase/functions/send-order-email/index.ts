@@ -34,6 +34,17 @@ const replaceTemplateVariables = (
   return result;
 };
 
+// Helper function to clean HTML and prevent quoted-printable encoding issues
+const cleanHtmlForEmail = (html: string): string => {
+  return html
+    // Remove trailing spaces at end of lines (main cause of =20)
+    .replace(/[ \t]+$/gm, '')
+    // Remove multiple consecutive blank lines
+    .replace(/\n{3,}/g, '\n\n')
+    // Trim the whole content
+    .trim();
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -156,7 +167,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Replace variables in store email template
     const subject = storeTemplate.subject;
-    const emailHtml = replaceTemplateVariables(storeTemplate.html_content, templateVariables);
+    const emailHtml = cleanHtmlForEmail(
+      replaceTemplateVariables(storeTemplate.html_content, templateVariables)
+    );
 
     log("=== SMTP CLIENT CONFIGURATION ===");
     log("Hostname: smtp.gmail.com");
@@ -174,6 +187,12 @@ const handler = async (req: Request): Promise<Response> => {
           username: gmailUser,
           password: gmailPassword,
         },
+      },
+      debug: {
+        log: false,
+        allowUnsecure: false,
+        encodeLB: true, // Fix linebreak encoding to prevent =20 characters
+        noStartTLS: false,
       },
     });
 
@@ -210,12 +229,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send confirmation email to customer
     const customerSubject = customerTemplate.subject;
-    const customerEmailHtml = replaceTemplateVariables(customerTemplate.html_content, {
-      customerName,
-      customerEmail,
-      details,
-      subject: customerTemplate.subject,
-    });
+    const customerEmailHtml = cleanHtmlForEmail(
+      replaceTemplateVariables(customerTemplate.html_content, {
+        customerName,
+        customerEmail,
+        details,
+        subject: customerTemplate.subject,
+      })
+    );
 
     log("=== SENDING EMAIL TO CUSTOMER ===");
     log(`From: ${gmailUser}`);
