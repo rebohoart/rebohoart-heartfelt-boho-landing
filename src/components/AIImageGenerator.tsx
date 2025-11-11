@@ -3,20 +3,65 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Download, Save } from "lucide-react";
+import { Loader2, Sparkles, Download, Save, Upload, X, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { validateImageFile } from "@/lib/sanitize";
 
 const AIImageGenerator = () => {
-  const [prompt, setPrompt] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar ficheiro
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
+      toast.error(validation.error || "Ficheiro inválido");
+      e.target.value = '';
+      return;
+    }
+
+    setSelectedImage(file);
+
+    // Criar preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    toast.success("Imagem carregada! Pode agora gerar a nova versão.");
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setGeneratedImage(null);
+  };
+
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        // Remover o prefixo "data:image/...;base64,"
+        const base64Data = base64String.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      toast.error("Por favor, insira uma descrição para a imagem");
+    if (!selectedImage) {
+      toast.error("Por favor, faça upload de uma imagem primeiro");
       return;
     }
 
@@ -31,7 +76,10 @@ const AIImageGenerator = () => {
     setGeneratedImage(null);
 
     try {
-      console.log("🎨 Enviando prompt para n8n:", prompt);
+      console.log("🎨 Enviando imagem para n8n...");
+
+      // Converter imagem para base64
+      const base64Image = await convertImageToBase64(selectedImage);
 
       const response = await fetch(n8nWebhookUrl, {
         method: "POST",
@@ -39,7 +87,9 @@ const AIImageGenerator = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: prompt,
+          image: base64Image,
+          filename: selectedImage.name,
+          mimeType: selectedImage.type,
           timestamp: new Date().toISOString(),
         }),
       });
@@ -52,7 +102,7 @@ const AIImageGenerator = () => {
       console.log("✅ Resposta do n8n:", data);
 
       // Adapte conforme a estrutura de resposta do seu workflow n8n
-      // Exemplo: data.image_url ou data.url ou data.image
+      // Exemplo: data.image_url ou data.url ou data.image ou data.output
       const imageUrl = data.image_url || data.url || data.image || data.output;
 
       if (!imageUrl) {
@@ -139,46 +189,93 @@ const AIImageGenerator = () => {
       <div>
         <h2 className="font-serif text-2xl font-bold mb-2">Geração de Imagens com IA</h2>
         <p className="text-muted-foreground">
-          Use inteligência artificial para criar imagens únicas para os seus produtos
+          Faça upload de uma imagem e transforme-a usando inteligência artificial
         </p>
       </div>
 
       <Card className="p-6">
         <div className="space-y-4">
           <div>
-            <Label htmlFor="prompt">Descrição da Imagem</Label>
-            <Textarea
-              id="prompt"
-              placeholder="Ex: Uma tigela de cerâmica artesanal com padrões boho em tons terrosos, sobre uma mesa de madeira rústica com luz natural suave..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={4}
-              disabled={isGenerating}
-              className="resize-none"
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              💡 Dica: Seja específico sobre cores, estilo, ambiente e iluminação para melhores resultados
-            </p>
+            <Label htmlFor="image-upload">Imagem Inicial</Label>
+            {!previewUrl ? (
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center mt-2">
+                <Input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  disabled={isGenerating}
+                  aria-label="Upload de imagem"
+                />
+                <label htmlFor="image-upload" className="cursor-pointer block">
+                  <Upload className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Clique para selecionar uma imagem
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPG ou WEBP (máx. 5MB)
+                  </p>
+                </label>
+              </div>
+            ) : (
+              <div className="mt-2 relative">
+                <div className="rounded-lg overflow-hidden border border-border">
+                  <img
+                    src={previewUrl}
+                    alt="Imagem para processar"
+                    className="w-full h-auto max-h-96 object-contain bg-muted"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  disabled={isGenerating}
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Remover
+                </Button>
+              </div>
+            )}
           </div>
+
+          {selectedImage && (
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex items-center gap-2 text-sm">
+                <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">{selectedImage.name}</span>
+                <span className="text-muted-foreground">
+                  ({(selectedImage.size / 1024).toFixed(1)} KB)
+                </span>
+              </div>
+            </div>
+          )}
 
           <Button
             onClick={handleGenerate}
-            disabled={isGenerating || !prompt.trim()}
+            disabled={isGenerating || !selectedImage}
             className="w-full"
             size="lg"
           >
             {isGenerating ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                A Gerar Imagem...
+                A Processar Imagem...
               </>
             ) : (
               <>
                 <Sparkles className="w-5 h-5 mr-2" />
-                Gerar Imagem com IA
+                Gerar Nova Versão com IA
               </>
             )}
           </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            💡 O seu workflow n8n processará a imagem com o prompt configurado
+          </p>
         </div>
       </Card>
 
@@ -186,8 +283,8 @@ const AIImageGenerator = () => {
         <Card className="p-6">
           <div className="space-y-4">
             <div>
-              <Label>Imagem Gerada</Label>
-              <div className="mt-2 rounded-lg overflow-hidden border border-border">
+              <Label>Imagem Gerada pela IA</Label>
+              <div className="mt-2 rounded-lg overflow-hidden border border-border bg-muted">
                 <img
                   src={generatedImage}
                   alt="Imagem gerada por IA"

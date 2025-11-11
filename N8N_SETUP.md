@@ -1,11 +1,11 @@
-# 🤖 Guia de Configuração n8n - Geração de Imagens IA
+# 🤖 Guia de Configuração n8n - Transformação de Imagens com IA
 
-Este guia explica como configurar a integração com n8n para gerar imagens com inteligência artificial no backoffice da Rebohoart.
+Este guia explica como configurar a integração com n8n para transformar imagens usando inteligência artificial no backoffice da Rebohoart.
 
 ## 📋 Pré-requisitos
 
 - Conta n8n (self-hosted ou n8n Cloud)
-- API key de um serviço de geração de imagens IA (ex: DALL-E, Midjourney, Stable Diffusion, etc.)
+- API key de um serviço de IA image-to-image (ex: DALL-E, Stable Diffusion, Replicate, etc.)
 - Acesso ao backoffice da Rebohoart
 
 ## 🔧 Passo 1: Criar Workflow n8n
@@ -15,7 +15,7 @@ Este guia explica como configurar a integração com n8n para gerar imagens com 
 Crie um novo workflow no n8n com a seguinte estrutura:
 
 ```
-Webhook → Processar Prompt → Gerar Imagem → Responder
+Webhook → Processar Imagem Base64 → Gerar Nova Imagem com IA → Responder
 ```
 
 ### 1.2 Configuração dos Nós
@@ -30,50 +30,61 @@ Webhook → Processar Prompt → Gerar Imagem → Responder
 Exemplo de dados recebidos:
 ```json
 {
-  "prompt": "Uma tigela de cerâmica artesanal...",
+  "image": "iVBORw0KGgoAAAANSUhEUgAA...",
+  "filename": "produto.jpg",
+  "mimeType": "image/jpeg",
   "timestamp": "2025-01-10T12:00:00Z"
 }
 ```
 
-#### Nó 2: Processar Prompt (Opcional)
-- **Tipo**: `Code` ou `Set`
-- **Função**: Validar, limpar ou enriquecer o prompt
-- Exemplo de código (JavaScript):
+**Nota:** O campo `image` contém a imagem em formato **base64** (sem o prefixo `data:image/...;base64,`).
 
+#### Nó 2: Decodificar Base64 e Preparar Imagem
+- **Tipo**: `Code`
+- **Função**: Converter base64 para buffer ou criar data URI para a API de IA
+
+Exemplo de código (JavaScript):
 ```javascript
-// Adicionar estilo padrão ao prompt
-const prompt = $input.item.json.prompt;
-const enhancedPrompt = `${prompt}, high quality, professional photography, natural lighting, boho aesthetic`;
+// Reconstruir data URI com base64
+const base64Image = $input.item.json.image;
+const mimeType = $input.item.json.mimeType || 'image/jpeg';
+const dataUri = `data:${mimeType};base64,${base64Image}`;
+
+// Prompt fixo configurável (altere conforme necessário)
+const FIXED_PROMPT = "Transform this into a beautiful boho-style product photo with natural lighting, warm earth tones, and artistic composition";
 
 return {
   json: {
-    prompt: enhancedPrompt
+    imageDataUri: dataUri,
+    base64Image: base64Image,
+    prompt: FIXED_PROMPT,
+    mimeType: mimeType
   }
 };
 ```
 
-#### Nó 3: Gerar Imagem
-Escolha um dos serviços abaixo:
+#### Nó 3: Gerar Nova Imagem com IA
+Escolha um dos serviços abaixo conforme o seu template:
 
-##### Opção A: DALL-E 3 (OpenAI)
+##### Opção A: DALL-E 2 Edit (OpenAI)
+Para editar/transformar uma imagem existente:
+
 - **Tipo**: `HTTP Request`
 - **Method**: `POST`
-- **URL**: `https://api.openai.com/v1/images/generations`
+- **URL**: `https://api.openai.com/v1/images/edits`
 - **Authentication**: `Header Auth`
   - **Name**: `Authorization`
   - **Value**: `Bearer SUA_API_KEY_OPENAI`
-- **Body (JSON)**:
-```json
-{
-  "model": "dall-e-3",
-  "prompt": "={{ $json.prompt }}",
-  "n": 1,
-  "size": "1024x1024",
-  "quality": "standard"
-}
-```
+- **Body Type**: `Form-Data (multipart/form-data)`
+- **Fields**:
+  - `image`: Binary data da imagem
+  - `prompt`: `={{ $json.prompt }}`
+  - `n`: `1`
+  - `size`: `1024x1024`
 
-##### Opção B: Stable Diffusion (Replicate)
+##### Opção B: Stable Diffusion img2img (Replicate)
+Para transformar imagem com Stable Diffusion:
+
 - **Tipo**: `HTTP Request`
 - **Method**: `POST`
 - **URL**: `https://api.replicate.com/v1/predictions`
@@ -83,21 +94,40 @@ Escolha um dos serviços abaixo:
 - **Body (JSON)**:
 ```json
 {
-  "version": "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
+  "version": "db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf",
   "input": {
+    "image": "={{ $json.imageDataUri }}",
     "prompt": "={{ $json.prompt }}",
-    "negative_prompt": "ugly, blurry, low quality",
-    "width": 1024,
-    "height": 1024
+    "negative_prompt": "ugly, blurry, low quality, distorted",
+    "strength": 0.8,
+    "num_inference_steps": 50
   }
 }
 ```
 
-##### Opção C: Outros serviços
-- Leonardo.ai
-- Midjourney (via API não oficial)
-- Stability AI
-- Hugging Face
+##### Opção C: InstantID ou ControlNet (Replicate)
+Para manter estrutura/pose da imagem:
+
+- **Tipo**: `HTTP Request`
+- **Method**: `POST`
+- **URL**: `https://api.replicate.com/v1/predictions`
+- **Body (JSON)**:
+```json
+{
+  "version": "MODELO_ID",
+  "input": {
+    "image": "={{ $json.imageDataUri }}",
+    "prompt": "={{ $json.prompt }}",
+    "control_type": "canny",
+    "num_inference_steps": 30
+  }
+}
+```
+
+##### Opção D: Leonardo.ai Image-to-Image
+Se usar Leonardo.ai, configure conforme a API deles.
+
+**Nota:** Para alguns serviços, pode ser necessário aguardar o processamento (polling) se a geração for assíncrona.
 
 #### Nó 4: Extrair URL da Imagem
 - **Tipo**: `Code`
@@ -211,29 +241,42 @@ No n8n, vá em **Executions** para ver os logs e debugar erros.
 - Copie a URL da imagem
 - Use ao criar/editar produtos na aba "Produtos"
 
-## 🎨 Dicas para Melhores Resultados
+## 🎨 Dicas para Configurar o Prompt Fixo
 
-1. **Seja específico**: Descreva cores, materiais, ambiente
-2. **Inclua estilo**: "boho", "rústico", "natural"
-3. **Mencione iluminação**: "luz natural", "golden hour", "soft lighting"
-4. **Adicione detalhes**: texturas, padrões, composição
-5. **Evite negações**: Em vez de "sem fundo", use "fundo branco limpo"
+Como o workflow usa um **prompt fixo** que você configura no n8n, escolha um prompt que funcione bem para transformar diferentes tipos de imagens de produto. Aqui estão sugestões:
 
-### Exemplos de Prompts Eficazes:
+### Prompts Fixos Recomendados:
 
-**Para produtos:**
+**1. Para estilo Boho Geral:**
 ```
-Tapete de palha artesanal com padrão geométrico boho em tons creme e terracota, vista de cima, sobre piso de madeira clara, luz natural difusa, fotografia profissional
+Transform this into a beautiful boho-style product photo with natural lighting, warm earth tones, artistic composition, soft shadows, and an elegant aesthetic. Professional photography quality.
 ```
 
-**Para ambiente:**
+**2. Para Fundo Limpo e Minimalista:**
 ```
-Sala de estar boho com sofá de linho bege, almofadas com estampas étnicas, tapete juta, plantas tropicais, parede terracota, janela grande com luz natural suave, fotografia interior de revista
+Professional product photography with clean white background, soft natural lighting, studio quality, minimalist composition, high resolution, commercial photography style.
 ```
 
-**Para detalhes:**
+**3. Para Ambiente Natural/Lifestyle:**
 ```
-Close-up macro de textura de cerâmica artesanal com acabamento rústico em tons de areia e marrom, pequenas imperfeições naturais, fundo desfocado neutro, luz lateral suave
+Product styled in a natural boho environment with warm earth tones, natural textures, soft lighting, cozy atmosphere, artisanal aesthetic, rustic elements, professional lifestyle photography.
+```
+
+**4. Para Manter Estrutura mas Melhorar Estilo:**
+```
+Enhance this product photo with boho aesthetic, improve lighting and colors, add warm earth tones, maintain product structure, professional photography quality, artistic composition.
+```
+
+### Parâmetros Importantes (img2img):
+
+- **Strength (0.0-1.0)**:
+  - `0.3-0.5`: Mudanças sutis, mantém muito da imagem original
+  - `0.6-0.8`: Transformação moderada (recomendado)
+  - `0.9-1.0`: Transformação radical, pode perder características originais
+
+- **Negative Prompt** (o que evitar):
+```
+ugly, blurry, low quality, distorted, deformed, bad proportions, watermark, text, signature, amateur, pixelated
 ```
 
 ## 🔒 Segurança
