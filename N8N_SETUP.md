@@ -327,13 +327,31 @@ ugly, blurry, low quality, distorted, deformed, bad proportions, watermark, text
 
 ## 🐛 Resolução de Problemas
 
+### ⚠️ Erro: "Nenhuma imagem foi enviada" (Validate Input)
+
+Este é o erro mais comum e significa que o formato dos dados não está correto.
+
+**Solução:**
+1. Abra o arquivo `diagnostico-webhook.html` no navegador
+2. Selecione uma imagem de teste
+3. Teste cada um dos 6 formatos disponíveis
+4. Quando encontrar o formato que funciona, atualize `AIImageGenerator.tsx`
+
+📖 **Guia completo**: Ver arquivo `WEBHOOK_DIAGNOSTICO.md`
+
 ### Erro: "URL do webhook n8n não configurada"
 - Verifique se `VITE_N8N_WEBHOOK_URL` está no `.env`
 - Reinicie o servidor de desenvolvimento
 
+### Erro: "Webhook n8n não retornou JSON válido"
+- Verifique se o workflow n8n está ATIVO (toggle verde)
+- Confirme que o nó "Respond to Webhook" está configurado
+- Verifique logs no n8n (Executions → Ver última execução)
+
 ### Erro: "Imagem não encontrada na resposta"
 - Verifique a estrutura da resposta do n8n
-- Ajuste o código que extrai a URL no Nó 4
+- O workflow deve retornar: `{ "image_url": "..." }`
+- Campos aceitos: `image_url`, `url`, `image`, `output`
 - Verifique logs no n8n (Executions)
 
 ### Imagem não carrega

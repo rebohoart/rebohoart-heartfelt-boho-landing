@@ -94,12 +94,34 @@ const AIImageGenerator = () => {
         }),
       });
 
+      console.log("📥 Resposta recebida:", {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get("content-type"),
+      });
+
+      // Primeiro, pegar o texto da resposta
+      const responseText = await response.text();
+      console.log("📄 Response body (primeiros 500 caracteres):", responseText.substring(0, 500));
+
       if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Erro HTTP: ${response.status} ${response.statusText}\n\nResposta: ${responseText.substring(0, 200)}`
+        );
       }
 
-      const data = await response.json();
-      console.log("✅ Resposta do n8n:", data);
+      // Tentar fazer parse do JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error("❌ Erro ao fazer parse do JSON:", jsonError);
+        throw new Error(
+          `Webhook n8n não retornou JSON válido.\n\nStatus: ${response.status}\nContent-Type: ${response.headers.get("content-type")}\n\nResposta recebida:\n${responseText.substring(0, 300)}\n\nVerifique se o workflow n8n está:\n1. Ativo (toggle ligado)\n2. Configurado para retornar JSON\n3. Com o nó "Respond to Webhook" correto`
+        );
+      }
+
+      console.log("✅ Resposta do n8n (JSON):", data);
 
       // Adapte conforme a estrutura de resposta do seu workflow n8n
       // Exemplo: data.image_url ou data.url ou data.image ou data.output
@@ -107,7 +129,9 @@ const AIImageGenerator = () => {
 
       if (!imageUrl) {
         console.error("Estrutura de resposta inesperada:", data);
-        throw new Error("Imagem não encontrada na resposta do n8n. Verifique a estrutura do workflow.");
+        throw new Error(
+          `Imagem não encontrada na resposta do n8n.\n\nCampos esperados: image_url, url, image, output\nCampos recebidos: ${Object.keys(data).join(", ")}\n\nVerifique a estrutura do workflow n8n.`
+        );
       }
 
       setGeneratedImage(imageUrl);

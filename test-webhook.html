@@ -202,13 +202,27 @@
 
         const elapsedTime = Date.now() - startTime;
 
+        console.log('📥 Resposta recebida:');
+        console.log('   - Status:', response.status, response.statusText);
+        console.log('   - Content-Type:', response.headers.get('content-type'));
+
+        // Primeiro, pegar o texto da resposta
+        const responseText = await response.text();
+        console.log('   - Response body (raw):', responseText.substring(0, 500));
+
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}\n\nResposta: ${responseText.substring(0, 200)}`);
         }
 
-        const data = await response.json();
+        // Tentar fazer parse do JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (jsonError) {
+          throw new Error(`Resposta não é JSON válido.\n\nStatus: ${response.status}\nContent-Type: ${response.headers.get('content-type')}\n\nResposta recebida:\n${responseText.substring(0, 500)}\n\n${jsonError.message}`);
+        }
 
-        console.log('✅ Resposta:', data);
+        console.log('✅ Resposta JSON:', data);
 
         // Procurar URL da imagem
         const imageUrl = data.image_url || data.url || data.image || data.output;
