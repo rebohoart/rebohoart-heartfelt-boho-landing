@@ -87,10 +87,12 @@ const AIImageGenerator = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          image: base64Image,
-          filename: selectedImage.name,
-          mimeType: selectedImage.type,
-          timestamp: new Date().toISOString(),
+          body: {
+            image: base64Image,
+            filename: selectedImage.name,
+            mimeType: selectedImage.type,
+            timestamp: new Date().toISOString(),
+          },
         }),
       });
 
