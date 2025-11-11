@@ -191,6 +191,7 @@ Adicione um nó de erro para capturar falhas:
 2. Clique no nó **Webhook**
 3. Copie a **Production URL** (ou Test URL para desenvolvimento)
    - Exemplo: `https://seu-n8n.app.n8n.cloud/webhook/gerar-imagem`
+   - **URL de Teste Atual**: `https://vibecodingc1.app.n8n.cloud/webhook-test/generate-from-upload`
 
 ## ⚙️ Passo 3: Configurar no Projeto Rebohoart
 
@@ -207,20 +208,55 @@ Adicione um nó de erro para capturar falhas:
 
 ## 🧪 Passo 4: Testar a Integração
 
+### Método 1: Teste Rápido com HTML
+
+Use o arquivo de teste fornecido para validar o webhook antes de usar no backoffice:
+
+1. Abra o arquivo `test-webhook.html` no navegador
+2. Selecione uma imagem de teste
+3. Clique em "Testar Webhook"
+4. Verifique a resposta e a estrutura dos dados retornados
+
+Este método permite testar rapidamente sem precisar iniciar o servidor de desenvolvimento.
+
+### Método 2: Teste no Backoffice
+
 1. Acesse o backoffice: `http://localhost:8080/backoffice`
 2. Faça login como admin
 3. Vá até a aba **"Geração IA"**
-4. Insira um prompt de teste:
-   ```
-   Uma tigela de cerâmica artesanal com padrões boho em tons terrosos, sobre uma mesa de madeira rústica com luz natural suave
-   ```
-5. Clique em **"Gerar Imagem com IA"**
-6. Aguarde a geração (pode levar 10-30 segundos)
-7. A imagem deve aparecer abaixo do formulário
+4. Faça upload de uma imagem de produto
+5. Clique em **"Gerar Nova Versão com IA"**
+6. Aguarde o processamento (pode levar 10-30 segundos)
+7. A imagem transformada deve aparecer abaixo do formulário
 
 ### Verificação de Logs
 
 No n8n, vá em **Executions** para ver os logs e debugar erros.
+
+### Webhook de Teste Configurado
+
+O projeto está atualmente configurado com o seguinte webhook de teste:
+```
+https://vibecodingc1.app.n8n.cloud/webhook-test/generate-from-upload
+```
+
+Este webhook espera receber um JSON com a seguinte estrutura:
+```json
+{
+  "image": "base64_string_sem_prefixo",
+  "filename": "nome-do-arquivo.jpg",
+  "mimeType": "image/jpeg",
+  "timestamp": "2025-01-10T12:00:00Z"
+}
+```
+
+E deve retornar uma resposta com a URL da imagem gerada:
+```json
+{
+  "image_url": "https://url-da-imagem-gerada.com/image.png",
+  "success": true
+}
+```
 
 ## 💾 Funcionalidades
 

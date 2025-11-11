@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste Webhook n8n - Rebohoart</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .section {
+      margin-bottom: 25px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    input[type="file"] {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border: 2px dashed #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #result {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 4px;
+      display: none;
+    }
+    .success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    .error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    .info {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+    }
+    pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .preview {
+      margin-top: 15px;
+      max-width: 400px;
+    }
+    .preview img {
+      max-width: 100%;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .loader {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Teste de Webhook n8n</h1>
+    <p class="subtitle">Teste a integração de geração de imagens com IA</p>
+
+    <div class="section">
+      <label>Webhook URL:</label>
+      <input type="text" id="webhookUrl" value="https://vibecodingc1.app.n8n.cloud/webhook-test/generate-from-upload" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+    </div>
+
+    <div class="section">
+      <label for="imageFile">Selecione uma imagem:</label>
+      <input type="file" id="imageFile" accept="image/*">
+      <div id="preview" class="preview"></div>
+    </div>
+
+    <button onclick="testWebhook()" id="testBtn">
+      🚀 Testar Webhook
+    </button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const imageFile = document.getElementById('imageFile');
+    const preview = document.getElementById('preview');
+    const result = document.getElementById('result');
+    const testBtn = document.getElementById('testBtn');
+
+    // Preview da imagem selecionada
+    imageFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.innerHTML = `
+            <p><strong>Preview:</strong></p>
+            <img src="${e.target.result}" alt="Preview">
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">
+              ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+            </p>
+          `;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    async function testWebhook() {
+      const webhookUrl = document.getElementById('webhookUrl').value;
+      const file = imageFile.files[0];
+
+      if (!file) {
+        showResult('error', '❌ Erro', 'Por favor, selecione uma imagem primeiro.');
+        return;
+      }
+
+      testBtn.disabled = true;
+      testBtn.innerHTML = '<span class="loader"></span> A processar...';
+      showResult('info', '⏳ A processar...', 'Enviando imagem para o webhook n8n...');
+
+      try {
+        // Converter imagem para base64
+        const base64 = await fileToBase64(file);
+
+        const payload = {
+          image: base64,
+          filename: file.name,
+          mimeType: file.type,
+          timestamp: new Date().toISOString()
+        };
+
+        console.log('📤 Enviando payload:', {
+          filename: payload.filename,
+          mimeType: payload.mimeType,
+          imageSize: payload.image.length
+        });
+
+        const startTime = Date.now();
+
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const elapsedTime = Date.now() - startTime;
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        console.log('✅ Resposta:', data);
+
+        // Procurar URL da imagem
+        const imageUrl = data.image_url || data.url || data.image || data.output;
+
+        let resultHtml = `
+          <strong>✅ Webhook respondeu com sucesso!</strong>
+          <p><strong>Tempo de resposta:</strong> ${elapsedTime}ms</p>
+          <p><strong>Status:</strong> ${response.status}</p>
+        `;
+
+        if (imageUrl) {
+          resultHtml += `
+            <p><strong>URL da imagem gerada:</strong></p>
+            <input type="text" value="${imageUrl}" readonly style="width: 100%; padding: 8px; margin-top: 5px; font-size: 11px; border: 1px solid #ccc; border-radius: 4px;">
+            <div style="margin-top: 15px;">
+              <img src="${imageUrl}" alt="Imagem gerada" style="max-width: 100%; border-radius: 4px; border: 1px solid #ddd;">
+            </div>
+          `;
+        } else {
+          resultHtml += `
+            <p><strong>⚠️ Aviso:</strong> URL da imagem não encontrada na resposta.</p>
+          `;
+        }
+
+        resultHtml += `
+          <p><strong>Resposta completa:</strong></p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+
+        showResult('success', '✅ Sucesso', resultHtml);
+
+      } catch (error) {
+        console.error('❌ Erro:', error);
+        showResult('error', '❌ Erro', `
+          <strong>Falha ao testar webhook</strong>
+          <p>${error.message}</p>
+          <p style="margin-top: 10px; font-size: 12px;">
+            Verifique:
+            <ul style="margin-top: 5px;">
+              <li>O webhook está ativo no n8n</li>
+              <li>A URL está correta</li>
+              <li>O workflow está configurado corretamente</li>
+              <li>Há conexão com a internet</li>
+            </ul>
+          </p>
+        `);
+      } finally {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '🚀 Testar Webhook';
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Remover o prefixo "data:image/...;base64,"
+          const base64String = reader.result.split(',')[1];
+          resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function showResult(type, title, message) {
+      result.className = type;
+      result.innerHTML = `
+        <h3 style="margin-top: 0;">${title}</h3>
+        <div>${message}</div>
+      `;
+      result.style.display = 'block';
+      result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  </script>
+</body>
+</html>
