@@ -77,9 +77,15 @@ const AIImageGenerator = () => {
 
     try {
       console.log("🎨 Enviando imagem para n8n...");
+      const startTime = Date.now();
 
       // Converter imagem para base64
       const base64Image = await convertImageToBase64(selectedImage);
+      console.log(`📊 Tamanho da imagem original em base64: ${base64Image.length} caracteres (${(base64Image.length / 1024).toFixed(2)} KB)`);
+
+      // Criar AbortController para timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutos
 
       const response = await fetch(n8nWebhookUrl, {
         method: "POST",
@@ -94,17 +100,27 @@ const AIImageGenerator = () => {
             timestamp: new Date().toISOString(),
           },
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
+      const duration = Date.now() - startTime;
 
       console.log("📥 Resposta recebida:", {
         status: response.status,
         statusText: response.statusText,
         contentType: response.headers.get("content-type"),
+        duration: `${duration}ms`,
       });
 
       // Primeiro, pegar o texto da resposta
       const responseText = await response.text();
-      console.log("📄 Response body (primeiros 500 caracteres):", responseText.substring(0, 500));
+      console.log("📄 Tamanho da resposta:", {
+        bytes: responseText.length,
+        kb: (responseText.length / 1024).toFixed(2),
+        preview: responseText.substring(0, 500),
+      });
 
       if (!response.ok) {
         throw new Error(
@@ -136,11 +152,46 @@ const AIImageGenerator = () => {
         );
       }
 
+      // Validar se é base64 e não está truncado
+      if (imageUrl.startsWith('data:image')) {
+        const base64Part = imageUrl.split(',')[1];
+        console.log("🖼️ Imagem em base64 recebida:", {
+          totalLength: imageUrl.length,
+          base64Length: base64Part?.length || 0,
+          sizeKB: (imageUrl.length / 1024).toFixed(2),
+          hasPadding: base64Part?.endsWith('=') || base64Part?.endsWith('=='),
+        });
+
+        // Verificar se está truncado (muito pequeno ou sem padding)
+        if (base64Part && base64Part.length < 100) {
+          console.warn("⚠️ AVISO: Imagem base64 parece estar truncada!");
+          console.warn("Tamanho recebido:", base64Part.length, "caracteres");
+          console.warn("Esperado: milhares de caracteres para uma imagem real");
+          toast.error(
+            "⚠️ Imagem pode estar truncada. Verifique as configurações do n8n (timeout, memória). Consulte docs/N8N_CONFIGURATION_GUIDE.md"
+          );
+        } else if (base64Part && !base64Part.endsWith('=') && !base64Part.endsWith('==')) {
+          console.warn("⚠️ Base64 sem padding correto - pode estar truncado");
+        }
+      } else {
+        console.log("🌐 URL pública recebida:", imageUrl);
+      }
+
       setGeneratedImage(imageUrl);
-      toast.success("Imagem gerada com sucesso!");
+      toast.success(`Imagem gerada com sucesso em ${(duration / 1000).toFixed(1)}s!`);
     } catch (error: unknown) {
       console.error("❌ Erro ao gerar imagem:", error);
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+
+      // Melhorar mensagens de erro
+      let message = "Erro desconhecido";
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          message = "Timeout: A geração da imagem demorou mais de 5 minutos. Verifique o workflow n8n.";
+        } else {
+          message = error.message;
+        }
+      }
+
       toast.error(`Erro ao gerar imagem: ${message}`);
     } finally {
       setIsGenerating(false);
