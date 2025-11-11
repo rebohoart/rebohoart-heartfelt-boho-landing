@@ -14,6 +14,7 @@ Configura o webhook n8n de teste para transformação de imagens com IA e adicio
 - ✅ `test-webhook.html` - Interface de teste básica com melhor tratamento de erros
 - ✅ `test-webhook.js` - Script Node.js para testes automatizados
 - ✅ `diagnostico-webhook.html` - Ferramenta interativa para testar 6 formatos diferentes de payload
+- ✅ `test-avancado-webhook.html` - Ferramenta avançada com 4 testes diferentes (incluindo FormData)
 
 ### 3. Melhorias no Código
 - ✅ `AIImageGenerator.tsx` - Logs detalhados de debug e tratamento de erros aprimorado
@@ -21,6 +22,7 @@ Configura o webhook n8n de teste para transformação de imagens com IA e adicio
 
 ### 4. Documentação
 - ✅ `WEBHOOK_DIAGNOSTICO.md` - Guia completo de resolução de problemas
+- ✅ `PROXIMO_PASSO.md` - Guia de próximos passos após identificar resposta vazia
 - ✅ `N8N_SETUP.md` - Seção de troubleshooting expandida
 - ✅ Documentação de 6 formatos diferentes de payload testáveis
 
@@ -60,17 +62,25 @@ A ferramenta `diagnostico-webhook.html` permite testar 6 formatos diferentes:
 
 ## 📁 Arquivos Criados
 
+- `test-webhook.html` - Interface de teste básica
 - `test-webhook.js` - Script de teste Node.js
-- `diagnostico-webhook.html` - Ferramenta de diagnóstico de formatos
-- `WEBHOOK_DIAGNOSTICO.md` - Guia de resolução
+- `diagnostico-webhook.html` - Ferramenta de diagnóstico com 6 formatos
+- `test-avancado-webhook.html` - Ferramenta avançada com 4 testes (JSON + FormData)
+- `WEBHOOK_DIAGNOSTICO.md` - Guia de resolução de problemas
+- `PROXIMO_PASSO.md` - Guia de próximos passos
+- `PR_TEMPLATE.md` - Template deste pull request
 
 ## 📝 Próximos Passos
 
-- [ ] Testar os formatos usando `diagnostico-webhook.html`
-- [ ] Identificar o formato correto que o workflow n8n espera
-- [ ] Atualizar `AIImageGenerator.tsx` com o formato que funcionar
-- [ ] Testar no backoffice
-- [ ] Verificar se a geração de imagem funciona corretamente
+### Situação Atual
+O webhook retorna **Status 200** mas com **resposta vazia**. O erro "Nenhuma imagem foi enviada" continua nos logs do n8n.
+
+### Ações Recomendadas
+- [ ] Testar outros formatos usando `test-avancado-webhook.html` (especialmente Teste 3: Múltiplos Campos)
+- [ ] Acessar o n8n e verificar os logs em "Executions" para ver o erro detalhado
+- [ ] Verificar o código do nó "Validate Input" no workflow n8n
+- [ ] Atualizar `AIImageGenerator.tsx` com o formato correto após identificação
+- [ ] Testar no backoffice com geração real de imagem
 
 ## 🔒 Notas de Segurança
 
@@ -86,3 +96,5 @@ A ferramenta `diagnostico-webhook.html` permite testar 6 formatos diferentes:
 
 - `2a12f45` - Feat: Configurar webhook n8n de teste para transformação de imagens IA
 - `5a9f23a` - Fix: Melhorar diagnóstico de erros do webhook n8n e adicionar ferramenta de teste de formatos
+- `eed6ae6` - Docs: Adicionar template de pull request com descrição completa
+- `16ef623` - Feat: Adicionar ferramenta de teste avançado e guia de próximos passos
