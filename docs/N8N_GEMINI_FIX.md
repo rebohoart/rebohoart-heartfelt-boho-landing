@@ -84,7 +84,6 @@ O frontend agora envia o seguinte payload:
 - **Path:** `generate-from-upload` (ou outro de sua escolha)
 - **Authentication:** None (ou configure se necessário)
 - **Response Mode:** `When Last Node Finishes`
-- **Response Code:** `200`
 
 ---
 
@@ -277,7 +276,6 @@ return {
 
 **Configuração:**
 - **Respond With:** `Using Fields Below`
-- **Response Code:** `200`
 - **Response Headers:**
   - `Content-Type`: `application/json`
 
@@ -288,6 +286,8 @@ return {
   "success": true
 }
 ```
+
+**Nota:** O código de resposta HTTP 200 é retornado automaticamente quando o workflow é bem-sucedido. Não há campo separado para configurar o status code no nó "Respond to Webhook".
 
 ---
 

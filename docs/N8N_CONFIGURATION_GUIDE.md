@@ -56,8 +56,9 @@ services:
 2. Clique no nó "Webhook" (o primeiro nó)
 3. Configure:
    - **Response Mode**: `When Last Node Finishes`
-   - **Response Code**: `200`
    - **Response Headers**: Deixe vazio ou adicione `Content-Type: application/json`
+
+**Nota:** O código de resposta HTTP 200 é retornado automaticamente quando o workflow é bem-sucedido. Não há campo separado "Response Code" no nó Webhook.
 
 #### 2.2. Nó "Respond to Webhook"
 
