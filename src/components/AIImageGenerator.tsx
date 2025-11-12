@@ -87,8 +87,8 @@ const AIImageGenerator = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutos
 
-      // Prompt fixo para transformação de imagens em estilo boho
-      const FIXED_PROMPT = "Transform this into a beautiful boho-style product photo with natural lighting, warm earth tones, artistic composition, soft shadows, and an elegant aesthetic. Professional photography quality.";
+      // Prompt fixo para transformação de imagens em single-line art
+      const FIXED_PROMPT = "Faz um desenho em single-line art com base nesta foto";
 
       const response = await fetch(n8nWebhookUrl, {
         method: "POST",
