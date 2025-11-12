@@ -87,6 +87,9 @@ const AIImageGenerator = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutos
 
+      // Prompt fixo para transformação de imagens em estilo boho
+      const FIXED_PROMPT = "Transform this into a beautiful boho-style product photo with natural lighting, warm earth tones, artistic composition, soft shadows, and an elegant aesthetic. Professional photography quality.";
+
       const response = await fetch(n8nWebhookUrl, {
         method: "POST",
         headers: {
@@ -97,6 +100,7 @@ const AIImageGenerator = () => {
           filename: selectedImage.name,
           mimeType: selectedImage.type,
           timestamp: new Date().toISOString(),
+          prompt: FIXED_PROMPT,
         }),
         signal: controller.signal,
       });
@@ -132,8 +136,21 @@ const AIImageGenerator = () => {
         data = JSON.parse(responseText);
       } catch (jsonError) {
         console.error("❌ Erro ao fazer parse do JSON:", jsonError);
+
+        // Verificar se a resposta contém mensagem de erro do n8n
+        let errorDetails = '';
+        if (responseText.includes('Problem in node')) {
+          errorDetails = '\n\n⚠️ O workflow n8n está falhando em algum nó.';
+        } else if (responseText.includes('Bad request')) {
+          errorDetails = '\n\n⚠️ O workflow n8n rejeitou o payload (parâmetros incorretos).';
+        } else if (responseText.length === 0) {
+          errorDetails = '\n\n⚠️ O webhook retornou resposta vazia. O workflow pode estar inativo ou configurado incorretamente.';
+        } else if (responseText.startsWith('{') && !responseText.endsWith('}')) {
+          errorDetails = '\n\n⚠️ Resposta JSON está truncada ou incompleta. Pode ser timeout ou limite de payload.';
+        }
+
         throw new Error(
-          `Webhook n8n não retornou JSON válido.\n\nStatus: ${response.status}\nContent-Type: ${response.headers.get("content-type")}\n\nResposta recebida:\n${responseText.substring(0, 300)}\n\nVerifique se o workflow n8n está:\n1. Ativo (toggle ligado)\n2. Configurado para retornar JSON\n3. Com o nó "Respond to Webhook" correto`
+          `Webhook n8n não retornou JSON válido.\n\nStatus: ${response.status}\nContent-Type: ${response.headers.get("content-type")}\nResposta (primeiros 500 caracteres):\n${responseText.substring(0, 500)}${errorDetails}\n\nVerifique:\n1. Workflow n8n está ATIVO (toggle verde)\n2. Nó "Respond to Webhook" configurado para retornar JSON\n3. Todos os nós estão funcionando (ver Executions no n8n)\n4. O nó Google Gemini está recebendo os dados corretamente\n\nConsulte: docs/N8N_GEMINI_FIX.md`
         );
       }
 
