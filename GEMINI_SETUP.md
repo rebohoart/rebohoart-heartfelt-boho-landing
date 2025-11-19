@@ -18,17 +18,58 @@ Frontend (exibe e salva imagem)
 
 ## 🔑 Passo 1: Obter a API Key do Gemini (GRÁTIS)
 
-1. Acesse **Google AI Studio**: https://aistudio.google.com/app/apikey
+### Método 1: Acesso Direto (Recomendado)
 
-2. Faça login com sua conta Google
+1. **Acesse Google AI Studio**:
+   - URL principal: https://aistudio.google.com
+   - Ou URL direto para API Keys: https://aistudio.google.com/app/apikey
 
-3. Clique em **"Get API Key"** ou **"Create API Key"**
+2. **Faça login** com sua conta Google (Gmail)
 
-4. Escolha um projeto do Google Cloud ou crie um novo
+3. Na primeira vez, você verá:
+   - Popup para aceitar os **Termos de Serviço** → Aceite
+   - Pode pedir para selecionar país → Selecione o seu país
 
-5. **Copie a API Key gerada** (formato: `AIza...`)
+4. No dashboard, clique em **"Get API key"** (canto superior direito)
+
+5. Uma janela aparecerá com 2 opções:
+   - **"Create API key in new project"** (Recomendado para iniciantes)
+   - **"Create API key in existing project"** (Se já tem projeto Google Cloud)
+
+6. Escolha uma opção e clique no botão
+
+7. **Copie a API Key gerada** (formato: `AIzaSy...`)
    - ⚠️ **IMPORTANTE**: Guarde esta chave em local seguro!
+   - Clique no ícone de **copiar** ao lado da chave
    - Nunca exponha a chave no código frontend ou em repositórios públicos
+
+### Método 2: Se o Link Não Funcionar
+
+Caso o link direto dê erro, siga este caminho:
+
+1. Acesse: https://makersuite.google.com
+   - Este é o nome antigo do Google AI Studio e pode redirecionar corretamente
+
+2. Ou acesse: https://console.cloud.google.com
+   - Vá para **APIs & Services** → **Credentials**
+   - Clique em **"Create credentials"** → **"API key"**
+   - Depois, habilite a **Generative Language API** no projeto
+
+### Possíveis Problemas e Soluções
+
+**❌ Erro de região/país:**
+- O Google AI Studio pode não estar disponível em todos os países
+- Se sua região não é suportada, use uma VPN temporariamente para criar a chave
+
+**❌ Página em branco ou erro 403:**
+- Limpe o cache do navegador
+- Tente em navegador anónimo/privado
+- Use outro navegador (Chrome, Firefox, Edge)
+- Desative extensões de bloqueio
+
+**❌ "Service not available":**
+- Aguarde alguns minutos e tente novamente
+- Verifique se tem uma conta Google válida e ativa
 
 ### Limites da API Gratuita
 
