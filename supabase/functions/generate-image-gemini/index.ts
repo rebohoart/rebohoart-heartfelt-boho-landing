@@ -125,16 +125,102 @@ serve(async (req) => {
       // Tratamento específico para erro de quota (429)
       if (geminiResponse.status === 429) {
         console.error(`🚫 [${requestId}] ERRO DE QUOTA: A chave API do Gemini atingiu o limite`);
-        throw new Error(
-          `⚠️ QUOTA EXCEDIDA - A API Key do Gemini atingiu o limite de requisições.\n\n` +
-          `📋 SOLUÇÕES:\n` +
-          `1. Acesse https://aistudio.google.com/app/apikey e verifique sua quota\n` +
-          `2. Se estiver usando a versão gratuita, aguarde a renovação da quota (geralmente diária)\n` +
-          `3. Para uso em produção, considere fazer upgrade para um plano pago\n` +
-          `4. Verifique se há múltiplas requisições simultâneas consumindo a quota\n\n` +
-          `🔑 Dica: A versão gratuita do Gemini tem limites de 15 RPM (requests per minute)\n\n` +
-          `Detalhes técnicos: ${errorText}`
-        );
+
+        // Tentar parsear a resposta de erro para extrair informações detalhadas
+        let errorDetails: any = {};
+        let retryDelay = null;
+        let isQuotaExhausted = false;
+
+        try {
+          errorDetails = JSON.parse(errorText);
+
+          // Extrair retry delay se disponível
+          const retryInfo = errorDetails?.error?.details?.find(
+            (d: any) => d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
+          );
+          if (retryInfo?.retryDelay) {
+            retryDelay = retryInfo.retryDelay;
+            console.log(`⏱️ [${requestId}] Retry sugerido após: ${retryDelay}`);
+          }
+
+          // Verificar se é quota totalmente esgotada (limit: 0) ou apenas rate limiting
+          const quotaFailure = errorDetails?.error?.details?.find(
+            (d: any) => d['@type'] === 'type.googleapis.com/google.rpc.QuotaFailure'
+          );
+
+          if (quotaFailure?.violations) {
+            const hasZeroLimit = quotaFailure.violations.some((v: any) => {
+              const message = errorDetails?.error?.message || '';
+              return message.includes('limit: 0');
+            });
+
+            isQuotaExhausted = hasZeroLimit;
+            console.log(`📊 [${requestId}] Quota completamente esgotada: ${isQuotaExhausted}`);
+          }
+        } catch (parseError) {
+          console.warn(`⚠️ [${requestId}] Não foi possível parsear detalhes do erro`);
+        }
+
+        // Mensagem específica baseada no tipo de erro
+        if (isQuotaExhausted) {
+          // Verificar se é API não ativada (limit: 0 nas métricas free_tier)
+          const isApiNotEnabled = errorText.includes('free_tier') && errorText.includes('limit: 0');
+
+          if (isApiNotEnabled) {
+            throw new Error(
+              `🚫 API GEMINI NÃO ATIVADA\n\n` +
+              `A API "Generative Language API" não está ativada no seu projeto Google Cloud.\n\n` +
+              `📋 COMO ATIVAR (GRÁTIS - 2.000 imagens/dia):\n\n` +
+              `1. 🌐 Acesse Google AI Studio:\n` +
+              `   • URL: https://aistudio.google.com\n` +
+              `   • Faça login e aceite os termos\n\n` +
+              `2. 🔑 Verifique sua API Key:\n` +
+              `   • Menu lateral → "Get API key"\n` +
+              `   • Anote o nome do projeto\n\n` +
+              `3. ⚙️ Ative a API no Google Cloud Console:\n` +
+              `   • Acesse: https://console.cloud.google.com/apis/library\n` +
+              `   • Selecione o mesmo projeto da API Key\n` +
+              `   • Busque: "Generative Language API"\n` +
+              `   • Clique em "ENABLE" ou "ATIVAR"\n\n` +
+              `4. ⏰ Aguarde 5-10 minutos para propagação\n\n` +
+              `5. 🧪 Teste novamente\n\n` +
+              `💡 Após ativação, você terá 2.000 imagens/dia GRÁTIS!\n\n` +
+              `📚 Guia completo: Veja o arquivo GEMINI_API_ACTIVATION_GUIDE.md\n\n` +
+              `Detalhes técnicos: ${errorText.substring(0, 500)}`
+            );
+          } else {
+            // Quota realmente esgotada (após ter usado as 2.000 imagens)
+            throw new Error(
+              `🚫 QUOTA DIÁRIA ESGOTADA\n\n` +
+              `Você usou as 2.000 imagens grátis do dia.\n\n` +
+              `📋 O QUE FAZER:\n\n` +
+              `1. ⏰ Aguarde o reset da quota:\n` +
+              `   • A quota reseta diariamente às 00:00 UTC (21:00 horário de Brasília)\n` +
+              `   • Verifique seu uso em: https://ai.dev/usage?tab=rate-limit\n\n` +
+              `2. 💳 Ou faça upgrade para plano pago:\n` +
+              `   • Acesse: https://ai.google.dev/pricing\n` +
+              `   • Custo após limite grátis: ~$0.039 por imagem\n\n` +
+              `3. 🔑 Ou use outra API Key de outro projeto:\n` +
+              `   • Crie uma nova em: https://aistudio.google.com/app/apikey\n` +
+              `   • Configure no Supabase Dashboard → Edge Functions → Secrets\n\n` +
+              `💡 DICA: Cada projeto Google tem 2.000 imagens/dia grátis.\n\n` +
+              `Detalhes técnicos: ${errorText.substring(0, 500)}`
+            );
+          }
+        } else {
+          // Rate limiting temporário
+          const waitTime = retryDelay || '60 segundos';
+          throw new Error(
+            `⏱️ RATE LIMIT TEMPORÁRIO\n\n` +
+            `Muitas requisições em curto período. A API do Gemini tem limite de 15 requisições por minuto no tier gratuito.\n\n` +
+            `📋 O QUE FAZER:\n\n` +
+            `1. ⏰ Aguarde ${waitTime} e tente novamente\n` +
+            `2. 📊 Evite múltiplas gerações simultâneas\n` +
+            `3. 💳 Considere upgrade para limites maiores: https://ai.google.dev/pricing\n\n` +
+            `💡 A requisição será bem-sucedida se você aguardar o tempo indicado.\n\n` +
+            `Detalhes técnicos: ${errorText.substring(0, 500)}`
+          );
+        }
       }
 
       // Tratamento para outros erros
