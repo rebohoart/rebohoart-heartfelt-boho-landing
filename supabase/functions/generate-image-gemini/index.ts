@@ -163,22 +163,50 @@ serve(async (req) => {
 
         // Mensagem específica baseada no tipo de erro
         if (isQuotaExhausted) {
-          throw new Error(
-            `🚫 QUOTA DIÁRIA ESGOTADA\n\n` +
-            `A API Key do Gemini atingiu o limite diário de requisições (2.000 imagens/dia grátis).\n\n` +
-            `📋 O QUE FAZER:\n\n` +
-            `1. ⏰ Aguarde o reset da quota:\n` +
-            `   • A quota reseta diariamente às 00:00 UTC (21:00 horário de Brasília)\n` +
-            `   • Verifique seu uso em: https://ai.dev/usage?tab=rate-limit\n\n` +
-            `2. 💳 Ou faça upgrade para plano pago:\n` +
-            `   • Acesse: https://ai.google.dev/pricing\n` +
-            `   • Custo após limite grátis: ~$0.039 por imagem\n\n` +
-            `3. 🔑 Ou use outra API Key:\n` +
-            `   • Crie uma nova em: https://aistudio.google.com/app/apikey\n` +
-            `   • Configure no Supabase Dashboard → Edge Functions → Secrets\n\n` +
-            `💡 DICA: Planeje o uso para não exceder 2.000 gerações por dia no tier gratuito.\n\n` +
-            `Detalhes técnicos: ${errorText.substring(0, 500)}`
-          );
+          // Verificar se é API não ativada (limit: 0 nas métricas free_tier)
+          const isApiNotEnabled = errorText.includes('free_tier') && errorText.includes('limit: 0');
+
+          if (isApiNotEnabled) {
+            throw new Error(
+              `🚫 API GEMINI NÃO ATIVADA\n\n` +
+              `A API "Generative Language API" não está ativada no seu projeto Google Cloud.\n\n` +
+              `📋 COMO ATIVAR (GRÁTIS - 2.000 imagens/dia):\n\n` +
+              `1. 🌐 Acesse Google AI Studio:\n` +
+              `   • URL: https://aistudio.google.com\n` +
+              `   • Faça login e aceite os termos\n\n` +
+              `2. 🔑 Verifique sua API Key:\n` +
+              `   • Menu lateral → "Get API key"\n` +
+              `   • Anote o nome do projeto\n\n` +
+              `3. ⚙️ Ative a API no Google Cloud Console:\n` +
+              `   • Acesse: https://console.cloud.google.com/apis/library\n` +
+              `   • Selecione o mesmo projeto da API Key\n` +
+              `   • Busque: "Generative Language API"\n` +
+              `   • Clique em "ENABLE" ou "ATIVAR"\n\n` +
+              `4. ⏰ Aguarde 5-10 minutos para propagação\n\n` +
+              `5. 🧪 Teste novamente\n\n` +
+              `💡 Após ativação, você terá 2.000 imagens/dia GRÁTIS!\n\n` +
+              `📚 Guia completo: Veja o arquivo GEMINI_API_ACTIVATION_GUIDE.md\n\n` +
+              `Detalhes técnicos: ${errorText.substring(0, 500)}`
+            );
+          } else {
+            // Quota realmente esgotada (após ter usado as 2.000 imagens)
+            throw new Error(
+              `🚫 QUOTA DIÁRIA ESGOTADA\n\n` +
+              `Você usou as 2.000 imagens grátis do dia.\n\n` +
+              `📋 O QUE FAZER:\n\n` +
+              `1. ⏰ Aguarde o reset da quota:\n` +
+              `   • A quota reseta diariamente às 00:00 UTC (21:00 horário de Brasília)\n` +
+              `   • Verifique seu uso em: https://ai.dev/usage?tab=rate-limit\n\n` +
+              `2. 💳 Ou faça upgrade para plano pago:\n` +
+              `   • Acesse: https://ai.google.dev/pricing\n` +
+              `   • Custo após limite grátis: ~$0.039 por imagem\n\n` +
+              `3. 🔑 Ou use outra API Key de outro projeto:\n` +
+              `   • Crie uma nova em: https://aistudio.google.com/app/apikey\n` +
+              `   • Configure no Supabase Dashboard → Edge Functions → Secrets\n\n` +
+              `💡 DICA: Cada projeto Google tem 2.000 imagens/dia grátis.\n\n` +
+              `Detalhes técnicos: ${errorText.substring(0, 500)}`
+            );
+          }
         } else {
           // Rate limiting temporário
           const waitTime = retryDelay || '60 segundos';

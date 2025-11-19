@@ -181,8 +181,21 @@ const AIImageGenerator = () => {
         console.error("❌ Edge Function retornou erro:", errorMessage);
 
         // Detectar tipo de erro de quota
+        const isApiNotEnabled = errorMessage.includes('API GEMINI NÃO ATIVADA');
         const isQuotaExhausted = errorMessage.includes('QUOTA DIÁRIA ESGOTADA');
         const isRateLimited = errorMessage.includes('RATE LIMIT TEMPORÁRIO');
+
+        // Tratamento específico para API não ativada
+        if (isApiNotEnabled) {
+          console.error("🚫 API GEMINI NÃO ATIVADA");
+          toast.error(
+            "API Gemini não está ativada no Google Cloud. " +
+            "Acesse https://console.cloud.google.com/apis/library e ative a 'Generative Language API'. " +
+            "Veja detalhes no console (F12).",
+            { duration: 20000 }
+          );
+          throw new Error(errorMessage);
+        }
 
         // Tratamento específico para quota esgotada (não pode retry)
         if (isQuotaExhausted) {
