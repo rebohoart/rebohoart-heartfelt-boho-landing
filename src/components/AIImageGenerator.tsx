@@ -70,15 +70,19 @@ const AIImageGenerator = () => {
 
     try {
       console.log("🎨 Enviando imagem para Gemini API...");
+      console.log("📍 Timestamp:", new Date().toISOString());
       const startTime = Date.now();
 
       // Converter imagem para base64
       const base64Image = await convertImageToBase64(selectedImage);
       console.log(`📊 Tamanho da imagem original em base64: ${base64Image.length} caracteres (${(base64Image.length / 1024).toFixed(2)} KB)`);
 
-      // Criar AbortController para timeout
+      // Criar AbortController para timeout mais curto (60 segundos)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutos
+      const timeoutId = setTimeout(() => {
+        console.error("⏱️ Timeout atingido após 60 segundos");
+        controller.abort();
+      }, 60000); // 60 segundos ao invés de 5 minutos
 
       // Prompt fixo para transformação de imagens em single-line art
       const FIXED_PROMPT = "Faz um desenho em single-line art com base nesta foto";
@@ -87,9 +91,19 @@ const AIImageGenerator = () => {
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image-gemini`,
-        {
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image-gemini`;
+      console.log("🌐 Chamando Edge Function:", functionUrl);
+      console.log("🔑 Usando token:", accessToken ? "Token de sessão" : "Publishable key");
+      console.log("📦 Payload:", {
+        imageLength: base64Image.length,
+        filename: selectedImage.name,
+        mimeType: selectedImage.type,
+        prompt: FIXED_PROMPT,
+      });
+
+      let response;
+      try {
+        response = await fetch(functionUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -102,8 +116,17 @@ const AIImageGenerator = () => {
             prompt: FIXED_PROMPT,
           }),
           signal: controller.signal,
+        });
+      } catch (fetchError: unknown) {
+        console.error("❌ Erro no fetch da Edge Function:", fetchError);
+        if (fetchError instanceof Error) {
+          if (fetchError.name === 'AbortError') {
+            throw new Error("Timeout: A geração demorou mais de 60 segundos. Tente com uma imagem menor.");
+          }
+          throw new Error(`Erro de rede: ${fetchError.message}`);
         }
-      );
+        throw fetchError;
+      }
 
       clearTimeout(timeoutId);
 
@@ -154,14 +177,32 @@ const AIImageGenerator = () => {
 
       // Verificar se houve erro na resposta
       if (!data.success) {
-        throw new Error(data.error || 'Erro desconhecido ao gerar imagem');
+        const errorMessage = data.error || data.message || 'Erro desconhecido ao gerar imagem';
+        console.error("❌ Edge Function retornou erro:", errorMessage);
+
+        // Se retornou texto, mostrar mensagem específica
+        if (data.text) {
+          console.warn("⚠️ Gemini retornou texto ao invés de imagem:", data.text.substring(0, 200));
+          throw new Error(
+            `⚠️ PROBLEMA: O modelo Gemini 2.0 Flash NÃO gera imagens!\n\n` +
+            `Ele retornou texto: "${data.text.substring(0, 150)}${data.text.length > 150 ? '...' : ''}"\n\n` +
+            `SOLUÇÃO: Este modelo apenas analisa imagens. Para gerar imagens, é necessário:\n` +
+            `1. Usar API Imagen 3 da Google (paga)\n` +
+            `2. Ou integrar com outra API de geração de imagens (DALL-E, Stable Diffusion, etc.)\n\n` +
+            `Consulte a documentação para mais detalhes.`
+          );
+        }
+
+        throw new Error(errorMessage);
       }
 
-      // Se retornou texto ao invés de imagem
+      // Se retornou texto ao invés de imagem (quando success=true mas sem imagem)
       if (data.text && !data.image_url) {
         console.warn("⚠️ Gemini retornou texto ao invés de imagem:", data.text);
         throw new Error(
-          `O Gemini interpretou o pedido como texto.\n\nResposta: ${data.text}\n\nTente com outra imagem ou ajuste o prompt.`
+          `⚠️ O Gemini retornou uma descrição em texto ao invés de gerar uma imagem.\n\n` +
+          `Resposta: "${data.text.substring(0, 200)}${data.text.length > 200 ? '...' : ''}"\n\n` +
+          `Isto acontece porque o modelo gemini-2.0-flash-exp é um modelo de ANÁLISE de imagens, não de GERAÇÃO.`
         );
       }
 
@@ -208,13 +249,23 @@ const AIImageGenerator = () => {
       let message = "Erro desconhecido";
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          message = "Timeout: A geração da imagem demorou mais de 5 minutos. Verifique os logs da Edge Function.";
+          message = "Timeout: A geração demorou mais de 60 segundos. Tente com uma imagem menor.";
         } else {
           message = error.message;
         }
       }
 
-      toast.error(`Erro ao gerar imagem: ${message}`);
+      // Toast com mensagem de erro
+      toast.error(`Erro ao gerar imagem: ${message}`, {
+        duration: 10000, // Mostrar por 10 segundos
+      });
+
+      // Log adicional para debugging
+      console.error("💡 Dicas de troubleshooting:");
+      console.error("1. Verifique se a GEMINI_API_KEY está configurada no Supabase");
+      console.error("2. Verifique se a Edge Function está deployed");
+      console.error("3. Veja os logs no Supabase Dashboard → Edge Functions → generate-image-gemini → Logs");
+      console.error("4. Tente com uma imagem menor (< 1MB)");
     } finally {
       setIsGenerating(false);
     }
