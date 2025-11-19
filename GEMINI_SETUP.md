@@ -1,6 +1,8 @@
 # 🤖 Guia de Configuração - Google Gemini API para Geração de Imagens
 
-Este guia explica como configurar a integração com a **API gratuita do Google Gemini 2.5 Flash** para gerar imagens com inteligência artificial diretamente do backoffice.
+Este guia explica como configurar a integração com a **API gratuita do Google Gemini 2.5 Flash Image** para gerar imagens com inteligência artificial diretamente do backoffice.
+
+**🎉 Tier Gratuito Generoso: 2.000 imagens por dia!**
 
 ## 📋 Visão Geral da Arquitetura
 
@@ -9,12 +11,14 @@ Frontend (AIImageGenerator.tsx)
     ↓ [POST] imagem base64 + prompt
 Supabase Edge Function (generate-image-gemini)
     ↓ [POST] chamada à API do Gemini
-Google Gemini 2.5 Flash API
+Google Gemini 2.5 Flash Image API
     ↓ [RESPONSE] imagem gerada em base64
 Supabase Edge Function
     ↓ [RESPONSE] image_url
 Frontend (exibe e salva imagem)
 ```
+
+**Modelo utilizado:** `gemini-2.5-flash-image` - Modelo especializado em geração de imagens
 
 ## 🔑 Passo 1: Obter a API Key do Gemini (GRÁTIS)
 
@@ -114,13 +118,16 @@ gcloud alpha services api-keys create --display-name="Gemini API Key" --project=
 
 ### Limites da API Gratuita
 
-A API do Gemini 2.5 Flash oferece um tier gratuito generoso:
+A API do Gemini 2.5 Flash Image oferece um **tier gratuito generoso**:
 
-- **Modelos Flash**: 1.500 requests/dia
-- **Límite de taxa**: 15 RPM (requests por minuto)
-- **Contexto**: Até 1 milhão de tokens
+- ✅ **2.000 imagens por dia GRÁTIS**
+- **Límite de taxa**: 15 RPM (requests por minuto) no tier gratuito
+- **Contexto**: Até 1 milhão de tokens de entrada
+- **Após o limite**: ~$0.039 por imagem
 
-Para mais detalhes: https://ai.google.dev/pricing
+🎉 **ÓTIMA NOTÍCIA**: Você pode gerar até 2000 imagens por dia completamente grátis!
+
+Para mais detalhes e limites atualizados: https://ai.google.dev/pricing
 
 ## 🚀 Passo 2: Configurar a Edge Function no Supabase
 
@@ -407,5 +414,20 @@ Depois de configurar a integração:
 ---
 
 **Última atualização**: 2025-11-19
-**Versão do Gemini**: 2.5 Flash (gemini-2.0-flash-exp)
+**Versão do Gemini**: 2.5 Flash Image (gemini-2.5-flash-image)
 **Autor**: Claude Code
+
+## 💰 Custos e Limites
+
+A API do Gemini 2.5 Flash Image tem um **tier gratuito muito generoso**:
+
+### Tier Gratuito 🆓
+- ✅ **2.000 imagens por dia GRÁTIS**
+- ✅ **15 requests por minuto**
+- ✅ Sem necessidade de cartão de crédito
+
+### Custos Após o Limite (Opcional)
+- **$30.00 por 1 milhão de tokens de saída**
+- **Cada imagem = 1290 tokens** (~$0.039 por imagem)
+
+**🎉 EXCELENTE**: Para a maioria dos projetos, o tier gratuito de 2000 imagens/dia é mais que suficiente!
