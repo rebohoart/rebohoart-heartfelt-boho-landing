@@ -121,6 +121,23 @@ serve(async (req) => {
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
       console.error(`❌ [${requestId}] Erro da API do Gemini:`, errorText);
+
+      // Tratamento específico para erro de quota (429)
+      if (geminiResponse.status === 429) {
+        console.error(`🚫 [${requestId}] ERRO DE QUOTA: A chave API do Gemini atingiu o limite`);
+        throw new Error(
+          `⚠️ QUOTA EXCEDIDA - A API Key do Gemini atingiu o limite de requisições.\n\n` +
+          `📋 SOLUÇÕES:\n` +
+          `1. Acesse https://aistudio.google.com/app/apikey e verifique sua quota\n` +
+          `2. Se estiver usando a versão gratuita, aguarde a renovação da quota (geralmente diária)\n` +
+          `3. Para uso em produção, considere fazer upgrade para um plano pago\n` +
+          `4. Verifique se há múltiplas requisições simultâneas consumindo a quota\n\n` +
+          `🔑 Dica: A versão gratuita do Gemini tem limites de 15 RPM (requests per minute)\n\n` +
+          `Detalhes técnicos: ${errorText}`
+        );
+      }
+
+      // Tratamento para outros erros
       throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
     }
 
