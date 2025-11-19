@@ -57,9 +57,49 @@ Caso o link direto dê erro, siga este caminho:
 
 ### Possíveis Problemas e Soluções
 
+**❌ "Failed to list models"** (Erro mais comum):
+
+Este erro geralmente indica problema de disponibilidade regional. Soluções:
+
+**SOLUÇÃO 1: Via Google Cloud Console (Recomendado se AI Studio não funcionar)**
+1. Acesse: https://console.cloud.google.com
+2. Crie um novo projeto (ou selecione um existente)
+3. Vá para **APIs & Services** → **Library**
+4. Procure por **"Generative Language API"**
+5. Clique em **"Enable"** para ativar a API
+6. Depois, vá para **APIs & Services** → **Credentials**
+7. Clique em **"+ Create Credentials"** → **"API key"**
+8. Copie a API Key gerada
+9. (Opcional) Clique em **"Restrict Key"** para adicionar restrições de segurança
+
+**SOLUÇÃO 2: Usar VPN**
+- O Google AI Studio não está disponível em todos os países
+- Use uma VPN conectada a EUA, Reino Unido ou Europa Ocidental
+- Acesse https://aistudio.google.com novamente
+- Crie a API Key
+- Depois de criada, a chave funciona de qualquer país
+
+**SOLUÇÃO 3: API Key via gcloud CLI** (Para usuários avançados)
+```bash
+# Instalar gcloud CLI
+# https://cloud.google.com/sdk/docs/install
+
+# Fazer login
+gcloud auth login
+
+# Criar projeto (se necessário)
+gcloud projects create meu-projeto-gemini
+
+# Ativar a API
+gcloud services enable generativelanguage.googleapis.com --project=meu-projeto-gemini
+
+# Criar API Key
+gcloud alpha services api-keys create --display-name="Gemini API Key" --project=meu-projeto-gemini
+```
+
 **❌ Erro de região/país:**
 - O Google AI Studio pode não estar disponível em todos os países
-- Se sua região não é suportada, use uma VPN temporariamente para criar a chave
+- Use a SOLUÇÃO 1 (Google Cloud Console) ou SOLUÇÃO 2 (VPN)
 
 **❌ Página em branco ou erro 403:**
 - Limpe o cache do navegador
@@ -70,6 +110,7 @@ Caso o link direto dê erro, siga este caminho:
 **❌ "Service not available":**
 - Aguarde alguns minutos e tente novamente
 - Verifique se tem uma conta Google válida e ativa
+- Use a SOLUÇÃO 1 (Google Cloud Console)
 
 ### Limites da API Gratuita
 
