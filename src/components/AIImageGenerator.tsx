@@ -65,18 +65,11 @@ const AIImageGenerator = () => {
       return;
     }
 
-    const n8nWebhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
-
-    if (!n8nWebhookUrl) {
-      toast.error("URL do webhook n8n não configurada. Configure VITE_N8N_WEBHOOK_URL no ficheiro .env");
-      return;
-    }
-
     setIsGenerating(true);
     setGeneratedImage(null);
 
     try {
-      console.log("🎨 Enviando imagem para n8n...");
+      console.log("🎨 Enviando imagem para Gemini API...");
       const startTime = Date.now();
 
       // Converter imagem para base64
@@ -90,20 +83,27 @@ const AIImageGenerator = () => {
       // Prompt fixo para transformação de imagens em single-line art
       const FIXED_PROMPT = "Faz um desenho em single-line art com base nesta foto";
 
-      const response = await fetch(n8nWebhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          image: base64Image,
-          filename: selectedImage.name,
-          mimeType: selectedImage.type,
-          timestamp: new Date().toISOString(),
-          prompt: FIXED_PROMPT,
-        }),
-        signal: controller.signal,
-      });
+      // Chamar Supabase Edge Function
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image-gemini`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            image: base64Image,
+            filename: selectedImage.name,
+            mimeType: selectedImage.type,
+            prompt: FIXED_PROMPT,
+          }),
+          signal: controller.signal,
+        }
+      );
 
       clearTimeout(timeoutId);
 
@@ -137,33 +137,40 @@ const AIImageGenerator = () => {
       } catch (jsonError) {
         console.error("❌ Erro ao fazer parse do JSON:", jsonError);
 
-        // Verificar se a resposta contém mensagem de erro do n8n
+        // Verificar se a resposta contém mensagens de erro
         let errorDetails = '';
-        if (responseText.includes('Problem in node')) {
-          errorDetails = '\n\n⚠️ O workflow n8n está falhando em algum nó.';
-        } else if (responseText.includes('Bad request')) {
-          errorDetails = '\n\n⚠️ O workflow n8n rejeitou o payload (parâmetros incorretos).';
-        } else if (responseText.length === 0) {
-          errorDetails = '\n\n⚠️ O webhook retornou resposta vazia. O workflow pode estar inativo ou configurado incorretamente.';
+        if (responseText.length === 0) {
+          errorDetails = '\n\n⚠️ A Edge Function retornou resposta vazia.';
         } else if (responseText.startsWith('{') && !responseText.endsWith('}')) {
           errorDetails = '\n\n⚠️ Resposta JSON está truncada ou incompleta. Pode ser timeout ou limite de payload.';
         }
 
         throw new Error(
-          `Webhook n8n não retornou JSON válido.\n\nStatus: ${response.status}\nContent-Type: ${response.headers.get("content-type")}\nResposta (primeiros 500 caracteres):\n${responseText.substring(0, 500)}${errorDetails}\n\nVerifique:\n1. Workflow n8n está ATIVO (toggle verde)\n2. Nó "Respond to Webhook" configurado para retornar JSON\n3. Todos os nós estão funcionando (ver Executions no n8n)\n4. O nó Google Gemini está recebendo os dados corretamente\n\nConsulte: docs/N8N_GEMINI_FIX.md`
+          `Edge Function não retornou JSON válido.\n\nStatus: ${response.status}\nContent-Type: ${response.headers.get("content-type")}\nResposta (primeiros 500 caracteres):\n${responseText.substring(0, 500)}${errorDetails}\n\nVerifique:\n1. A variável GEMINI_API_KEY está configurada no Supabase\n2. A Edge Function está deployed\n3. Os logs da função no Supabase Dashboard`
         );
       }
 
-      console.log("✅ Resposta do n8n (JSON):", data);
+      console.log("✅ Resposta da Edge Function (JSON):", data);
 
-      // Adapte conforme a estrutura de resposta do seu workflow n8n
-      // Exemplo: data.image_url ou data.url ou data.image ou data.output
+      // Verificar se houve erro na resposta
+      if (!data.success) {
+        throw new Error(data.error || 'Erro desconhecido ao gerar imagem');
+      }
+
+      // Se retornou texto ao invés de imagem
+      if (data.text && !data.image_url) {
+        console.warn("⚠️ Gemini retornou texto ao invés de imagem:", data.text);
+        throw new Error(
+          `O Gemini interpretou o pedido como texto.\n\nResposta: ${data.text}\n\nTente com outra imagem ou ajuste o prompt.`
+        );
+      }
+
       const imageUrl = data.image_url || data.url || data.image || data.output;
 
       if (!imageUrl) {
         console.error("Estrutura de resposta inesperada:", data);
         throw new Error(
-          `Imagem não encontrada na resposta do n8n.\n\nCampos esperados: image_url, url, image, output\nCampos recebidos: ${Object.keys(data).join(", ")}\n\nVerifique a estrutura do workflow n8n.`
+          `Imagem não encontrada na resposta.\n\nCampos esperados: image_url, url, image, output\nCampos recebidos: ${Object.keys(data).join(", ")}`
         );
       }
 
@@ -183,7 +190,7 @@ const AIImageGenerator = () => {
           console.warn("Tamanho recebido:", base64Part.length, "caracteres");
           console.warn("Esperado: milhares de caracteres para uma imagem real");
           toast.error(
-            "⚠️ Imagem pode estar truncada. Verifique as configurações do n8n (timeout, memória). Consulte docs/N8N_CONFIGURATION_GUIDE.md"
+            "⚠️ Imagem pode estar truncada. Verifique os logs da Edge Function no Supabase."
           );
         } else if (base64Part && !base64Part.endsWith('=') && !base64Part.endsWith('==')) {
           console.warn("⚠️ Base64 sem padding correto - pode estar truncado");
@@ -201,7 +208,7 @@ const AIImageGenerator = () => {
       let message = "Erro desconhecido";
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          message = "Timeout: A geração da imagem demorou mais de 5 minutos. Verifique o workflow n8n.";
+          message = "Timeout: A geração da imagem demorou mais de 5 minutos. Verifique os logs da Edge Function.";
         } else {
           message = error.message;
         }
@@ -366,7 +373,7 @@ const AIImageGenerator = () => {
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">
-            💡 O seu workflow n8n processará a imagem com o prompt configurado
+            💡 A API do Gemini processará a imagem e criará uma versão em single-line art
           </p>
         </div>
       </Card>
