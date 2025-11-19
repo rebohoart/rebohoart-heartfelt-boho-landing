@@ -180,22 +180,45 @@ const AIImageGenerator = () => {
         const errorMessage = data.error || data.message || 'Erro desconhecido ao gerar imagem';
         console.error("❌ Edge Function retornou erro:", errorMessage);
 
-        // Tratamento específico para erro de quota (429)
-        if (errorMessage.includes('QUOTA EXCEDIDA') || errorMessage.includes('exceeded your current quota')) {
-          console.error("🚫 ERRO DE QUOTA DETECTADO");
-          throw new Error(
-            `⚠️ QUOTA DA API GEMINI EXCEDIDA\n\n` +
-            `A chave API do Gemini atingiu o limite de requisições.\n\n` +
-            `📋 O QUE FAZER:\n\n` +
-            `1. Acesse https://aistudio.google.com/app/apikey\n` +
-            `2. Verifique a quota disponível da sua API Key\n` +
-            `3. Se estiver usando a versão gratuita:\n` +
-            `   • Aguarde a renovação da quota (geralmente às 00:00 UTC)\n` +
-            `   • Limite: ~15 requisições por minuto\n` +
-            `4. Para uso em produção, considere fazer upgrade\n\n` +
-            `💡 DICA: Evite fazer múltiplas requisições seguidas\n\n` +
-            `${errorMessage}`
+        // Detectar tipo de erro de quota
+        const isQuotaExhausted = errorMessage.includes('QUOTA DIÁRIA ESGOTADA');
+        const isRateLimited = errorMessage.includes('RATE LIMIT TEMPORÁRIO');
+
+        // Tratamento específico para quota esgotada (não pode retry)
+        if (isQuotaExhausted) {
+          console.error("🚫 QUOTA DIÁRIA ESGOTADA");
+          toast.error(
+            "Quota diária do Gemini esgotada (2.000 imagens/dia grátis). " +
+            "Aguarde o reset às 00:00 UTC ou configure nova API Key.",
+            { duration: 15000 }
           );
+          throw new Error(errorMessage);
+        }
+
+        // Tratamento específico para rate limiting temporário
+        if (isRateLimited) {
+          console.warn("⏱️ RATE LIMIT TEMPORÁRIO DETECTADO");
+
+          // Extrair tempo de espera sugerido
+          const waitTimeMatch = errorMessage.match(/Aguarde (\d+s|\d+ segundos)/);
+          const waitTimeStr = waitTimeMatch ? waitTimeMatch[1] : '60 segundos';
+
+          toast.warning(
+            `Rate limit atingido. Aguarde ${waitTimeStr} e tente novamente. ` +
+            `Limite: 15 requisições/minuto no tier gratuito.`,
+            { duration: 10000 }
+          );
+          throw new Error(errorMessage);
+        }
+
+        // Tratamento genérico para erro de quota (fallback)
+        if (errorMessage.includes('QUOTA EXCEDIDA') || errorMessage.includes('exceeded your current quota')) {
+          console.error("🚫 ERRO DE QUOTA DETECTADO (genérico)");
+          toast.error(
+            "Quota da API Gemini excedida. Verifique seu uso em https://ai.dev/usage",
+            { duration: 10000 }
+          );
+          throw new Error(errorMessage);
         }
 
         // Se retornou texto, mostrar mensagem específica
