@@ -180,6 +180,24 @@ const AIImageGenerator = () => {
         const errorMessage = data.error || data.message || 'Erro desconhecido ao gerar imagem';
         console.error("❌ Edge Function retornou erro:", errorMessage);
 
+        // Tratamento específico para erro de quota (429)
+        if (errorMessage.includes('QUOTA EXCEDIDA') || errorMessage.includes('exceeded your current quota')) {
+          console.error("🚫 ERRO DE QUOTA DETECTADO");
+          throw new Error(
+            `⚠️ QUOTA DA API GEMINI EXCEDIDA\n\n` +
+            `A chave API do Gemini atingiu o limite de requisições.\n\n` +
+            `📋 O QUE FAZER:\n\n` +
+            `1. Acesse https://aistudio.google.com/app/apikey\n` +
+            `2. Verifique a quota disponível da sua API Key\n` +
+            `3. Se estiver usando a versão gratuita:\n` +
+            `   • Aguarde a renovação da quota (geralmente às 00:00 UTC)\n` +
+            `   • Limite: ~15 requisições por minuto\n` +
+            `4. Para uso em produção, considere fazer upgrade\n\n` +
+            `💡 DICA: Evite fazer múltiplas requisições seguidas\n\n` +
+            `${errorMessage}`
+          );
+        }
+
         // Se retornou texto, mostrar mensagem específica
         if (data.text) {
           console.warn("⚠️ Gemini retornou texto ao invés de imagem:", data.text.substring(0, 200));
@@ -263,9 +281,11 @@ const AIImageGenerator = () => {
       // Log adicional para debugging
       console.error("💡 Dicas de troubleshooting:");
       console.error("1. Verifique se a GEMINI_API_KEY está configurada no Supabase");
-      console.error("2. Verifique se a Edge Function está deployed");
-      console.error("3. Veja os logs no Supabase Dashboard → Edge Functions → generate-image-gemini → Logs");
-      console.error("4. Tente com uma imagem menor (< 1MB)");
+      console.error("2. Verifique a quota da API em https://aistudio.google.com/app/apikey");
+      console.error("3. Verifique se a Edge Function está deployed");
+      console.error("4. Veja os logs no Supabase Dashboard → Edge Functions → generate-image-gemini → Logs");
+      console.error("5. Tente com uma imagem menor (< 1MB)");
+      console.error("6. Se erro 429: aguarde reset da quota (00:00 UTC) ou faça upgrade do plano");
     } finally {
       setIsGenerating(false);
     }
