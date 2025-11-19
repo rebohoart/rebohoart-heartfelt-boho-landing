@@ -18,17 +18,99 @@ Frontend (exibe e salva imagem)
 
 ## 🔑 Passo 1: Obter a API Key do Gemini (GRÁTIS)
 
-1. Acesse **Google AI Studio**: https://aistudio.google.com/app/apikey
+### Método 1: Acesso Direto (Recomendado)
 
-2. Faça login com sua conta Google
+1. **Acesse Google AI Studio**:
+   - URL principal: https://aistudio.google.com
+   - Ou URL direto para API Keys: https://aistudio.google.com/app/apikey
 
-3. Clique em **"Get API Key"** ou **"Create API Key"**
+2. **Faça login** com sua conta Google (Gmail)
 
-4. Escolha um projeto do Google Cloud ou crie um novo
+3. Na primeira vez, você verá:
+   - Popup para aceitar os **Termos de Serviço** → Aceite
+   - Pode pedir para selecionar país → Selecione o seu país
 
-5. **Copie a API Key gerada** (formato: `AIza...`)
+4. No dashboard, clique em **"Get API key"** (canto superior direito)
+
+5. Uma janela aparecerá com 2 opções:
+   - **"Create API key in new project"** (Recomendado para iniciantes)
+   - **"Create API key in existing project"** (Se já tem projeto Google Cloud)
+
+6. Escolha uma opção e clique no botão
+
+7. **Copie a API Key gerada** (formato: `AIzaSy...`)
    - ⚠️ **IMPORTANTE**: Guarde esta chave em local seguro!
+   - Clique no ícone de **copiar** ao lado da chave
    - Nunca exponha a chave no código frontend ou em repositórios públicos
+
+### Método 2: Se o Link Não Funcionar
+
+Caso o link direto dê erro, siga este caminho:
+
+1. Acesse: https://makersuite.google.com
+   - Este é o nome antigo do Google AI Studio e pode redirecionar corretamente
+
+2. Ou acesse: https://console.cloud.google.com
+   - Vá para **APIs & Services** → **Credentials**
+   - Clique em **"Create credentials"** → **"API key"**
+   - Depois, habilite a **Generative Language API** no projeto
+
+### Possíveis Problemas e Soluções
+
+**❌ "Failed to list models"** (Erro mais comum):
+
+Este erro geralmente indica problema de disponibilidade regional. Soluções:
+
+**SOLUÇÃO 1: Via Google Cloud Console (Recomendado se AI Studio não funcionar)**
+1. Acesse: https://console.cloud.google.com
+2. Crie um novo projeto (ou selecione um existente)
+3. Vá para **APIs & Services** → **Library**
+4. Procure por **"Generative Language API"**
+5. Clique em **"Enable"** para ativar a API
+6. Depois, vá para **APIs & Services** → **Credentials**
+7. Clique em **"+ Create Credentials"** → **"API key"**
+8. Copie a API Key gerada
+9. (Opcional) Clique em **"Restrict Key"** para adicionar restrições de segurança
+
+**SOLUÇÃO 2: Usar VPN**
+- O Google AI Studio não está disponível em todos os países
+- Use uma VPN conectada a EUA, Reino Unido ou Europa Ocidental
+- Acesse https://aistudio.google.com novamente
+- Crie a API Key
+- Depois de criada, a chave funciona de qualquer país
+
+**SOLUÇÃO 3: API Key via gcloud CLI** (Para usuários avançados)
+```bash
+# Instalar gcloud CLI
+# https://cloud.google.com/sdk/docs/install
+
+# Fazer login
+gcloud auth login
+
+# Criar projeto (se necessário)
+gcloud projects create meu-projeto-gemini
+
+# Ativar a API
+gcloud services enable generativelanguage.googleapis.com --project=meu-projeto-gemini
+
+# Criar API Key
+gcloud alpha services api-keys create --display-name="Gemini API Key" --project=meu-projeto-gemini
+```
+
+**❌ Erro de região/país:**
+- O Google AI Studio pode não estar disponível em todos os países
+- Use a SOLUÇÃO 1 (Google Cloud Console) ou SOLUÇÃO 2 (VPN)
+
+**❌ Página em branco ou erro 403:**
+- Limpe o cache do navegador
+- Tente em navegador anónimo/privado
+- Use outro navegador (Chrome, Firefox, Edge)
+- Desative extensões de bloqueio
+
+**❌ "Service not available":**
+- Aguarde alguns minutos e tente novamente
+- Verifique se tem uma conta Google válida e ativa
+- Use a SOLUÇÃO 1 (Google Cloud Console)
 
 ### Limites da API Gratuita
 
