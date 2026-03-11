@@ -1,73 +1,42 @@
-# Welcome to your Lovable project
+# Rebohoart
 
-## Project info
+Loja online de peças artesanais boho, feitas com o coração para decorar com significado.
 
-**URL**: https://lovable.dev/projects/4fe76022-4fb8-4f5e-8f0f-92d4db1dd338
+## Tech Stack
 
-## How can I edit this code?
+- React 18 + TypeScript
+- Vite + SWC
+- Tailwind CSS + shadcn/ui
+- Supabase (base de dados, autenticação, storage, edge functions)
+- Netlify (deploy)
 
-There are several ways of editing your application.
+## Desenvolvimento Local
 
-**Use Lovable**
+```bash
+# Instalar dependências
+npm install
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4fe76022-4fb8-4f5e-8f0f-92d4db1dd338) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Iniciar servidor de desenvolvimento (porta 8080)
 npm run dev
+
+# Build para produção
+npm run build
+
+# Preview do build
+npm run preview
 ```
 
-**Edit a file directly in GitHub**
+## Variáveis de Ambiente
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Cria um ficheiro `.env` na raiz do projeto com:
 
-**Use GitHub Codespaces**
+```env
+VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=SUA_ANON_KEY
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+As credenciais estão disponíveis em: Supabase Dashboard → Settings → API
 
-## What technologies are used for this project?
+## Deploy
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/4fe76022-4fb8-4f5e-8f0f-92d4db1dd338) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+O projeto está configurado para deploy automático no **Netlify** a partir do branch `main`.
