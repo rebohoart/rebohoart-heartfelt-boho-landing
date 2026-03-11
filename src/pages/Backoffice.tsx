@@ -15,7 +15,6 @@ import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import { validateImageFile } from "@/lib/sanitize";
 import Dashboard from "@/components/Dashboard";
 import EmailTemplatesTab from "@/components/EmailTemplatesTab";
-import AIImageGenerator from "@/components/AIImageGenerator";
 
 interface Product {
   id: string;
@@ -407,7 +406,6 @@ const Backoffice = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="products">Produtos</TabsTrigger>
-            <TabsTrigger value="ai-images">Geração IA</TabsTrigger>
             <TabsTrigger value="emails">Templates de Email</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
@@ -595,11 +593,6 @@ const Backoffice = () => {
         </Card>
           </TabsContent>
 
-          <TabsContent value="ai-images">
-            <Card className="p-6">
-              <AIImageGenerator />
-            </Card>
-          </TabsContent>
 
           <TabsContent value="emails">
             <Card className="p-6">

@@ -1,0 +1,3723 @@
+-- Name: app_role; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.app_role AS ENUM (
+    'admin',
+    'user'
+);
+
+
+ALTER TYPE public.app_role OWNER TO postgres;
+
+--
+--
+
+CREATE TYPE realtime.action AS ENUM (
+    'INSERT',
+    'UPDATE',
+    'DELETE',
+    'TRUNCATE',
+    'ERROR'
+);
+
+
+ALTER TYPE realtime.action OWNER TO supabase_admin;
+
+--
+--
+
+CREATE TYPE realtime.equality_op AS ENUM (
+    'eq',
+    'neq',
+    'lt',
+    'lte',
+    'gt',
+    'gte',
+    'in'
+);
+
+
+ALTER TYPE realtime.equality_op OWNER TO supabase_admin;
+
+--
+--
+
+CREATE TYPE realtime.user_defined_filter AS (
+	column_name text,
+	op realtime.equality_op,
+	value text
+);
+
+
+ALTER TYPE realtime.user_defined_filter OWNER TO supabase_admin;
+
+--
+--
+
+CREATE TYPE realtime.wal_column AS (
+	name text,
+	type_name text,
+	type_oid oid,
+	value jsonb,
+	is_pkey boolean,
+	is_selectable boolean
+);
+
+
+ALTER TYPE realtime.wal_column OWNER TO supabase_admin;
+
+--
+--
+
+CREATE TYPE realtime.wal_rls AS (
+	wal jsonb,
+	is_rls_enabled boolean,
+	subscription_ids uuid[],
+	errors text[]
+);
+
+
+ALTER TYPE realtime.wal_rls OWNER TO supabase_admin;
+
+--
+-- Name: buckettype; Type: TYPE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TYPE storage.buckettype AS ENUM (
+    'STANDARD',
+    'ANALYTICS',
+    'VECTOR'
+);
+
+
+ALTER TYPE storage.buckettype OWNER TO supabase_storage_admin;
+
+--
+-- Name: email(); Type: FUNCTION; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE FUNCTION auth.email() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.email', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
+  )::text
+$$;
+
+
+ALTER FUNCTION auth.email() OWNER TO supabase_auth_admin;
+
+--
+-- Name: FUNCTION email(); Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON FUNCTION auth.email() IS 'Deprecated. Use auth.jwt() -> ''email'' instead.';
+
+
+--
+-- Name: jwt(); Type: FUNCTION; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE FUNCTION auth.jwt() RETURNS jsonb
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+    coalesce(
+        nullif(current_setting('request.jwt.claim', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')
+    )::jsonb
+$$;
+
+
+ALTER FUNCTION auth.jwt() OWNER TO supabase_auth_admin;
+
+--
+-- Name: role(); Type: FUNCTION; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE FUNCTION auth.role() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
+  )::text
+$$;
+
+
+ALTER FUNCTION auth.role() OWNER TO supabase_auth_admin;
+
+--
+-- Name: FUNCTION role(); Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON FUNCTION auth.role() IS 'Deprecated. Use auth.jwt() -> ''role'' instead.';
+
+
+--
+-- Name: uid(); Type: FUNCTION; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE FUNCTION auth.uid() RETURNS uuid
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
+$$;
+
+
+ALTER FUNCTION auth.uid() OWNER TO supabase_auth_admin;
+
+--
+-- Name: FUNCTION uid(); Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON FUNCTION auth.uid() IS 'Deprecated. Use auth.jwt() -> ''sub'' instead.';
+
+
+--
+-- Name: grant_pg_cron_access(); Type: FUNCTION; Schema: extensions; Owner: supabase_admin
+--
+
+CREATE FUNCTION extensions.grant_pg_cron_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF EXISTS (
+    SELECT
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_cron'
+  )
+  THEN
+    grant usage on schema cron to postgres with grant option;
+
+    alter default privileges in schema cron grant all on tables to postgres with grant option;
+    alter default privileges in schema cron grant all on functions to postgres with grant option;
+    alter default privileges in schema cron grant all on sequences to postgres with grant option;
+
+    alter default privileges for user supabase_admin in schema cron grant all
+        on sequences to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on tables to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on functions to postgres with grant option;
+
+    grant all privileges on all tables in schema cron to postgres with grant option;
+    revoke all on table cron.job from postgres;
+    grant select on table cron.job to postgres with grant option;
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION extensions.grant_pg_cron_access() OWNER TO supabase_admin;
+
+--
+-- Name: FUNCTION grant_pg_cron_access(); Type: COMMENT; Schema: extensions; Owner: supabase_admin
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_cron_access() IS 'Grants access to pg_cron';
+
+
+--
+-- Name: grant_pg_graphql_access(); Type: FUNCTION; Schema: extensions; Owner: supabase_admin
+--
+
+CREATE FUNCTION extensions.grant_pg_graphql_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    func_is_graphql_resolve bool;
+BEGIN
+    func_is_graphql_resolve = (
+        SELECT n.proname = 'resolve'
+        FROM pg_event_trigger_ddl_commands() AS ev
+        LEFT JOIN pg_catalog.pg_proc AS n
+        ON ev.objid = n.oid
+    );
+
+    IF func_is_graphql_resolve
+    THEN
+        -- Update public wrapper to pass all arguments through to the pg_graphql resolve func
+        DROP FUNCTION IF EXISTS graphql_public.graphql;
+        create or replace function graphql_public.graphql(
+            "operationName" text default null,
+            query text default null,
+            variables jsonb default null,
+            extensions jsonb default null
+        )
+            returns jsonb
+            language sql
+        as $$
+            select graphql.resolve(
+                query := query,
+                variables := coalesce(variables, '{}'),
+                "operationName" := "operationName",
+                extensions := extensions
+            );
+        $$;
+
+        -- This hook executes when `graphql.resolve` is created. That is not necessarily the last
+        -- function in the extension so we need to grant permissions on existing entities AND
+        -- update default permissions to any others that are created after `graphql.resolve`
+        grant usage on schema graphql to postgres, anon, authenticated, service_role;
+        grant select on all tables in schema graphql to postgres, anon, authenticated, service_role;
+        grant execute on all functions in schema graphql to postgres, anon, authenticated, service_role;
+        grant all on all sequences in schema graphql to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on tables to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on functions to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on sequences to postgres, anon, authenticated, service_role;
+
+        -- Allow postgres role to allow granting usage on graphql and graphql_public schemas to custom roles
+        grant usage on schema graphql_public to postgres with grant option;
+        grant usage on schema graphql to postgres with grant option;
+    END IF;
+
+END;
+$_$;
+
+
+ALTER FUNCTION extensions.grant_pg_graphql_access() OWNER TO supabase_admin;
+
+--
+-- Name: FUNCTION grant_pg_graphql_access(); Type: COMMENT; Schema: extensions; Owner: supabase_admin
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_graphql_access() IS 'Grants access to pg_graphql';
+
+
+--
+-- Name: grant_pg_net_access(); Type: FUNCTION; Schema: extensions; Owner: supabase_admin
+--
+
+CREATE FUNCTION extensions.grant_pg_net_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_net'
+  )
+  THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_roles
+      WHERE rolname = 'supabase_functions_admin'
+    )
+    THEN
+      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+    END IF;
+
+    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+
+    IF EXISTS (
+      SELECT FROM pg_extension
+      WHERE extname = 'pg_net'
+      -- all versions in use on existing projects as of 2025-02-20
+      -- version 0.12.0 onwards don't need these applied
+      AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')
+    ) THEN
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+
+      REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+
+      GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+      GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+    END IF;
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION extensions.grant_pg_net_access() OWNER TO supabase_admin;
+
+--
+-- Name: FUNCTION grant_pg_net_access(); Type: COMMENT; Schema: extensions; Owner: supabase_admin
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_net_access() IS 'Grants access to pg_net';
+
+
+--
+-- Name: pgrst_ddl_watch(); Type: FUNCTION; Schema: extensions; Owner: supabase_admin
+--
+
+CREATE FUNCTION extensions.pgrst_ddl_watch() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  cmd record;
+BEGIN
+  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()
+  LOOP
+    IF cmd.command_tag IN (
+      'CREATE SCHEMA', 'ALTER SCHEMA'
+    , 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE'
+    , 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE'
+    , 'CREATE VIEW', 'ALTER VIEW'
+    , 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW'
+    , 'CREATE FUNCTION', 'ALTER FUNCTION'
+    , 'CREATE TRIGGER'
+    , 'CREATE TYPE', 'ALTER TYPE'
+    , 'CREATE RULE'
+    , 'COMMENT'
+    )
+    -- don't notify in case of CREATE TEMP table or other objects created on pg_temp
+    AND cmd.schema_name is distinct from 'pg_temp'
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
+END; $$;
+
+
+ALTER FUNCTION extensions.pgrst_ddl_watch() OWNER TO supabase_admin;
+
+--
+-- Name: pgrst_drop_watch(); Type: FUNCTION; Schema: extensions; Owner: supabase_admin
+--
+
+CREATE FUNCTION extensions.pgrst_drop_watch() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  obj record;
+BEGIN
+  FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()
+  LOOP
+    IF obj.object_type IN (
+      'schema'
+    , 'table'
+    , 'foreign table'
+    , 'view'
+    , 'materialized view'
+    , 'function'
+    , 'trigger'
+    , 'type'
+    , 'rule'
+    )
+    AND obj.is_temporary IS false -- no pg_temp objects
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
+END; $$;
+
+
+ALTER FUNCTION extensions.pgrst_drop_watch() OWNER TO supabase_admin;
+
+--
+-- Name: set_graphql_placeholder(); Type: FUNCTION; Schema: extensions; Owner: supabase_admin
+--
+
+CREATE FUNCTION extensions.set_graphql_placeholder() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $_$
+    DECLARE
+    graphql_is_dropped bool;
+    BEGIN
+    graphql_is_dropped = (
+        SELECT ev.schema_name = 'graphql_public'
+        FROM pg_event_trigger_dropped_objects() AS ev
+        WHERE ev.schema_name = 'graphql_public'
+    );
+
+    IF graphql_is_dropped
+    THEN
+        create or replace function graphql_public.graphql(
+            "operationName" text default null,
+            query text default null,
+            variables jsonb default null,
+            extensions jsonb default null
+        )
+            returns jsonb
+            language plpgsql
+        as $$
+            DECLARE
+                server_version float;
+            BEGIN
+                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
+
+                IF server_version >= 14 THEN
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql extension is not enabled.'
+                            )
+                        )
+                    );
+                ELSE
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
+                            )
+                        )
+                    );
+                END IF;
+            END;
+        $$;
+    END IF;
+
+    END;
+$_$;
+
+
+ALTER FUNCTION extensions.set_graphql_placeholder() OWNER TO supabase_admin;
+
+--
+-- Name: FUNCTION set_graphql_placeholder(); Type: COMMENT; Schema: extensions; Owner: supabase_admin
+--
+
+COMMENT ON FUNCTION extensions.set_graphql_placeholder() IS 'Reintroduces placeholder function for graphql_public.graphql';
+
+
+--
+-- Name: get_auth(text); Type: FUNCTION; Schema: pgbouncer; Owner: supabase_admin
+--
+
+CREATE FUNCTION pgbouncer.get_auth(p_usename text) RETURNS TABLE(username text, password text)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $_$
+begin
+    raise debug 'PgBouncer auth request: %', p_usename;
+
+    return query
+    select 
+        rolname::text, 
+        case when rolvaliduntil < now() 
+            then null 
+            else rolpassword::text 
+        end 
+    from pg_authid 
+    where rolname=$1 and rolcanlogin;
+end;
+$_$;
+
+
+ALTER FUNCTION pgbouncer.get_auth(p_usename text) OWNER TO supabase_admin;
+
+--
+-- Name: ensure_single_active_logo(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.ensure_single_active_logo() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  -- If the new/updated logo is being set to active
+  IF NEW.is_active = true THEN
+    -- Set all other logos to inactive
+    UPDATE logos
+    SET is_active = false
+    WHERE id != NEW.id AND is_active = true;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.ensure_single_active_logo() OWNER TO postgres;
+
+--
+-- Name: has_role(uuid, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.has_role(_user_id uuid, _role text) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+    AND role = _role::public.app_role
+  )
+$$;
+
+
+ALTER FUNCTION public.has_role(_user_id uuid, _role text) OWNER TO postgres;
+
+--
+-- Name: has_role(uuid, public.app_role); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.has_role(_user_id uuid, _role public.app_role) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND role = _role
+  )
+$$;
+
+
+ALTER FUNCTION public.has_role(_user_id uuid, _role public.app_role) OWNER TO postgres;
+
+--
+-- Name: update_email_templates_updated_at(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_email_templates_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_email_templates_updated_at() OWNER TO postgres;
+
+--
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_updated_at_column() OWNER TO postgres;
+
+--
+--
+
+CREATE FUNCTION realtime.apply_rls(wal jsonb, max_record_bytes integer DEFAULT (1024 * 1024)) RETURNS SETOF realtime.wal_rls
+    LANGUAGE plpgsql
+    AS $$
+declare
+-- Regclass of the table e.g. public.notes
+entity_ regclass = (quote_ident(wal ->> 'schema') || '.' || quote_ident(wal ->> 'table'))::regclass;
+
+-- I, U, D, T: insert, update ...
+action realtime.action = (
+    case wal ->> 'action'
+        when 'I' then 'INSERT'
+        when 'U' then 'UPDATE'
+        when 'D' then 'DELETE'
+        else 'ERROR'
+    end
+);
+
+-- Is row level security enabled for the table
+is_rls_enabled bool = relrowsecurity from pg_class where oid = entity_;
+
+subscriptions realtime.subscription[] = array_agg(subs)
+    from
+        realtime.subscription subs
+    where
+        subs.entity = entity_;
+
+-- Subscription vars
+roles regrole[] = array_agg(distinct us.claims_role::text)
+    from
+        unnest(subscriptions) us;
+
+working_role regrole;
+claimed_role regrole;
+claims jsonb;
+
+subscription_id uuid;
+subscription_has_access bool;
+visible_to_subscription_ids uuid[] = '{}';
+
+-- structured info for wal's columns
+columns realtime.wal_column[];
+-- previous identity values for update/delete
+old_columns realtime.wal_column[];
+
+error_record_exceeds_max_size boolean = octet_length(wal::text) > max_record_bytes;
+
+-- Primary jsonb output for record
+output jsonb;
+
+begin
+perform set_config('role', null, true);
+
+columns =
+    array_agg(
+        (
+            x->>'name',
+            x->>'type',
+            x->>'typeoid',
+            realtime.cast(
+                (x->'value') #>> '{}',
+                coalesce(
+                    (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
+                    (x->>'type')::regtype
+                )
+            ),
+            (pks ->> 'name') is not null,
+            true
+        )::realtime.wal_column
+    )
+    from
+        jsonb_array_elements(wal -> 'columns') x
+        left join jsonb_array_elements(wal -> 'pk') pks
+            on (x ->> 'name') = (pks ->> 'name');
+
+old_columns =
+    array_agg(
+        (
+            x->>'name',
+            x->>'type',
+            x->>'typeoid',
+            realtime.cast(
+                (x->'value') #>> '{}',
+                coalesce(
+                    (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
+                    (x->>'type')::regtype
+                )
+            ),
+            (pks ->> 'name') is not null,
+            true
+        )::realtime.wal_column
+    )
+    from
+        jsonb_array_elements(wal -> 'identity') x
+        left join jsonb_array_elements(wal -> 'pk') pks
+            on (x ->> 'name') = (pks ->> 'name');
+
+for working_role in select * from unnest(roles) loop
+
+    -- Update `is_selectable` for columns and old_columns
+    columns =
+        array_agg(
+            (
+                c.name,
+                c.type_name,
+                c.type_oid,
+                c.value,
+                c.is_pkey,
+                pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
+            )::realtime.wal_column
+        )
+        from
+            unnest(columns) c;
+
+    old_columns =
+            array_agg(
+                (
+                    c.name,
+                    c.type_name,
+                    c.type_oid,
+                    c.value,
+                    c.is_pkey,
+                    pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
+                )::realtime.wal_column
+            )
+            from
+                unnest(old_columns) c;
+
+    if action <> 'DELETE' and count(1) = 0 from unnest(columns) c where c.is_pkey then
+        return next (
+            jsonb_build_object(
+                'schema', wal ->> 'schema',
+                'table', wal ->> 'table',
+                'type', action
+            ),
+            is_rls_enabled,
+            -- subscriptions is already filtered by entity
+            (select array_agg(s.subscription_id) from unnest(subscriptions) as s where claims_role = working_role),
+            array['Error 400: Bad Request, no primary key']
+        )::realtime.wal_rls;
+
+    -- The claims role does not have SELECT permission to the primary key of entity
+    elsif action <> 'DELETE' and sum(c.is_selectable::int) <> count(1) from unnest(columns) c where c.is_pkey then
+        return next (
+            jsonb_build_object(
+                'schema', wal ->> 'schema',
+                'table', wal ->> 'table',
+                'type', action
+            ),
+            is_rls_enabled,
+            (select array_agg(s.subscription_id) from unnest(subscriptions) as s where claims_role = working_role),
+            array['Error 401: Unauthorized']
+        )::realtime.wal_rls;
+
+    else
+        output = jsonb_build_object(
+            'schema', wal ->> 'schema',
+            'table', wal ->> 'table',
+            'type', action,
+            'commit_timestamp', to_char(
+                ((wal ->> 'timestamp')::timestamptz at time zone 'utc'),
+                'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+            ),
+            'columns', (
+                select
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'name', pa.attname,
+                            'type', pt.typname
+                        )
+                        order by pa.attnum asc
+                    )
+                from
+                    pg_attribute pa
+                    join pg_type pt
+                        on pa.atttypid = pt.oid
+                where
+                    attrelid = entity_
+                    and attnum > 0
+                    and pg_catalog.has_column_privilege(working_role, entity_, pa.attname, 'SELECT')
+            )
+        )
+        -- Add "record" key for insert and update
+        || case
+            when action in ('INSERT', 'UPDATE') then
+                jsonb_build_object(
+                    'record',
+                    (
+                        select
+                            jsonb_object_agg(
+                                -- if unchanged toast, get column name and value from old record
+                                coalesce((c).name, (oc).name),
+                                case
+                                    when (c).name is null then (oc).value
+                                    else (c).value
+                                end
+                            )
+                        from
+                            unnest(columns) c
+                            full outer join unnest(old_columns) oc
+                                on (c).name = (oc).name
+                        where
+                            coalesce((c).is_selectable, (oc).is_selectable)
+                            and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                    )
+                )
+            else '{}'::jsonb
+        end
+        -- Add "old_record" key for update and delete
+        || case
+            when action = 'UPDATE' then
+                jsonb_build_object(
+                        'old_record',
+                        (
+                            select jsonb_object_agg((c).name, (c).value)
+                            from unnest(old_columns) c
+                            where
+                                (c).is_selectable
+                                and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                        )
+                    )
+            when action = 'DELETE' then
+                jsonb_build_object(
+                    'old_record',
+                    (
+                        select jsonb_object_agg((c).name, (c).value)
+                        from unnest(old_columns) c
+                        where
+                            (c).is_selectable
+                            and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                            and ( not is_rls_enabled or (c).is_pkey ) -- if RLS enabled, we can't secure deletes so filter to pkey
+                    )
+                )
+            else '{}'::jsonb
+        end;
+
+        -- Create the prepared statement
+        if is_rls_enabled and action <> 'DELETE' then
+            if (select 1 from pg_prepared_statements where name = 'walrus_rls_stmt' limit 1) > 0 then
+                deallocate walrus_rls_stmt;
+            end if;
+            execute realtime.build_prepared_statement_sql('walrus_rls_stmt', entity_, columns);
+        end if;
+
+        visible_to_subscription_ids = '{}';
+
+        for subscription_id, claims in (
+                select
+                    subs.subscription_id,
+                    subs.claims
+                from
+                    unnest(subscriptions) subs
+                where
+                    subs.entity = entity_
+                    and subs.claims_role = working_role
+                    and (
+                        realtime.is_visible_through_filters(columns, subs.filters)
+                        or (
+                          action = 'DELETE'
+                          and realtime.is_visible_through_filters(old_columns, subs.filters)
+                        )
+                    )
+        ) loop
+
+            if not is_rls_enabled or action = 'DELETE' then
+                visible_to_subscription_ids = visible_to_subscription_ids || subscription_id;
+            else
+                -- Check if RLS allows the role to see the record
+                perform
+                    -- Trim leading and trailing quotes from working_role because set_config
+                    -- doesn't recognize the role as valid if they are included
+                    set_config('role', trim(both '"' from working_role::text), true),
+                    set_config('request.jwt.claims', claims::text, true);
+
+                execute 'execute walrus_rls_stmt' into subscription_has_access;
+
+                if subscription_has_access then
+                    visible_to_subscription_ids = visible_to_subscription_ids || subscription_id;
+                end if;
+            end if;
+        end loop;
+
+        perform set_config('role', null, true);
+
+        return next (
+            output,
+            is_rls_enabled,
+            visible_to_subscription_ids,
+            case
+                when error_record_exceeds_max_size then array['Error 413: Payload Too Large']
+                else '{}'
+            end
+        )::realtime.wal_rls;
+
+    end if;
+end loop;
+
+perform set_config('role', null, true);
+end;
+$$;
+
+
+ALTER FUNCTION realtime.apply_rls(wal jsonb, max_record_bytes integer) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.broadcast_changes(topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text DEFAULT 'ROW'::text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    -- Declare a variable to hold the JSONB representation of the row
+    row_data jsonb := '{}'::jsonb;
+BEGIN
+    IF level = 'STATEMENT' THEN
+        RAISE EXCEPTION 'function can only be triggered for each row, not for each statement';
+    END IF;
+    -- Check the operation type and handle accordingly
+    IF operation = 'INSERT' OR operation = 'UPDATE' OR operation = 'DELETE' THEN
+        row_data := jsonb_build_object('old_record', OLD, 'record', NEW, 'operation', operation, 'table', table_name, 'schema', table_schema);
+        PERFORM realtime.send (row_data, event_name, topic_name);
+    ELSE
+        RAISE EXCEPTION 'Unexpected operation type: %', operation;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Failed to process the row: %', SQLERRM;
+END;
+
+$$;
+
+
+ALTER FUNCTION realtime.broadcast_changes(topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name text, entity regclass, columns realtime.wal_column[]) RETURNS text
+    LANGUAGE sql
+    AS $$
+      /*
+      Builds a sql string that, if executed, creates a prepared statement to
+      tests retrive a row from *entity* by its primary key columns.
+      Example
+          select realtime.build_prepared_statement_sql('public.notes', '{"id"}'::text[], '{"bigint"}'::text[])
+      */
+          select
+      'prepare ' || prepared_statement_name || ' as
+          select
+              exists(
+                  select
+                      1
+                  from
+                      ' || entity || '
+                  where
+                      ' || string_agg(quote_ident(pkc.name) || '=' || quote_nullable(pkc.value #>> '{}') , ' and ') || '
+              )'
+          from
+              unnest(columns) pkc
+          where
+              pkc.is_pkey
+          group by
+              entity
+      $$;
+
+
+ALTER FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name text, entity regclass, columns realtime.wal_column[]) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime."cast"(val text, type_ regtype) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+    declare
+      res jsonb;
+    begin
+      execute format('select to_jsonb(%L::'|| type_::text || ')', val)  into res;
+      return res;
+    end
+    $$;
+
+
+ALTER FUNCTION realtime."cast"(val text, type_ regtype) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtype, val_1 text, val_2 text) RETURNS boolean
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+      /*
+      Casts *val_1* and *val_2* as type *type_* and check the *op* condition for truthiness
+      */
+      declare
+          op_symbol text = (
+              case
+                  when op = 'eq' then '='
+                  when op = 'neq' then '!='
+                  when op = 'lt' then '<'
+                  when op = 'lte' then '<='
+                  when op = 'gt' then '>'
+                  when op = 'gte' then '>='
+                  when op = 'in' then '= any'
+                  else 'UNKNOWN OP'
+              end
+          );
+          res boolean;
+      begin
+          execute format(
+              'select %L::'|| type_::text || ' ' || op_symbol
+              || ' ( %L::'
+              || (
+                  case
+                      when op = 'in' then type_::text || '[]'
+                      else type_::text end
+              )
+              || ')', val_1, val_2) into res;
+          return res;
+      end;
+      $$;
+
+
+ALTER FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtype, val_1 text, val_2 text) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[], filters realtime.user_defined_filter[]) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    AS $_$
+    /*
+    Should the record be visible (true) or filtered out (false) after *filters* are applied
+    */
+        select
+            -- Default to allowed when no filters present
+            $2 is null -- no filters. this should not happen because subscriptions has a default
+            or array_length($2, 1) is null -- array length of an empty array is null
+            or bool_and(
+                coalesce(
+                    realtime.check_equality_op(
+                        op:=f.op,
+                        type_:=coalesce(
+                            col.type_oid::regtype, -- null when wal2json version <= 2.4
+                            col.type_name::regtype
+                        ),
+                        -- cast jsonb to text
+                        val_1:=col.value #>> '{}',
+                        val_2:=f.value
+                    ),
+                    false -- if null, filter does not match
+                )
+            )
+        from
+            unnest(filters) f
+            join unnest(columns) col
+                on f.column_name = col.name;
+    $_$;
+
+
+ALTER FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[], filters realtime.user_defined_filter[]) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.list_changes(publication name, slot_name name, max_changes integer, max_record_bytes integer) RETURNS SETOF realtime.wal_rls
+    LANGUAGE sql
+    SET log_min_messages TO 'fatal'
+    AS $$
+      with pub as (
+        select
+          concat_ws(
+            ',',
+            case when bool_or(pubinsert) then 'insert' else null end,
+            case when bool_or(pubupdate) then 'update' else null end,
+            case when bool_or(pubdelete) then 'delete' else null end
+          ) as w2j_actions,
+          coalesce(
+            string_agg(
+              realtime.quote_wal2json(format('%I.%I', schemaname, tablename)::regclass),
+              ','
+            ) filter (where ppt.tablename is not null and ppt.tablename not like '% %'),
+            ''
+          ) w2j_add_tables
+        from
+          pg_publication pp
+          left join pg_publication_tables ppt
+            on pp.pubname = ppt.pubname
+        where
+          pp.pubname = publication
+        group by
+          pp.pubname
+        limit 1
+      ),
+      w2j as (
+        select
+          x.*, pub.w2j_add_tables
+        from
+          pub,
+          pg_logical_slot_get_changes(
+            slot_name, null, max_changes,
+            'include-pk', 'true',
+            'include-transaction', 'false',
+            'include-timestamp', 'true',
+            'include-type-oids', 'true',
+            'format-version', '2',
+            'actions', pub.w2j_actions,
+            'add-tables', pub.w2j_add_tables
+          ) x
+      )
+      select
+        xyz.wal,
+        xyz.is_rls_enabled,
+        xyz.subscription_ids,
+        xyz.errors
+      from
+        w2j,
+        realtime.apply_rls(
+          wal := w2j.data::jsonb,
+          max_record_bytes := max_record_bytes
+        ) xyz(wal, is_rls_enabled, subscription_ids, errors)
+      where
+        w2j.w2j_add_tables <> ''
+        and xyz.subscription_ids[1] is not null
+    $$;
+
+
+ALTER FUNCTION realtime.list_changes(publication name, slot_name name, max_changes integer, max_record_bytes integer) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.quote_wal2json(entity regclass) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $$
+      select
+        (
+          select string_agg('' || ch,'')
+          from unnest(string_to_array(nsp.nspname::text, null)) with ordinality x(ch, idx)
+          where
+            not (x.idx = 1 and x.ch = '"')
+            and not (
+              x.idx = array_length(string_to_array(nsp.nspname::text, null), 1)
+              and x.ch = '"'
+            )
+        )
+        || '.'
+        || (
+          select string_agg('' || ch,'')
+          from unnest(string_to_array(pc.relname::text, null)) with ordinality x(ch, idx)
+          where
+            not (x.idx = 1 and x.ch = '"')
+            and not (
+              x.idx = array_length(string_to_array(nsp.nspname::text, null), 1)
+              and x.ch = '"'
+            )
+          )
+      from
+        pg_class pc
+        join pg_namespace nsp
+          on pc.relnamespace = nsp.oid
+      where
+        pc.oid = entity
+    $$;
+
+
+ALTER FUNCTION realtime.quote_wal2json(entity regclass) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  generated_id uuid;
+  final_payload jsonb;
+BEGIN
+  BEGIN
+    -- Generate a new UUID for the id
+    generated_id := gen_random_uuid();
+
+    -- Check if payload has an 'id' key, if not, add the generated UUID
+    IF payload ? 'id' THEN
+      final_payload := payload;
+    ELSE
+      final_payload := jsonb_set(payload, '{id}', to_jsonb(generated_id));
+    END IF;
+
+    -- Set the topic configuration
+    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);
+
+    -- Attempt to insert the message
+    INSERT INTO realtime.messages (id, payload, event, topic, private, extension)
+    VALUES (generated_id, final_payload, event, topic, private, 'broadcast');
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Capture and notify the error
+      RAISE WARNING 'ErrorSendingBroadcastMessage: %', SQLERRM;
+  END;
+END;
+$$;
+
+
+ALTER FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.subscription_check_filters() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    /*
+    Validates that the user defined filters for a subscription:
+    - refer to valid columns that the claimed role may access
+    - values are coercable to the correct column type
+    */
+    declare
+        col_names text[] = coalesce(
+                array_agg(c.column_name order by c.ordinal_position),
+                '{}'::text[]
+            )
+            from
+                information_schema.columns c
+            where
+                format('%I.%I', c.table_schema, c.table_name)::regclass = new.entity
+                and pg_catalog.has_column_privilege(
+                    (new.claims ->> 'role'),
+                    format('%I.%I', c.table_schema, c.table_name)::regclass,
+                    c.column_name,
+                    'SELECT'
+                );
+        filter realtime.user_defined_filter;
+        col_type regtype;
+
+        in_val jsonb;
+    begin
+        for filter in select * from unnest(new.filters) loop
+            -- Filtered column is valid
+            if not filter.column_name = any(col_names) then
+                raise exception 'invalid column for filter %', filter.column_name;
+            end if;
+
+            -- Type is sanitized and safe for string interpolation
+            col_type = (
+                select atttypid::regtype
+                from pg_catalog.pg_attribute
+                where attrelid = new.entity
+                      and attname = filter.column_name
+            );
+            if col_type is null then
+                raise exception 'failed to lookup type for column %', filter.column_name;
+            end if;
+
+            -- Set maximum number of entries for in filter
+            if filter.op = 'in'::realtime.equality_op then
+                in_val = realtime.cast(filter.value, (col_type::text || '[]')::regtype);
+                if coalesce(jsonb_array_length(in_val), 0) > 100 then
+                    raise exception 'too many values for `in` filter. Maximum 100';
+                end if;
+            else
+                -- raises an exception if value is not coercable to type
+                perform realtime.cast(filter.value, col_type);
+            end if;
+
+        end loop;
+
+        -- Apply consistent order to filters so the unique constraint on
+        -- (subscription_id, entity, filters) can't be tricked by a different filter order
+        new.filters = coalesce(
+            array_agg(f order by f.column_name, f.op, f.value),
+            '{}'
+        ) from unnest(new.filters) f;
+
+        return new;
+    end;
+    $$;
+
+
+ALTER FUNCTION realtime.subscription_check_filters() OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.to_regrole(role_name text) RETURNS regrole
+    LANGUAGE sql IMMUTABLE
+    AS $$ select role_name::regrole $$;
+
+
+ALTER FUNCTION realtime.to_regrole(role_name text) OWNER TO supabase_admin;
+
+--
+--
+
+CREATE FUNCTION realtime.topic() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+select nullif(current_setting('realtime.topic', true), '')::text;
+$$;
+
+
+ALTER FUNCTION realtime.topic() OWNER TO supabase_realtime_admin;
+
+--
+-- Name: add_prefixes(text, text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.add_prefixes(_bucket_id text, _name text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    prefixes text[];
+BEGIN
+    prefixes := "storage"."get_prefixes"("_name");
+
+    IF array_length(prefixes, 1) > 0 THEN
+        INSERT INTO storage.prefixes (name, bucket_id)
+        SELECT UNNEST(prefixes) as name, "_bucket_id" ON CONFLICT DO NOTHING;
+    END IF;
+END;
+$$;
+
+
+ALTER FUNCTION storage.add_prefixes(_bucket_id text, _name text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: can_insert_object(text, text, uuid, jsonb); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  INSERT INTO "storage"."objects" ("bucket_id", "name", "owner", "metadata") VALUES (bucketid, name, owner, metadata);
+  -- hack to rollback the successful insert
+  RAISE sqlstate 'PT200' using
+  message = 'ROLLBACK',
+  detail = 'rollback successful insert';
+END
+$$;
+
+
+ALTER FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb) OWNER TO supabase_storage_admin;
+
+--
+-- Name: delete_leaf_prefixes(text[], text[]); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.delete_leaf_prefixes(bucket_ids text[], names text[]) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_rows_deleted integer;
+BEGIN
+    LOOP
+        WITH candidates AS (
+            SELECT DISTINCT
+                t.bucket_id,
+                unnest(storage.get_prefixes(t.name)) AS name
+            FROM unnest(bucket_ids, names) AS t(bucket_id, name)
+        ),
+        uniq AS (
+             SELECT
+                 bucket_id,
+                 name,
+                 storage.get_level(name) AS level
+             FROM candidates
+             WHERE name <> ''
+             GROUP BY bucket_id, name
+        ),
+        leaf AS (
+             SELECT
+                 p.bucket_id,
+                 p.name,
+                 p.level
+             FROM storage.prefixes AS p
+                  JOIN uniq AS u
+                       ON u.bucket_id = p.bucket_id
+                           AND u.name = p.name
+                           AND u.level = p.level
+             WHERE NOT EXISTS (
+                 SELECT 1
+                 FROM storage.objects AS o
+                 WHERE o.bucket_id = p.bucket_id
+                   AND o.level = p.level + 1
+                   AND o.name COLLATE "C" LIKE p.name || '/%'
+             )
+             AND NOT EXISTS (
+                 SELECT 1
+                 FROM storage.prefixes AS c
+                 WHERE c.bucket_id = p.bucket_id
+                   AND c.level = p.level + 1
+                   AND c.name COLLATE "C" LIKE p.name || '/%'
+             )
+        )
+        DELETE
+        FROM storage.prefixes AS p
+            USING leaf AS l
+        WHERE p.bucket_id = l.bucket_id
+          AND p.name = l.name
+          AND p.level = l.level;
+
+        GET DIAGNOSTICS v_rows_deleted = ROW_COUNT;
+        EXIT WHEN v_rows_deleted = 0;
+    END LOOP;
+END;
+$$;
+
+
+ALTER FUNCTION storage.delete_leaf_prefixes(bucket_ids text[], names text[]) OWNER TO supabase_storage_admin;
+
+--
+-- Name: delete_prefix(text, text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.delete_prefix(_bucket_id text, _name text) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+    -- Check if we can delete the prefix
+    IF EXISTS(
+        SELECT FROM "storage"."prefixes"
+        WHERE "prefixes"."bucket_id" = "_bucket_id"
+          AND level = "storage"."get_level"("_name") + 1
+          AND "prefixes"."name" COLLATE "C" LIKE "_name" || '/%'
+        LIMIT 1
+    )
+    OR EXISTS(
+        SELECT FROM "storage"."objects"
+        WHERE "objects"."bucket_id" = "_bucket_id"
+          AND "storage"."get_level"("objects"."name") = "storage"."get_level"("_name") + 1
+          AND "objects"."name" COLLATE "C" LIKE "_name" || '/%'
+        LIMIT 1
+    ) THEN
+    -- There are sub-objects, skip deletion
+    RETURN false;
+    ELSE
+        DELETE FROM "storage"."prefixes"
+        WHERE "prefixes"."bucket_id" = "_bucket_id"
+          AND level = "storage"."get_level"("_name")
+          AND "prefixes"."name" = "_name";
+        RETURN true;
+    END IF;
+END;
+$$;
+
+
+ALTER FUNCTION storage.delete_prefix(_bucket_id text, _name text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: delete_prefix_hierarchy_trigger(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.delete_prefix_hierarchy_trigger() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    prefix text;
+BEGIN
+    prefix := "storage"."get_prefix"(OLD."name");
+
+    IF coalesce(prefix, '') != '' THEN
+        PERFORM "storage"."delete_prefix"(OLD."bucket_id", prefix);
+    END IF;
+
+    RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION storage.delete_prefix_hierarchy_trigger() OWNER TO supabase_storage_admin;
+
+--
+-- Name: enforce_bucket_name_length(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.enforce_bucket_name_length() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+    if length(new.name) > 100 then
+        raise exception 'bucket name "%" is too long (% characters). Max is 100.', new.name, length(new.name);
+    end if;
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION storage.enforce_bucket_name_length() OWNER TO supabase_storage_admin;
+
+--
+-- Name: extension(text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.extension(name text) RETURNS text
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+DECLARE
+    _parts text[];
+    _filename text;
+BEGIN
+    SELECT string_to_array(name, '/') INTO _parts;
+    SELECT _parts[array_length(_parts,1)] INTO _filename;
+    RETURN reverse(split_part(reverse(_filename), '.', 1));
+END
+$$;
+
+
+ALTER FUNCTION storage.extension(name text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: filename(text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.filename(name text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+_parts text[];
+BEGIN
+	select string_to_array(name, '/') into _parts;
+	return _parts[array_length(_parts,1)];
+END
+$$;
+
+
+ALTER FUNCTION storage.filename(name text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: foldername(text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.foldername(name text) RETURNS text[]
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+DECLARE
+    _parts text[];
+BEGIN
+    -- Split on "/" to get path segments
+    SELECT string_to_array(name, '/') INTO _parts;
+    -- Return everything except the last segment
+    RETURN _parts[1 : array_length(_parts,1) - 1];
+END
+$$;
+
+
+ALTER FUNCTION storage.foldername(name text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: get_level(text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.get_level(name text) RETURNS integer
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $$
+SELECT array_length(string_to_array("name", '/'), 1);
+$$;
+
+
+ALTER FUNCTION storage.get_level(name text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: get_prefix(text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.get_prefix(name text) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+SELECT
+    CASE WHEN strpos("name", '/') > 0 THEN
+             regexp_replace("name", '[\/]{1}[^\/]+\/?$', '')
+         ELSE
+             ''
+        END;
+$_$;
+
+
+ALTER FUNCTION storage.get_prefix(name text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: get_prefixes(text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.get_prefixes(name text) RETURNS text[]
+    LANGUAGE plpgsql IMMUTABLE STRICT
+    AS $$
+DECLARE
+    parts text[];
+    prefixes text[];
+    prefix text;
+BEGIN
+    -- Split the name into parts by '/'
+    parts := string_to_array("name", '/');
+    prefixes := '{}';
+
+    -- Construct the prefixes, stopping one level below the last part
+    FOR i IN 1..array_length(parts, 1) - 1 LOOP
+            prefix := array_to_string(parts[1:i], '/');
+            prefixes := array_append(prefixes, prefix);
+    END LOOP;
+
+    RETURN prefixes;
+END;
+$$;
+
+
+ALTER FUNCTION storage.get_prefixes(name text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: get_size_by_bucket(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.get_size_by_bucket() RETURNS TABLE(size bigint, bucket_id text)
+    LANGUAGE plpgsql STABLE
+    AS $$
+BEGIN
+    return query
+        select sum((metadata->>'size')::bigint) as size, obj.bucket_id
+        from "storage".objects as obj
+        group by obj.bucket_id;
+END
+$$;
+
+
+ALTER FUNCTION storage.get_size_by_bucket() OWNER TO supabase_storage_admin;
+
+--
+-- Name: list_multipart_uploads_with_delimiter(text, text, text, integer, text, text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, next_key_token text DEFAULT ''::text, next_upload_token text DEFAULT ''::text) RETURNS TABLE(key text, id text, created_at timestamp with time zone)
+    LANGUAGE plpgsql
+    AS $_$
+BEGIN
+    RETURN QUERY EXECUTE
+        'SELECT DISTINCT ON(key COLLATE "C") * from (
+            SELECT
+                CASE
+                    WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
+                        substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1)))
+                    ELSE
+                        key
+                END AS key, id, created_at
+            FROM
+                storage.s3_multipart_uploads
+            WHERE
+                bucket_id = $5 AND
+                key ILIKE $1 || ''%'' AND
+                CASE
+                    WHEN $4 != '''' AND $6 = '''' THEN
+                        CASE
+                            WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
+                                substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1))) COLLATE "C" > $4
+                            ELSE
+                                key COLLATE "C" > $4
+                            END
+                    ELSE
+                        true
+                END AND
+                CASE
+                    WHEN $6 != '''' THEN
+                        id COLLATE "C" > $6
+                    ELSE
+                        true
+                    END
+            ORDER BY
+                key COLLATE "C" ASC, created_at ASC) as e order by key COLLATE "C" LIMIT $3'
+        USING prefix_param, delimiter_param, max_keys, next_key_token, bucket_id, next_upload_token;
+END;
+$_$;
+
+
+ALTER FUNCTION storage.list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer, next_key_token text, next_upload_token text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: list_objects_with_delimiter(text, text, text, integer, text, text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.list_objects_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, start_after text DEFAULT ''::text, next_token text DEFAULT ''::text) RETURNS TABLE(name text, id uuid, metadata jsonb, updated_at timestamp with time zone)
+    LANGUAGE plpgsql
+    AS $_$
+BEGIN
+    RETURN QUERY EXECUTE
+        'SELECT DISTINCT ON(name COLLATE "C") * from (
+            SELECT
+                CASE
+                    WHEN position($2 IN substring(name from length($1) + 1)) > 0 THEN
+                        substring(name from 1 for length($1) + position($2 IN substring(name from length($1) + 1)))
+                    ELSE
+                        name
+                END AS name, id, metadata, updated_at
+            FROM
+                storage.objects
+            WHERE
+                bucket_id = $5 AND
+                name ILIKE $1 || ''%'' AND
+                CASE
+                    WHEN $6 != '''' THEN
+                    name COLLATE "C" > $6
+                ELSE true END
+                AND CASE
+                    WHEN $4 != '''' THEN
+                        CASE
+                            WHEN position($2 IN substring(name from length($1) + 1)) > 0 THEN
+                                substring(name from 1 for length($1) + position($2 IN substring(name from length($1) + 1))) COLLATE "C" > $4
+                            ELSE
+                                name COLLATE "C" > $4
+                            END
+                    ELSE
+                        true
+                END
+            ORDER BY
+                name COLLATE "C" ASC) as e order by name COLLATE "C" LIMIT $3'
+        USING prefix_param, delimiter_param, max_keys, next_token, bucket_id, start_after;
+END;
+$_$;
+
+
+ALTER FUNCTION storage.list_objects_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer, start_after text, next_token text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: lock_top_prefixes(text[], text[]); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.lock_top_prefixes(bucket_ids text[], names text[]) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_bucket text;
+    v_top text;
+BEGIN
+    FOR v_bucket, v_top IN
+        SELECT DISTINCT t.bucket_id,
+            split_part(t.name, '/', 1) AS top
+        FROM unnest(bucket_ids, names) AS t(bucket_id, name)
+        WHERE t.name <> ''
+        ORDER BY 1, 2
+        LOOP
+            PERFORM pg_advisory_xact_lock(hashtextextended(v_bucket || '/' || v_top, 0));
+        END LOOP;
+END;
+$$;
+
+
+ALTER FUNCTION storage.lock_top_prefixes(bucket_ids text[], names text[]) OWNER TO supabase_storage_admin;
+
+--
+-- Name: objects_delete_cleanup(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.objects_delete_cleanup() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_bucket_ids text[];
+    v_names      text[];
+BEGIN
+    IF current_setting('storage.gc.prefixes', true) = '1' THEN
+        RETURN NULL;
+    END IF;
+
+    PERFORM set_config('storage.gc.prefixes', '1', true);
+
+    SELECT COALESCE(array_agg(d.bucket_id), '{}'),
+           COALESCE(array_agg(d.name), '{}')
+    INTO v_bucket_ids, v_names
+    FROM deleted AS d
+    WHERE d.name <> '';
+
+    PERFORM storage.lock_top_prefixes(v_bucket_ids, v_names);
+    PERFORM storage.delete_leaf_prefixes(v_bucket_ids, v_names);
+
+    RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION storage.objects_delete_cleanup() OWNER TO supabase_storage_admin;
+
+--
+-- Name: objects_insert_prefix_trigger(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.objects_insert_prefix_trigger() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    PERFORM "storage"."add_prefixes"(NEW."bucket_id", NEW."name");
+    NEW.level := "storage"."get_level"(NEW."name");
+
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION storage.objects_insert_prefix_trigger() OWNER TO supabase_storage_admin;
+
+--
+-- Name: objects_update_cleanup(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.objects_update_cleanup() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    -- NEW - OLD (destinations to create prefixes for)
+    v_add_bucket_ids text[];
+    v_add_names      text[];
+
+    -- OLD - NEW (sources to prune)
+    v_src_bucket_ids text[];
+    v_src_names      text[];
+BEGIN
+    IF TG_OP <> 'UPDATE' THEN
+        RETURN NULL;
+    END IF;
+
+    -- 1) Compute NEW−OLD (added paths) and OLD−NEW (moved-away paths)
+    WITH added AS (
+        SELECT n.bucket_id, n.name
+        FROM new_rows n
+        WHERE n.name <> '' AND position('/' in n.name) > 0
+        EXCEPT
+        SELECT o.bucket_id, o.name FROM old_rows o WHERE o.name <> ''
+    ),
+    moved AS (
+         SELECT o.bucket_id, o.name
+         FROM old_rows o
+         WHERE o.name <> ''
+         EXCEPT
+         SELECT n.bucket_id, n.name FROM new_rows n WHERE n.name <> ''
+    )
+    SELECT
+        -- arrays for ADDED (dest) in stable order
+        COALESCE( (SELECT array_agg(a.bucket_id ORDER BY a.bucket_id, a.name) FROM added a), '{}' ),
+        COALESCE( (SELECT array_agg(a.name      ORDER BY a.bucket_id, a.name) FROM added a), '{}' ),
+        -- arrays for MOVED (src) in stable order
+        COALESCE( (SELECT array_agg(m.bucket_id ORDER BY m.bucket_id, m.name) FROM moved m), '{}' ),
+        COALESCE( (SELECT array_agg(m.name      ORDER BY m.bucket_id, m.name) FROM moved m), '{}' )
+    INTO v_add_bucket_ids, v_add_names, v_src_bucket_ids, v_src_names;
+
+    -- Nothing to do?
+    IF (array_length(v_add_bucket_ids, 1) IS NULL) AND (array_length(v_src_bucket_ids, 1) IS NULL) THEN
+        RETURN NULL;
+    END IF;
+
+    -- 2) Take per-(bucket, top) locks: ALL prefixes in consistent global order to prevent deadlocks
+    DECLARE
+        v_all_bucket_ids text[];
+        v_all_names text[];
+    BEGIN
+        -- Combine source and destination arrays for consistent lock ordering
+        v_all_bucket_ids := COALESCE(v_src_bucket_ids, '{}') || COALESCE(v_add_bucket_ids, '{}');
+        v_all_names := COALESCE(v_src_names, '{}') || COALESCE(v_add_names, '{}');
+
+        -- Single lock call ensures consistent global ordering across all transactions
+        IF array_length(v_all_bucket_ids, 1) IS NOT NULL THEN
+            PERFORM storage.lock_top_prefixes(v_all_bucket_ids, v_all_names);
+        END IF;
+    END;
+
+    -- 3) Create destination prefixes (NEW−OLD) BEFORE pruning sources
+    IF array_length(v_add_bucket_ids, 1) IS NOT NULL THEN
+        WITH candidates AS (
+            SELECT DISTINCT t.bucket_id, unnest(storage.get_prefixes(t.name)) AS name
+            FROM unnest(v_add_bucket_ids, v_add_names) AS t(bucket_id, name)
+            WHERE name <> ''
+        )
+        INSERT INTO storage.prefixes (bucket_id, name)
+        SELECT c.bucket_id, c.name
+        FROM candidates c
+        ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- 4) Prune source prefixes bottom-up for OLD−NEW
+    IF array_length(v_src_bucket_ids, 1) IS NOT NULL THEN
+        -- re-entrancy guard so DELETE on prefixes won't recurse
+        IF current_setting('storage.gc.prefixes', true) <> '1' THEN
+            PERFORM set_config('storage.gc.prefixes', '1', true);
+        END IF;
+
+        PERFORM storage.delete_leaf_prefixes(v_src_bucket_ids, v_src_names);
+    END IF;
+
+    RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION storage.objects_update_cleanup() OWNER TO supabase_storage_admin;
+
+--
+-- Name: objects_update_level_trigger(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.objects_update_level_trigger() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Ensure this is an update operation and the name has changed
+    IF TG_OP = 'UPDATE' AND (NEW."name" <> OLD."name" OR NEW."bucket_id" <> OLD."bucket_id") THEN
+        -- Set the new level
+        NEW."level" := "storage"."get_level"(NEW."name");
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION storage.objects_update_level_trigger() OWNER TO supabase_storage_admin;
+
+--
+-- Name: objects_update_prefix_trigger(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.objects_update_prefix_trigger() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    old_prefixes TEXT[];
+BEGIN
+    -- Ensure this is an update operation and the name has changed
+    IF TG_OP = 'UPDATE' AND (NEW."name" <> OLD."name" OR NEW."bucket_id" <> OLD."bucket_id") THEN
+        -- Retrieve old prefixes
+        old_prefixes := "storage"."get_prefixes"(OLD."name");
+
+        -- Remove old prefixes that are only used by this object
+        WITH all_prefixes as (
+            SELECT unnest(old_prefixes) as prefix
+        ),
+        can_delete_prefixes as (
+             SELECT prefix
+             FROM all_prefixes
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM "storage"."objects"
+                 WHERE "bucket_id" = OLD."bucket_id"
+                   AND "name" <> OLD."name"
+                   AND "name" LIKE (prefix || '%')
+             )
+         )
+        DELETE FROM "storage"."prefixes" WHERE name IN (SELECT prefix FROM can_delete_prefixes);
+
+        -- Add new prefixes
+        PERFORM "storage"."add_prefixes"(NEW."bucket_id", NEW."name");
+    END IF;
+    -- Set the new level
+    NEW."level" := "storage"."get_level"(NEW."name");
+
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION storage.objects_update_prefix_trigger() OWNER TO supabase_storage_admin;
+
+--
+-- Name: operation(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.operation() RETURNS text
+    LANGUAGE plpgsql STABLE
+    AS $$
+BEGIN
+    RETURN current_setting('storage.operation', true);
+END;
+$$;
+
+
+ALTER FUNCTION storage.operation() OWNER TO supabase_storage_admin;
+
+--
+-- Name: prefixes_delete_cleanup(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.prefixes_delete_cleanup() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_bucket_ids text[];
+    v_names      text[];
+BEGIN
+    IF current_setting('storage.gc.prefixes', true) = '1' THEN
+        RETURN NULL;
+    END IF;
+
+    PERFORM set_config('storage.gc.prefixes', '1', true);
+
+    SELECT COALESCE(array_agg(d.bucket_id), '{}'),
+           COALESCE(array_agg(d.name), '{}')
+    INTO v_bucket_ids, v_names
+    FROM deleted AS d
+    WHERE d.name <> '';
+
+    PERFORM storage.lock_top_prefixes(v_bucket_ids, v_names);
+    PERFORM storage.delete_leaf_prefixes(v_bucket_ids, v_names);
+
+    RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION storage.prefixes_delete_cleanup() OWNER TO supabase_storage_admin;
+
+--
+-- Name: prefixes_insert_trigger(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.prefixes_insert_trigger() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    PERFORM "storage"."add_prefixes"(NEW."bucket_id", NEW."name");
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION storage.prefixes_insert_trigger() OWNER TO supabase_storage_admin;
+
+--
+-- Name: search(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.search(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql
+    AS $$
+declare
+    can_bypass_rls BOOLEAN;
+begin
+    SELECT rolbypassrls
+    INTO can_bypass_rls
+    FROM pg_roles
+    WHERE rolname = coalesce(nullif(current_setting('role', true), 'none'), current_user);
+
+    IF can_bypass_rls THEN
+        RETURN QUERY SELECT * FROM storage.search_v1_optimised(prefix, bucketname, limits, levels, offsets, search, sortcolumn, sortorder);
+    ELSE
+        RETURN QUERY SELECT * FROM storage.search_legacy_v1(prefix, bucketname, limits, levels, offsets, search, sortcolumn, sortorder);
+    END IF;
+end;
+$$;
+
+
+ALTER FUNCTION storage.search(prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: search_legacy_v1(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.search_legacy_v1(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+declare
+    v_order_by text;
+    v_sort_order text;
+begin
+    case
+        when sortcolumn = 'name' then
+            v_order_by = 'name';
+        when sortcolumn = 'updated_at' then
+            v_order_by = 'updated_at';
+        when sortcolumn = 'created_at' then
+            v_order_by = 'created_at';
+        when sortcolumn = 'last_accessed_at' then
+            v_order_by = 'last_accessed_at';
+        else
+            v_order_by = 'name';
+        end case;
+
+    case
+        when sortorder = 'asc' then
+            v_sort_order = 'asc';
+        when sortorder = 'desc' then
+            v_sort_order = 'desc';
+        else
+            v_sort_order = 'asc';
+        end case;
+
+    v_order_by = v_order_by || ' ' || v_sort_order;
+
+    return query execute
+        'with folders as (
+           select path_tokens[$1] as folder
+           from storage.objects
+             where objects.name ilike $2 || $3 || ''%''
+               and bucket_id = $4
+               and array_length(objects.path_tokens, 1) <> $1
+           group by folder
+           order by folder ' || v_sort_order || '
+     )
+     (select folder as "name",
+            null as id,
+            null as updated_at,
+            null as created_at,
+            null as last_accessed_at,
+            null as metadata from folders)
+     union all
+     (select path_tokens[$1] as "name",
+            id,
+            updated_at,
+            created_at,
+            last_accessed_at,
+            metadata
+     from storage.objects
+     where objects.name ilike $2 || $3 || ''%''
+       and bucket_id = $4
+       and array_length(objects.path_tokens, 1) = $1
+     order by ' || v_order_by || ')
+     limit $5
+     offset $6' using levels, prefix, search, bucketname, limits, offsets;
+end;
+$_$;
+
+
+ALTER FUNCTION storage.search_legacy_v1(prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: search_v1_optimised(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.search_v1_optimised(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+declare
+    v_order_by text;
+    v_sort_order text;
+begin
+    case
+        when sortcolumn = 'name' then
+            v_order_by = 'name';
+        when sortcolumn = 'updated_at' then
+            v_order_by = 'updated_at';
+        when sortcolumn = 'created_at' then
+            v_order_by = 'created_at';
+        when sortcolumn = 'last_accessed_at' then
+            v_order_by = 'last_accessed_at';
+        else
+            v_order_by = 'name';
+        end case;
+
+    case
+        when sortorder = 'asc' then
+            v_sort_order = 'asc';
+        when sortorder = 'desc' then
+            v_sort_order = 'desc';
+        else
+            v_sort_order = 'asc';
+        end case;
+
+    v_order_by = v_order_by || ' ' || v_sort_order;
+
+    return query execute
+        'with folders as (
+           select (string_to_array(name, ''/''))[level] as name
+           from storage.prefixes
+             where lower(prefixes.name) like lower($2 || $3) || ''%''
+               and bucket_id = $4
+               and level = $1
+           order by name ' || v_sort_order || '
+     )
+     (select name,
+            null as id,
+            null as updated_at,
+            null as created_at,
+            null as last_accessed_at,
+            null as metadata from folders)
+     union all
+     (select path_tokens[level] as "name",
+            id,
+            updated_at,
+            created_at,
+            last_accessed_at,
+            metadata
+     from storage.objects
+     where lower(objects.name) like lower($2 || $3) || ''%''
+       and bucket_id = $4
+       and level = $1
+     order by ' || v_order_by || ')
+     limit $5
+     offset $6' using levels, prefix, search, bucketname, limits, offsets;
+end;
+$_$;
+
+
+ALTER FUNCTION storage.search_v1_optimised(prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: search_v2(text, text, integer, integer, text, text, text, text); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.search_v2(prefix text, bucket_name text, limits integer DEFAULT 100, levels integer DEFAULT 1, start_after text DEFAULT ''::text, sort_order text DEFAULT 'asc'::text, sort_column text DEFAULT 'name'::text, sort_column_after text DEFAULT ''::text) RETURNS TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+DECLARE
+    sort_col text;
+    sort_ord text;
+    cursor_op text;
+    cursor_expr text;
+    sort_expr text;
+BEGIN
+    -- Validate sort_order
+    sort_ord := lower(sort_order);
+    IF sort_ord NOT IN ('asc', 'desc') THEN
+        sort_ord := 'asc';
+    END IF;
+
+    -- Determine cursor comparison operator
+    IF sort_ord = 'asc' THEN
+        cursor_op := '>';
+    ELSE
+        cursor_op := '<';
+    END IF;
+    
+    sort_col := lower(sort_column);
+    -- Validate sort column  
+    IF sort_col IN ('updated_at', 'created_at') THEN
+        cursor_expr := format(
+            '($5 = '''' OR ROW(date_trunc(''milliseconds'', %I), name COLLATE "C") %s ROW(COALESCE(NULLIF($6, '''')::timestamptz, ''epoch''::timestamptz), $5))',
+            sort_col, cursor_op
+        );
+        sort_expr := format(
+            'COALESCE(date_trunc(''milliseconds'', %I), ''epoch''::timestamptz) %s, name COLLATE "C" %s',
+            sort_col, sort_ord, sort_ord
+        );
+    ELSE
+        cursor_expr := format('($5 = '''' OR name COLLATE "C" %s $5)', cursor_op);
+        sort_expr := format('name COLLATE "C" %s', sort_ord);
+    END IF;
+
+    RETURN QUERY EXECUTE format(
+        $sql$
+        SELECT * FROM (
+            (
+                SELECT
+                    split_part(name, '/', $4) AS key,
+                    name,
+                    NULL::uuid AS id,
+                    updated_at,
+                    created_at,
+                    NULL::timestamptz AS last_accessed_at,
+                    NULL::jsonb AS metadata
+                FROM storage.prefixes
+                WHERE name COLLATE "C" LIKE $1 || '%%'
+                    AND bucket_id = $2
+                    AND level = $4
+                    AND %s
+                ORDER BY %s
+                LIMIT $3
+            )
+            UNION ALL
+            (
+                SELECT
+                    split_part(name, '/', $4) AS key,
+                    name,
+                    id,
+                    updated_at,
+                    created_at,
+                    last_accessed_at,
+                    metadata
+                FROM storage.objects
+                WHERE name COLLATE "C" LIKE $1 || '%%'
+                    AND bucket_id = $2
+                    AND level = $4
+                    AND %s
+                ORDER BY %s
+                LIMIT $3
+            )
+        ) obj
+        ORDER BY %s
+        LIMIT $3
+        $sql$,
+        cursor_expr,    -- prefixes WHERE
+        sort_expr,      -- prefixes ORDER BY
+        cursor_expr,    -- objects WHERE
+        sort_expr,      -- objects ORDER BY
+        sort_expr       -- final ORDER BY
+    )
+    USING prefix, bucket_name, limits, levels, start_after, sort_column_after;
+END;
+$_$;
+
+
+ALTER FUNCTION storage.search_v2(prefix text, bucket_name text, limits integer, levels integer, start_after text, sort_order text, sort_column text, sort_column_after text) OWNER TO supabase_storage_admin;
+
+--
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE FUNCTION storage.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW; 
+END;
+$$;
+
+
+ALTER FUNCTION storage.update_updated_at_column() OWNER TO supabase_storage_admin;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: audit_log_entries; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.audit_log_entries (
+    instance_id uuid,
+    id uuid NOT NULL,
+    payload json,
+    created_at timestamp with time zone,
+    ip_address character varying(64) DEFAULT ''::character varying NOT NULL
+);
+
+
+ALTER TABLE auth.audit_log_entries OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE audit_log_entries; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.audit_log_entries IS 'Auth: Audit trail for user actions.';
+
+
+--
+-- Name: flow_state; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.flow_state (
+    id uuid NOT NULL,
+    user_id uuid,
+    auth_code text NOT NULL,
+    code_challenge_method auth.code_challenge_method NOT NULL,
+    code_challenge text NOT NULL,
+    provider_type text NOT NULL,
+    provider_access_token text,
+    provider_refresh_token text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    authentication_method text NOT NULL,
+    auth_code_issued_at timestamp with time zone
+);
+
+
+ALTER TABLE auth.flow_state OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE flow_state; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.flow_state IS 'stores metadata for pkce logins';
+
+
+--
+-- Name: identities; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.identities (
+    provider_id text NOT NULL,
+    user_id uuid NOT NULL,
+    identity_data jsonb NOT NULL,
+    provider text NOT NULL,
+    last_sign_in_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    email text GENERATED ALWAYS AS (lower((identity_data ->> 'email'::text))) STORED,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+ALTER TABLE auth.identities OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE identities; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.identities IS 'Auth: Stores identities associated to a user.';
+
+
+--
+-- Name: COLUMN identities.email; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON COLUMN auth.identities.email IS 'Auth: Email is a generated column that references the optional email property in the identity_data';
+
+
+--
+-- Name: instances; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.instances (
+    id uuid NOT NULL,
+    uuid uuid,
+    raw_base_config text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+ALTER TABLE auth.instances OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE instances; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.instances IS 'Auth: Manages users across multiple sites.';
+
+
+--
+-- Name: mfa_amr_claims; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.mfa_amr_claims (
+    session_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    authentication_method text NOT NULL,
+    id uuid NOT NULL
+);
+
+
+ALTER TABLE auth.mfa_amr_claims OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE mfa_amr_claims; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.mfa_amr_claims IS 'auth: stores authenticator method reference claims for multi factor authentication';
+
+
+--
+-- Name: mfa_challenges; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.mfa_challenges (
+    id uuid NOT NULL,
+    factor_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    verified_at timestamp with time zone,
+    ip_address inet NOT NULL,
+    otp_code text,
+    web_authn_session_data jsonb
+);
+
+
+ALTER TABLE auth.mfa_challenges OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE mfa_challenges; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.mfa_challenges IS 'auth: stores metadata about challenge requests made';
+
+
+--
+-- Name: mfa_factors; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.mfa_factors (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    friendly_name text,
+    factor_type auth.factor_type NOT NULL,
+    status auth.factor_status NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    secret text,
+    phone text,
+    last_challenged_at timestamp with time zone,
+    web_authn_credential jsonb,
+    web_authn_aaguid uuid,
+    last_webauthn_challenge_data jsonb
+);
+
+
+ALTER TABLE auth.mfa_factors OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE mfa_factors; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.mfa_factors IS 'auth: stores metadata about factors';
+
+
+--
+-- Name: COLUMN mfa_factors.last_webauthn_challenge_data; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON COLUMN auth.mfa_factors.last_webauthn_challenge_data IS 'Stores the latest WebAuthn challenge data including attestation/assertion for customer verification';
+
+
+--
+-- Name: oauth_authorizations; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.oauth_authorizations (
+    id uuid NOT NULL,
+    authorization_id text NOT NULL,
+    client_id uuid NOT NULL,
+    user_id uuid,
+    redirect_uri text NOT NULL,
+    scope text NOT NULL,
+    state text,
+    resource text,
+    code_challenge text,
+    code_challenge_method auth.code_challenge_method,
+    response_type auth.oauth_response_type DEFAULT 'code'::auth.oauth_response_type NOT NULL,
+    status auth.oauth_authorization_status DEFAULT 'pending'::auth.oauth_authorization_status NOT NULL,
+    authorization_code text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone DEFAULT (now() + '00:03:00'::interval) NOT NULL,
+    approved_at timestamp with time zone,
+    CONSTRAINT oauth_authorizations_authorization_code_length CHECK ((char_length(authorization_code) <= 255)),
+    CONSTRAINT oauth_authorizations_code_challenge_length CHECK ((char_length(code_challenge) <= 128)),
+    CONSTRAINT oauth_authorizations_expires_at_future CHECK ((expires_at > created_at)),
+    CONSTRAINT oauth_authorizations_redirect_uri_length CHECK ((char_length(redirect_uri) <= 2048)),
+    CONSTRAINT oauth_authorizations_resource_length CHECK ((char_length(resource) <= 2048)),
+    CONSTRAINT oauth_authorizations_scope_length CHECK ((char_length(scope) <= 4096)),
+    CONSTRAINT oauth_authorizations_state_length CHECK ((char_length(state) <= 4096))
+);
+
+
+ALTER TABLE auth.oauth_authorizations OWNER TO supabase_auth_admin;
+
+--
+-- Name: oauth_clients; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.oauth_clients (
+    id uuid NOT NULL,
+    client_secret_hash text,
+    registration_type auth.oauth_registration_type NOT NULL,
+    redirect_uris text NOT NULL,
+    grant_types text NOT NULL,
+    client_name text,
+    client_uri text,
+    logo_uri text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    client_type auth.oauth_client_type DEFAULT 'confidential'::auth.oauth_client_type NOT NULL,
+    CONSTRAINT oauth_clients_client_name_length CHECK ((char_length(client_name) <= 1024)),
+    CONSTRAINT oauth_clients_client_uri_length CHECK ((char_length(client_uri) <= 2048)),
+    CONSTRAINT oauth_clients_logo_uri_length CHECK ((char_length(logo_uri) <= 2048))
+);
+
+
+ALTER TABLE auth.oauth_clients OWNER TO supabase_auth_admin;
+
+--
+-- Name: oauth_consents; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.oauth_consents (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    client_id uuid NOT NULL,
+    scopes text NOT NULL,
+    granted_at timestamp with time zone DEFAULT now() NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT oauth_consents_revoked_after_granted CHECK (((revoked_at IS NULL) OR (revoked_at >= granted_at))),
+    CONSTRAINT oauth_consents_scopes_length CHECK ((char_length(scopes) <= 2048)),
+    CONSTRAINT oauth_consents_scopes_not_empty CHECK ((char_length(TRIM(BOTH FROM scopes)) > 0))
+);
+
+
+ALTER TABLE auth.oauth_consents OWNER TO supabase_auth_admin;
+
+--
+-- Name: one_time_tokens; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.one_time_tokens (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    token_type auth.one_time_token_type NOT NULL,
+    token_hash text NOT NULL,
+    relates_to text NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT one_time_tokens_token_hash_check CHECK ((char_length(token_hash) > 0))
+);
+
+
+ALTER TABLE auth.one_time_tokens OWNER TO supabase_auth_admin;
+
+--
+-- Name: refresh_tokens; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.refresh_tokens (
+    instance_id uuid,
+    id bigint NOT NULL,
+    token character varying(255),
+    user_id character varying(255),
+    revoked boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    parent character varying(255),
+    session_id uuid
+);
+
+
+ALTER TABLE auth.refresh_tokens OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE refresh_tokens; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.refresh_tokens IS 'Auth: Store of tokens used to refresh JWT tokens once they expire.';
+
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE SEQUENCE auth.refresh_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE auth.refresh_tokens_id_seq OWNER TO supabase_auth_admin;
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: auth; Owner: supabase_auth_admin
+--
+
+ALTER SEQUENCE auth.refresh_tokens_id_seq OWNED BY auth.refresh_tokens.id;
+
+
+--
+-- Name: saml_providers; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.saml_providers (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    entity_id text NOT NULL,
+    metadata_xml text NOT NULL,
+    metadata_url text,
+    attribute_mapping jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    name_id_format text,
+    CONSTRAINT "entity_id not empty" CHECK ((char_length(entity_id) > 0)),
+    CONSTRAINT "metadata_url not empty" CHECK (((metadata_url = NULL::text) OR (char_length(metadata_url) > 0))),
+    CONSTRAINT "metadata_xml not empty" CHECK ((char_length(metadata_xml) > 0))
+);
+
+
+ALTER TABLE auth.saml_providers OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE saml_providers; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.saml_providers IS 'Auth: Manages SAML Identity Provider connections.';
+
+
+--
+-- Name: saml_relay_states; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.saml_relay_states (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    request_id text NOT NULL,
+    for_email text,
+    redirect_to text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    flow_state_id uuid,
+    CONSTRAINT "request_id not empty" CHECK ((char_length(request_id) > 0))
+);
+
+
+ALTER TABLE auth.saml_relay_states OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE saml_relay_states; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.saml_relay_states IS 'Auth: Contains SAML Relay State information for each Service Provider initiated login.';
+
+
+--
+-- Name: schema_migrations; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.schema_migrations (
+    version character varying(255) NOT NULL
+);
+
+
+ALTER TABLE auth.schema_migrations OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE schema_migrations; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.schema_migrations IS 'Auth: Manages updates to the auth system.';
+
+
+--
+-- Name: sessions; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.sessions (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    factor_id uuid,
+    aal auth.aal_level,
+    not_after timestamp with time zone,
+    refreshed_at timestamp without time zone,
+    user_agent text,
+    ip inet,
+    tag text,
+    oauth_client_id uuid,
+    refresh_token_hmac_key text,
+    refresh_token_counter bigint
+);
+
+
+ALTER TABLE auth.sessions OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE sessions; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.sessions IS 'Auth: Stores session data associated to a user.';
+
+
+--
+-- Name: COLUMN sessions.not_after; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON COLUMN auth.sessions.not_after IS 'Auth: Not after is a nullable column that contains a timestamp after which the session should be regarded as expired.';
+
+
+--
+-- Name: COLUMN sessions.refresh_token_hmac_key; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON COLUMN auth.sessions.refresh_token_hmac_key IS 'Holds a HMAC-SHA256 key used to sign refresh tokens for this session.';
+
+
+--
+-- Name: COLUMN sessions.refresh_token_counter; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON COLUMN auth.sessions.refresh_token_counter IS 'Holds the ID (counter) of the last issued refresh token.';
+
+
+--
+-- Name: sso_domains; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.sso_domains (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    domain text NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT "domain not empty" CHECK ((char_length(domain) > 0))
+);
+
+
+ALTER TABLE auth.sso_domains OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE sso_domains; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.sso_domains IS 'Auth: Manages SSO email address domain mapping to an SSO Identity Provider.';
+
+
+--
+-- Name: sso_providers; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.sso_providers (
+    id uuid NOT NULL,
+    resource_id text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    disabled boolean,
+    CONSTRAINT "resource_id not empty" CHECK (((resource_id = NULL::text) OR (char_length(resource_id) > 0)))
+);
+
+
+ALTER TABLE auth.sso_providers OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE sso_providers; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.sso_providers IS 'Auth: Manages SSO identity provider information; see saml_providers for SAML.';
+
+
+--
+-- Name: COLUMN sso_providers.resource_id; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON COLUMN auth.sso_providers.resource_id IS 'Auth: Uniquely identifies a SSO provider according to a user-chosen resource ID (case insensitive), useful in infrastructure as code.';
+
+
+--
+-- Name: users; Type: TABLE; Schema: auth; Owner: supabase_auth_admin
+--
+
+CREATE TABLE auth.users (
+    instance_id uuid,
+    id uuid NOT NULL,
+    aud character varying(255),
+    role character varying(255),
+    email character varying(255),
+    encrypted_password character varying(255),
+    email_confirmed_at timestamp with time zone,
+    invited_at timestamp with time zone,
+    confirmation_token character varying(255),
+    confirmation_sent_at timestamp with time zone,
+    recovery_token character varying(255),
+    recovery_sent_at timestamp with time zone,
+    email_change_token_new character varying(255),
+    email_change character varying(255),
+    email_change_sent_at timestamp with time zone,
+    last_sign_in_at timestamp with time zone,
+    raw_app_meta_data jsonb,
+    raw_user_meta_data jsonb,
+    is_super_admin boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    phone text DEFAULT NULL::character varying,
+    phone_confirmed_at timestamp with time zone,
+    phone_change text DEFAULT ''::character varying,
+    phone_change_token character varying(255) DEFAULT ''::character varying,
+    phone_change_sent_at timestamp with time zone,
+    confirmed_at timestamp with time zone GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED,
+    email_change_token_current character varying(255) DEFAULT ''::character varying,
+    email_change_confirm_status smallint DEFAULT 0,
+    banned_until timestamp with time zone,
+    reauthentication_token character varying(255) DEFAULT ''::character varying,
+    reauthentication_sent_at timestamp with time zone,
+    is_sso_user boolean DEFAULT false NOT NULL,
+    deleted_at timestamp with time zone,
+    is_anonymous boolean DEFAULT false NOT NULL,
+    CONSTRAINT users_email_change_confirm_status_check CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))
+);
+
+
+ALTER TABLE auth.users OWNER TO supabase_auth_admin;
+
+--
+-- Name: TABLE users; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON TABLE auth.users IS 'Auth: Stores user login data within a secure schema.';
+
+
+--
+-- Name: COLUMN users.is_sso_user; Type: COMMENT; Schema: auth; Owner: supabase_auth_admin
+--
+
+COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when the account comes from SSO. These accounts can have duplicate emails.';
+
+
+--
+-- Name: custom_orders; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.custom_orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    customer_name text NOT NULL,
+    customer_email text NOT NULL,
+    title text NOT NULL,
+    description text NOT NULL,
+    delivery_deadline date NOT NULL,
+    images jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.custom_orders OWNER TO postgres;
+
+--
+-- Name: email_templates; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.email_templates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    template_type text NOT NULL,
+    subject text NOT NULL,
+    html_content text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.email_templates OWNER TO postgres;
+
+--
+-- Name: logos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.logos (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    url text NOT NULL,
+    is_active boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.logos OWNER TO postgres;
+
+--
+-- Name: orders; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    customer_name text NOT NULL,
+    customer_email text NOT NULL,
+    total_amount numeric(10,2) NOT NULL,
+    items jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.orders OWNER TO postgres;
+
+--
+-- Name: products; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.products (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    description text NOT NULL,
+    image text NOT NULL,
+    images text[] DEFAULT ARRAY[]::text[],
+    price numeric(10,2) NOT NULL,
+    category text NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.products OWNER TO postgres;
+
+--
+-- Name: site_settings; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.site_settings (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    key text NOT NULL,
+    value text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.site_settings OWNER TO postgres;
+
+--
+-- Name: user_roles; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_roles (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    role public.app_role NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.user_roles OWNER TO postgres;
+
+--
+--
+
+CREATE TABLE realtime.messages (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+)
+PARTITION BY RANGE (inserted_at);
+
+
+ALTER TABLE realtime.messages OWNER TO supabase_realtime_admin;
+
+--
+--
+
+CREATE TABLE realtime.schema_migrations (
+    version bigint NOT NULL,
+    inserted_at timestamp(0) without time zone
+);
+
+
+ALTER TABLE realtime.schema_migrations OWNER TO supabase_admin;
+
+--
+--
+
+CREATE TABLE realtime.subscription (
+    id bigint NOT NULL,
+    subscription_id uuid NOT NULL,
+    entity regclass NOT NULL,
+    filters realtime.user_defined_filter[] DEFAULT '{}'::realtime.user_defined_filter[] NOT NULL,
+    claims jsonb NOT NULL,
+    claims_role regrole GENERATED ALWAYS AS (realtime.to_regrole((claims ->> 'role'::text))) STORED NOT NULL,
+    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+
+ALTER TABLE realtime.subscription OWNER TO supabase_admin;
+
+--
+--
+
+ALTER TABLE realtime.subscription ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME realtime.subscription_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: buckets; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.buckets (
+    id text NOT NULL,
+    name text NOT NULL,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    public boolean DEFAULT false,
+    avif_autodetection boolean DEFAULT false,
+    file_size_limit bigint,
+    allowed_mime_types text[],
+    owner_id text,
+    type storage.buckettype DEFAULT 'STANDARD'::storage.buckettype NOT NULL
+);
+
+
+ALTER TABLE storage.buckets OWNER TO supabase_storage_admin;
+
+--
+-- Name: COLUMN buckets.owner; Type: COMMENT; Schema: storage; Owner: supabase_storage_admin
+--
+
+COMMENT ON COLUMN storage.buckets.owner IS 'Field is deprecated, use owner_id instead';
+
+
+--
+-- Name: buckets_analytics; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.buckets_analytics (
+    name text NOT NULL,
+    type storage.buckettype DEFAULT 'ANALYTICS'::storage.buckettype NOT NULL,
+    format text DEFAULT 'ICEBERG'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    deleted_at timestamp with time zone
+);
+
+
+ALTER TABLE storage.buckets_analytics OWNER TO supabase_storage_admin;
+
+--
+-- Name: buckets_vectors; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.buckets_vectors (
+    id text NOT NULL,
+    type storage.buckettype DEFAULT 'VECTOR'::storage.buckettype NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE storage.buckets_vectors OWNER TO supabase_storage_admin;
+
+--
+-- Name: migrations; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.migrations (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    hash character varying(40) NOT NULL,
+    executed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE storage.migrations OWNER TO supabase_storage_admin;
+
+--
+-- Name: objects; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.objects (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bucket_id text,
+    name text,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    last_accessed_at timestamp with time zone DEFAULT now(),
+    metadata jsonb,
+    path_tokens text[] GENERATED ALWAYS AS (string_to_array(name, '/'::text)) STORED,
+    version text,
+    owner_id text,
+    user_metadata jsonb,
+    level integer
+);
+
+
+ALTER TABLE storage.objects OWNER TO supabase_storage_admin;
+
+--
+-- Name: COLUMN objects.owner; Type: COMMENT; Schema: storage; Owner: supabase_storage_admin
+--
+
+COMMENT ON COLUMN storage.objects.owner IS 'Field is deprecated, use owner_id instead';
+
+
+--
+-- Name: prefixes; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.prefixes (
+    bucket_id text NOT NULL,
+    name text NOT NULL COLLATE pg_catalog."C",
+    level integer GENERATED ALWAYS AS (storage.get_level(name)) STORED NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE storage.prefixes OWNER TO supabase_storage_admin;
+
+--
+-- Name: s3_multipart_uploads; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.s3_multipart_uploads (
+    id text NOT NULL,
+    in_progress_size bigint DEFAULT 0 NOT NULL,
+    upload_signature text NOT NULL,
+    bucket_id text NOT NULL,
+    key text NOT NULL COLLATE pg_catalog."C",
+    version text NOT NULL,
+    owner_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_metadata jsonb
+);
+
+
+ALTER TABLE storage.s3_multipart_uploads OWNER TO supabase_storage_admin;
+
+--
+-- Name: s3_multipart_uploads_parts; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.s3_multipart_uploads_parts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    upload_id text NOT NULL,
+    size bigint DEFAULT 0 NOT NULL,
+    part_number integer NOT NULL,
+    bucket_id text NOT NULL,
+    key text NOT NULL COLLATE pg_catalog."C",
+    etag text NOT NULL,
+    owner_id text,
+    version text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE storage.s3_multipart_uploads_parts OWNER TO supabase_storage_admin;
+
+--
+-- Name: vector_indexes; Type: TABLE; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE TABLE storage.vector_indexes (
+    id text DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL COLLATE pg_catalog."C",
+    bucket_id text NOT NULL,
+    data_type text NOT NULL,
+    dimension integer NOT NULL,
+    distance_metric text NOT NULL,
+    metadata_configuration jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE storage.vector_indexes OWNER TO supabase_storage_admin;
+
+--
+-- Name: schema_migrations; Type: TABLE; Schema: supabase_migrations; Owner: postgres
+--
+
+CREATE TABLE supabase_migrations.schema_migrations (
+    version text NOT NULL,
+    statements text[],
+    name text
+);
+
+
+ALTER TABLE supabase_migrations.schema_migrations OWNER TO postgres;
+
+--
+-- Name: seed_files; Type: TABLE; Schema: supabase_migrations; Owner: postgres
+--
+
+CREATE TABLE supabase_migrations.seed_files (
+    path text NOT NULL,
+    hash text NOT NULL
+);
+
+
+ALTER TABLE supabase_migrations.seed_files OWNER TO postgres;
+
+--
+-- Name: refresh_tokens id; Type: DEFAULT; Schema: auth; Owner: supabase_auth_admin
+--
+
+ALTER TABLE ONLY auth.refresh_tokens ALTER COLUMN id SET DEFAULT nextval('auth.refresh_tokens_id_seq'::regclass);
+
+
+--
+-- Data for Name: audit_log_entries; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.audit_log_entries (instance_id, id, payload, created_at, ip_address) FROM stdin;
+00000000-0000-0000-0000-000000000000	da259fa7-80f5-4d6b-aa7e-7a100b8fc61d	{"action":"user_signedup","actor_id":"e9bf36df-d468-4ad7-8c67-649024acd847","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"team","traits":{"provider":"email"}}	2025-10-31 11:47:24.593976+00	
+00000000-0000-0000-0000-000000000000	e698cf80-7ccf-4d8d-a046-4ee79d060239	{"action":"login","actor_id":"e9bf36df-d468-4ad7-8c67-649024acd847","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-10-31 11:47:24.606734+00	
+00000000-0000-0000-0000-000000000000	8f8ea2a4-e8f7-4647-95d8-17e93230c478	{"action":"login","actor_id":"e9bf36df-d468-4ad7-8c67-649024acd847","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-10-31 12:02:55.209711+00	
+00000000-0000-0000-0000-000000000000	4c0b6f58-2cfb-45cc-8796-f8f9a8a444d4	{"action":"logout","actor_id":"e9bf36df-d468-4ad7-8c67-649024acd847","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-10-31 12:03:28.128857+00	
+00000000-0000-0000-0000-000000000000	b315b5ec-0b62-4b89-9d23-4e234453fb12	{"action":"login","actor_id":"e9bf36df-d468-4ad7-8c67-649024acd847","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-10-31 12:03:58.44603+00	
+00000000-0000-0000-0000-000000000000	49660f4c-f518-4952-bb79-e9f5e3505418	{"action":"login","actor_id":"e9bf36df-d468-4ad7-8c67-649024acd847","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-10-31 12:04:14.494061+00	
+00000000-0000-0000-0000-000000000000	2ba347b9-7217-417b-8a74-dc6b62a20c8f	{"action":"logout","actor_id":"e9bf36df-d468-4ad7-8c67-649024acd847","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-10-31 12:04:56.225423+00	
+00000000-0000-0000-0000-000000000000	ff13e660-42ad-423f-ae27-93432b3f640e	{"action":"user_invited","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"catarinarebocho30@gmail.com","user_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8"}}	2025-10-31 16:27:58.084738+00	
+00000000-0000-0000-0000-000000000000	3b1de5a3-60c0-439a-b203-61e455961f5e	{"action":"user_signedup","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"team","traits":{"provider":"email"}}	2025-10-31 16:28:27.77593+00	
+00000000-0000-0000-0000-000000000000	56f38215-7dce-452e-a104-f72324f17bc8	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-10-31 22:11:53.312199+00	
+00000000-0000-0000-0000-000000000000	fc06b561-91ed-4e38-81ec-368ecb111b58	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-10-31 22:12:09.600373+00	
+00000000-0000-0000-0000-000000000000	fbf09b90-7fd3-41c0-a886-c9ef91991814	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 16:48:25.387166+00	
+00000000-0000-0000-0000-000000000000	d66fdadc-63a0-4dd5-8ffd-b9fe06ed4925	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 16:59:37.36013+00	
+00000000-0000-0000-0000-000000000000	1af6741c-242e-4476-9686-6b8e7cc7dd40	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 17:00:46.980193+00	
+00000000-0000-0000-0000-000000000000	5b16d68d-5fee-4aa7-89f7-0b888bcd5059	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 17:01:26.677009+00	
+00000000-0000-0000-0000-000000000000	51663fa7-1496-4b03-95ab-9f6753737b7b	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 17:02:59.327192+00	
+00000000-0000-0000-0000-000000000000	a38a4a6e-0c37-410e-9b4a-fa415c27c178	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 17:05:10.263076+00	
+00000000-0000-0000-0000-000000000000	3b2e8000-6ba5-4d22-9250-8cc247ac1dd4	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 17:11:15.584172+00	
+00000000-0000-0000-0000-000000000000	c2d1b65c-e38e-46b1-857e-141364efdc84	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 17:13:54.348255+00	
+00000000-0000-0000-0000-000000000000	535e606e-f4ec-49d3-a163-eec5f07bb8ff	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 17:19:23.087145+00	
+00000000-0000-0000-0000-000000000000	201230cf-c36b-4902-b6df-798c5be76a3f	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 17:27:44.144765+00	
+00000000-0000-0000-0000-000000000000	108a531b-d57f-49c1-b7dc-9e8cc624cc92	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-03 17:28:00.084875+00	
+00000000-0000-0000-0000-000000000000	d94658fb-50b7-49ab-abe3-9851ecad420a	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 17:45:09.977176+00	
+00000000-0000-0000-0000-000000000000	c52df4f1-7802-484e-9a8d-34b0d4cdfc0d	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-03 17:45:31.407193+00	
+00000000-0000-0000-0000-000000000000	66ed52a9-c1de-494b-9de9-2a63d79d8318	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 17:47:43.672822+00	
+00000000-0000-0000-0000-000000000000	a81253e8-aaf2-4afb-9dbb-586ae8544868	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-03 17:47:56.085138+00	
+00000000-0000-0000-0000-000000000000	e23ce622-0a3d-49a5-84f4-38d4aade5321	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 17:49:27.898332+00	
+00000000-0000-0000-0000-000000000000	3d05a389-10c4-4f5f-84d5-9a6d72a9e46b	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-03 17:49:39.428984+00	
+00000000-0000-0000-0000-000000000000	065f7313-2d43-46a8-8a48-74e3adfc1a65	{"action":"user_updated_password","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 17:50:17.818199+00	
+00000000-0000-0000-0000-000000000000	ab3439ff-5d82-43da-8a55-1b45fe1506aa	{"action":"user_modified","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 17:50:17.819254+00	
+00000000-0000-0000-0000-000000000000	bee54f76-5a12-49e0-82cc-428d9c594ba0	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 18:08:31.755921+00	
+00000000-0000-0000-0000-000000000000	2018dcab-fb88-42dc-8d69-3aa2e4e154aa	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-03 18:09:10.917958+00	
+00000000-0000-0000-0000-000000000000	5a74ed44-e8fa-42f8-9414-f71700b68e7c	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 18:10:08.635791+00	
+00000000-0000-0000-0000-000000000000	84e8ed18-2ff0-4b7d-8035-43059c353800	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-03 18:10:18.918807+00	
+00000000-0000-0000-0000-000000000000	4004cb9d-cc43-4123-add1-2a41088e8f10	{"action":"user_updated_password","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 18:10:44.717306+00	
+00000000-0000-0000-0000-000000000000	0ab72196-dcc1-4fdc-a2d1-7549273cfc66	{"action":"user_modified","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 18:10:44.718078+00	
+00000000-0000-0000-0000-000000000000	f1558133-2985-42d8-b5d6-feefab0080a9	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 18:23:51.404604+00	
+00000000-0000-0000-0000-000000000000	7b1f3b2f-6750-4d54-9ce0-16c6c1e77738	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-03 18:24:08.230293+00	
+00000000-0000-0000-0000-000000000000	dc9b44b3-903a-4c8e-9f8f-82b7c6059ee1	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 18:24:34.527204+00	
+00000000-0000-0000-0000-000000000000	4f329465-94d2-40e2-8955-ccb16265b532	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-03 18:27:57.909636+00	
+00000000-0000-0000-0000-000000000000	f4056856-0c4a-4ccc-97ba-829306f20169	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-03 18:28:06.283997+00	
+00000000-0000-0000-0000-000000000000	cdce0ecc-6517-4653-9141-f084878af5b3	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 18:36:19.747138+00	
+00000000-0000-0000-0000-000000000000	ebdbb812-206e-4f72-871e-c2e27fa32234	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 18:38:13.505847+00	
+00000000-0000-0000-0000-000000000000	1f6cdc50-fe93-45c9-8063-9b793ec1dfd0	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-03 20:16:57.785492+00	
+00000000-0000-0000-0000-000000000000	8c733635-7505-4c57-8a39-4633c656d1bd	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-03 20:16:57.805945+00	
+00000000-0000-0000-0000-000000000000	83ddf25f-4540-42bb-b192-693a53967c61	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 20:48:33.952135+00	
+00000000-0000-0000-0000-000000000000	3867e231-ba22-44df-b7e1-cf0f858b0523	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 20:49:06.706665+00	
+00000000-0000-0000-0000-000000000000	e68d755c-9f74-462d-8ada-62ec3747f693	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-03 21:19:19.238706+00	
+00000000-0000-0000-0000-000000000000	0c477574-9567-47c2-a4f4-3115fffbd3fa	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-05 11:07:28.430534+00	
+00000000-0000-0000-0000-000000000000	b1bc3265-92a0-47b2-841d-30e69e095966	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-05 11:07:28.45474+00	
+00000000-0000-0000-0000-000000000000	f2b7be2b-e879-46a4-9dbe-e5d148b064be	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 11:08:05.124802+00	
+00000000-0000-0000-0000-000000000000	2ecd72a5-9645-4a2b-9c89-d1b4505f685f	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-05 14:36:41.709265+00	
+00000000-0000-0000-0000-000000000000	4c91fe34-c3a1-4593-aec7-da3418292cc2	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-05 14:36:41.719343+00	
+00000000-0000-0000-0000-000000000000	da191587-1b50-4d5e-bbab-e5f598d86380	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 14:43:58.041376+00	
+00000000-0000-0000-0000-000000000000	b45e4a39-4755-41b1-be83-8b890b0e6e87	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-05 15:16:09.960758+00	
+00000000-0000-0000-0000-000000000000	5a91c0dc-44eb-4297-9bb6-3029e360b33e	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-05 15:16:27.182555+00	
+00000000-0000-0000-0000-000000000000	9da3a809-cc96-45f4-b568-458f203a46b1	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-05 15:23:07.492756+00	
+00000000-0000-0000-0000-000000000000	75c5734f-4bdd-41f5-820c-cc41d9e4bfd7	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-05 15:23:19.671685+00	
+00000000-0000-0000-0000-000000000000	13af5e91-15aa-4905-a9be-4476d6821272	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 15:24:42.137064+00	
+00000000-0000-0000-0000-000000000000	4eb08571-4be0-4338-885b-fe2f7de1abba	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 15:26:16.41826+00	
+00000000-0000-0000-0000-000000000000	1d72cfe9-2a83-4e5f-8770-7fbd8b142d92	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-05 15:31:45.241208+00	
+00000000-0000-0000-0000-000000000000	096ec0a0-90db-47ef-80ce-966f401c437e	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-05 15:31:55.906167+00	
+00000000-0000-0000-0000-000000000000	25ed7baf-a110-4e7d-8924-0c17a41d449f	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-05 15:40:54.200559+00	
+00000000-0000-0000-0000-000000000000	623f23f5-8555-4b32-8e66-5dd1b5b425ea	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-05 15:41:05.924935+00	
+00000000-0000-0000-0000-000000000000	8d78edcd-ec91-4260-8c96-13db6426c6b2	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-05 15:47:13.253293+00	
+00000000-0000-0000-0000-000000000000	6e0d57cc-0c22-45db-a9fa-67095ad5bc71	{"action":"user_recovery_requested","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"user"}	2025-11-05 15:50:16.377993+00	
+00000000-0000-0000-0000-000000000000	50b7d1b6-4f24-4527-b6ca-19a0604c2acd	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 18:21:32.593964+00	
+00000000-0000-0000-0000-000000000000	fe16b6cc-793e-4ef6-ae59-c0efc3ccebfc	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 18:33:55.605078+00	
+00000000-0000-0000-0000-000000000000	d83579d6-b6a3-4ada-95cf-4cbb611d9d03	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 18:34:34.52089+00	
+00000000-0000-0000-0000-000000000000	220f6fde-0dd9-4448-8ca1-d9fb81dbd11f	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 18:35:21.94655+00	
+00000000-0000-0000-0000-000000000000	5b8b6c1f-2590-476b-a869-6691137f27ea	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 18:42:22.21845+00	
+00000000-0000-0000-0000-000000000000	38912f1b-3f23-4ce6-8f93-3f76a6ebd261	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-05 18:43:22.707432+00	
+00000000-0000-0000-0000-000000000000	db7aa3b8-c6fc-4df1-9149-fdf860559e6a	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 18:43:31.285173+00	
+00000000-0000-0000-0000-000000000000	bc7b8299-8381-4597-adad-ab36923c0fd2	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-05 18:43:35.279268+00	
+00000000-0000-0000-0000-000000000000	97d95bf2-a87b-485f-b4d5-907446ecd20c	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-05 18:43:43.243546+00	
+00000000-0000-0000-0000-000000000000	959925c4-a340-4cfc-b254-247699696482	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-05 18:44:12.434973+00	
+00000000-0000-0000-0000-000000000000	5fd7ea62-3ea1-4d51-a6bd-e4f8d67a6910	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 10:34:57.013749+00	
+00000000-0000-0000-0000-000000000000	c5787ef6-c181-4cd4-87e7-86afe017a149	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 10:49:17.832133+00	
+00000000-0000-0000-0000-000000000000	ad4909d1-b228-4615-a189-b42bc311c29c	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 10:50:20.741327+00	
+00000000-0000-0000-0000-000000000000	698e6769-f6f6-4faf-a39a-db86cfc3042c	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 11:30:56.585127+00	
+00000000-0000-0000-0000-000000000000	c4833625-f35b-4d58-869f-84647a4657f3	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 11:36:31.494515+00	
+00000000-0000-0000-0000-000000000000	a3eefe08-636e-404d-ad8f-c1d4018765ab	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 11:37:21.194861+00	
+00000000-0000-0000-0000-000000000000	f92887b0-4cf5-42ce-a4fa-3b3100a253d6	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 11:40:45.991739+00	
+00000000-0000-0000-0000-000000000000	6c76891b-45e7-42bb-81cc-7fe62ae204d2	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-06 12:42:38.370922+00	
+00000000-0000-0000-0000-000000000000	97ce4974-0c1e-40eb-a16f-5c2a99ea56da	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-06 12:42:38.397728+00	
+00000000-0000-0000-0000-000000000000	81f347da-7e37-41ce-b4f2-57ae8874ee9c	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-06 14:01:42.371197+00	
+00000000-0000-0000-0000-000000000000	715c3642-8328-431d-aba2-60e4171778f6	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-06 14:01:42.381569+00	
+00000000-0000-0000-0000-000000000000	38561209-1253-4f7e-b608-37f5988d1950	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 14:37:38.075841+00	
+00000000-0000-0000-0000-000000000000	4564af68-afcd-4868-8c4c-0e8aefc95c66	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-06 14:37:52.067777+00	
+00000000-0000-0000-0000-000000000000	d7ddf73e-441e-4806-bd53-f7451af33390	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 15:22:53.889874+00	
+00000000-0000-0000-0000-000000000000	35da8fdc-945b-470c-b37b-5a72c01df944	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 15:31:16.721309+00	
+00000000-0000-0000-0000-000000000000	11033649-eaad-4761-bfc0-f503b8ddd20b	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-06 15:31:36.218113+00	
+00000000-0000-0000-0000-000000000000	19cb49a3-a39e-42df-b5fd-d709e632efe0	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 15:38:58.434098+00	
+00000000-0000-0000-0000-000000000000	c283a79a-375b-4b55-a289-e545c85076b4	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 15:59:55.341647+00	
+00000000-0000-0000-0000-000000000000	67c7616c-c359-4627-858d-84d89e4fb99e	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-06 16:00:14.669384+00	
+00000000-0000-0000-0000-000000000000	0d230b63-3510-477c-b6b5-fd732ef30fe1	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 16:03:11.689905+00	
+00000000-0000-0000-0000-000000000000	713861bb-bbac-4f2f-b6fa-e82ddb241564	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-06 16:03:40.697049+00	
+00000000-0000-0000-0000-000000000000	53db37b3-8b19-4985-98eb-9baf8096a2ca	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 16:58:31.567474+00	
+00000000-0000-0000-0000-000000000000	bef17662-54c2-4349-94db-5ef1dac1e365	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 17:14:04.8107+00	
+00000000-0000-0000-0000-000000000000	7f76ef01-394f-4234-8bc7-33ffd149b67c	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 17:14:44.8105+00	
+00000000-0000-0000-0000-000000000000	a85c4d0f-3172-4f4d-90c6-f84c7542cce4	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 17:17:39.259206+00	
+00000000-0000-0000-0000-000000000000	5fbd1add-0217-4898-903e-cb4a487369db	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-06 17:18:02.667239+00	
+00000000-0000-0000-0000-000000000000	cec79c28-a87b-4842-b4ab-6b60e20841d5	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 17:19:45.147037+00	
+00000000-0000-0000-0000-000000000000	7301c3b2-9f6d-4e09-b626-222bab17cb16	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-06 17:29:44.740071+00	
+00000000-0000-0000-0000-000000000000	7db628bf-487f-448e-b3f8-03dda68fd582	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-06 17:30:12.471063+00	
+00000000-0000-0000-0000-000000000000	bd6bf2ca-f0cf-4f8a-a46b-01b6c08eab42	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 18:37:39.369931+00	
+00000000-0000-0000-0000-000000000000	86101e68-54ed-465c-a6b0-6770084f18ec	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-10 18:37:57.629211+00	
+00000000-0000-0000-0000-000000000000	961b5073-8d20-4d02-8837-3ae306009566	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 18:51:54.121566+00	
+00000000-0000-0000-0000-000000000000	02ae51a6-3ced-4a70-b486-d9b006ff916e	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 18:55:32.306986+00	
+00000000-0000-0000-0000-000000000000	71bea640-121d-41d8-8499-00d6b40a4728	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 19:05:00.758755+00	
+00000000-0000-0000-0000-000000000000	fd3cfca1-fd1e-452c-889e-53608eb72869	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-10 19:08:49.502182+00	
+00000000-0000-0000-0000-000000000000	43ecd233-691b-431f-80cd-b0e3d8b5ef67	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 19:11:42.068728+00	
+00000000-0000-0000-0000-000000000000	827344e3-a6ef-4678-a0b0-e867e6ed7730	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 19:22:32.4288+00	
+00000000-0000-0000-0000-000000000000	0f8fbf4a-abd7-4541-a3ad-c5575a8007eb	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-10 19:22:45.630372+00	
+00000000-0000-0000-0000-000000000000	efab5282-cae5-4099-8362-611c2b906667	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 19:39:44.114157+00	
+00000000-0000-0000-0000-000000000000	5c012eed-e313-4a5f-b55a-cfca7f206002	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 19:41:04.415599+00	
+00000000-0000-0000-0000-000000000000	d02b9207-13c0-4690-8b61-748117b2dbc9	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 19:42:05.791786+00	
+00000000-0000-0000-0000-000000000000	e0780be9-04ad-41c5-bafb-ed942f785c97	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-10 19:42:53.553243+00	
+00000000-0000-0000-0000-000000000000	b9cbd758-5948-41ba-bba1-6581be59bce7	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 20:53:39.75834+00	
+00000000-0000-0000-0000-000000000000	e3809703-3b37-4287-8960-0d684c0a55fe	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-10 20:54:11.421231+00	
+00000000-0000-0000-0000-000000000000	345d5afe-a3b3-4188-8da3-6621fa8a1ac1	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 20:58:09.707284+00	
+00000000-0000-0000-0000-000000000000	148902a3-482c-43f2-9a9e-c88a5ea3de94	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-10 21:36:29.721089+00	
+00000000-0000-0000-0000-000000000000	fe12afc5-5982-4d50-86e2-138564e09379	{"action":"logout","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-11-10 21:37:23.148358+00	
+00000000-0000-0000-0000-000000000000	5ce0082d-f605-4e73-a8b4-ed0c180a8dc7	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-11 15:12:43.987126+00	
+00000000-0000-0000-0000-000000000000	f4bf791e-2edf-44f7-974f-0423d1e1152f	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-11 16:47:48.930617+00	
+00000000-0000-0000-0000-000000000000	49a4d453-9c7f-411a-9757-f193b23594d1	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-11 16:47:48.951271+00	
+00000000-0000-0000-0000-000000000000	b83d8538-3d74-4577-8321-3dddab4a69dd	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-11 18:22:01.719348+00	
+00000000-0000-0000-0000-000000000000	e104cc88-8301-42bd-abb2-cd383f50c4e8	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-11 18:22:01.731308+00	
+00000000-0000-0000-0000-000000000000	947ae35d-30b2-41da-8111-4a5e3ef48989	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-12 19:05:33.207505+00	
+00000000-0000-0000-0000-000000000000	2cd4c702-72eb-4035-9fd3-dd54f5a7a80d	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-12 19:05:33.235152+00	
+00000000-0000-0000-0000-000000000000	5941a7e2-59f6-40a2-85df-df7286a17070	{"action":"token_refreshed","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-19 19:08:43.163386+00	
+00000000-0000-0000-0000-000000000000	328364ba-593b-46b3-859c-a1753852ba0c	{"action":"token_revoked","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-11-19 19:08:43.172197+00	
+00000000-0000-0000-0000-000000000000	1eec5361-280f-4726-93a5-437f6914a3a3	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-19 19:09:11.152965+00	
+00000000-0000-0000-0000-000000000000	01e9a67e-7b9f-4a82-959b-6282ba9b3b79	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-19 19:09:44.932367+00	
+00000000-0000-0000-0000-000000000000	f9c0c19c-301d-4aba-843e-e43bf891d129	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-19 19:10:21.606146+00	
+00000000-0000-0000-0000-000000000000	ddb8c5e2-a436-4889-a2c6-48207cc07682	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-19 19:43:39.073818+00	
+00000000-0000-0000-0000-000000000000	b65946d8-d6e5-4ab7-8df6-996848f07b33	{"action":"login","actor_id":"dcb46489-e209-4aa5-81a9-9895f1c474c8","actor_username":"catarinarebocho30@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-11-19 19:52:21.648106+00	
+\.
+
+
+--
+-- Data for Name: flow_state; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.flow_state (id, user_id, auth_code, code_challenge_method, code_challenge, provider_type, provider_access_token, provider_refresh_token, created_at, updated_at, authentication_method, auth_code_issued_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: identities; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at, id) FROM stdin;
+dcb46489-e209-4aa5-81a9-9895f1c474c8	dcb46489-e209-4aa5-81a9-9895f1c474c8	{"sub": "dcb46489-e209-4aa5-81a9-9895f1c474c8", "email": "catarinarebocho30@gmail.com", "email_verified": true, "phone_verified": false}	email	2025-10-31 16:27:58.078603+00	2025-10-31 16:27:58.079236+00	2025-10-31 16:27:58.079236+00	66477d2f-3821-46c7-970f-60fe798b1a15
+\.
+
+
+--
+-- Data for Name: instances; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.instances (id, uuid, raw_base_config, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: mfa_amr_claims; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.mfa_amr_claims (session_id, created_at, updated_at, authentication_method, id) FROM stdin;
+920226be-7d53-48b4-b794-f3b256fea075	2025-11-11 15:12:44.119111+00	2025-11-11 15:12:44.119111+00	password	d9d89a11-1578-4314-9b73-a28994337f16
+9a6e5b48-d752-4eb0-833a-1f9c3afbdd32	2025-11-19 19:09:11.170431+00	2025-11-19 19:09:11.170431+00	password	2bd6b4aa-043b-49d6-a178-59832379ba35
+3facee83-c194-48bb-ae28-f7eb5638278f	2025-11-19 19:09:44.938977+00	2025-11-19 19:09:44.938977+00	password	42e7743a-a032-434c-8155-be230cce74f5
+3c422914-67bb-4514-88fc-03fc75438ccb	2025-11-19 19:10:21.613919+00	2025-11-19 19:10:21.613919+00	password	fa13d4f8-b231-4f41-a934-30d69b82b461
+d8364fd5-f632-4220-89b1-9cb0d9894911	2025-11-19 19:43:39.125386+00	2025-11-19 19:43:39.125386+00	password	921a6e57-e85e-4103-9f76-68c6566f4d62
+232a0feb-621d-4b8e-b342-659822ee320a	2025-11-19 19:52:21.692867+00	2025-11-19 19:52:21.692867+00	password	d3d78709-2657-473d-80ed-68e4079886df
+\.
+
+
+--
+-- Data for Name: mfa_challenges; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.mfa_challenges (id, factor_id, created_at, verified_at, ip_address, otp_code, web_authn_session_data) FROM stdin;
+\.
+
+
+--
+-- Data for Name: mfa_factors; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret, phone, last_challenged_at, web_authn_credential, web_authn_aaguid, last_webauthn_challenge_data) FROM stdin;
+\.
+
+
+--
+-- Data for Name: oauth_authorizations; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.oauth_authorizations (id, authorization_id, client_id, user_id, redirect_uri, scope, state, resource, code_challenge, code_challenge_method, response_type, status, authorization_code, created_at, expires_at, approved_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: oauth_clients; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.oauth_clients (id, client_secret_hash, registration_type, redirect_uris, grant_types, client_name, client_uri, logo_uri, created_at, updated_at, deleted_at, client_type) FROM stdin;
+\.
+
+
+--
+-- Data for Name: oauth_consents; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.oauth_consents (id, user_id, client_id, scopes, granted_at, revoked_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: one_time_tokens; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.one_time_tokens (id, user_id, token_type, token_hash, relates_to, created_at, updated_at) FROM stdin;
+3d6175d9-61e9-4a50-9150-24dab9b2be66	dcb46489-e209-4aa5-81a9-9895f1c474c8	recovery_token	d4c9717c424b7221818e233a46d77c41a56d948098a2c1da4231064b	catarinarebocho30@gmail.com	2025-11-05 15:50:16.728675	2025-11-05 15:50:16.728675
+\.
+
+
+--
+-- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.refresh_tokens (instance_id, id, token, user_id, revoked, created_at, updated_at, parent, session_id) FROM stdin;
+00000000-0000-0000-0000-000000000000	81	l5hztd7ymflf	dcb46489-e209-4aa5-81a9-9895f1c474c8	t	2025-11-11 15:12:44.066443+00	2025-11-11 16:47:48.953866+00	\N	920226be-7d53-48b4-b794-f3b256fea075
+00000000-0000-0000-0000-000000000000	82	73yykbho7tvp	dcb46489-e209-4aa5-81a9-9895f1c474c8	t	2025-11-11 16:47:48.967892+00	2025-11-11 18:22:01.731961+00	l5hztd7ymflf	920226be-7d53-48b4-b794-f3b256fea075
+00000000-0000-0000-0000-000000000000	83	h357jybbnud6	dcb46489-e209-4aa5-81a9-9895f1c474c8	t	2025-11-11 18:22:01.741912+00	2025-11-12 19:05:33.235926+00	73yykbho7tvp	920226be-7d53-48b4-b794-f3b256fea075
+00000000-0000-0000-0000-000000000000	84	p3zlyw46wezq	dcb46489-e209-4aa5-81a9-9895f1c474c8	t	2025-11-12 19:05:33.260408+00	2025-11-19 19:08:43.173488+00	h357jybbnud6	920226be-7d53-48b4-b794-f3b256fea075
+00000000-0000-0000-0000-000000000000	85	ac2r2ypb224x	dcb46489-e209-4aa5-81a9-9895f1c474c8	f	2025-11-19 19:08:43.183319+00	2025-11-19 19:08:43.183319+00	p3zlyw46wezq	920226be-7d53-48b4-b794-f3b256fea075
+00000000-0000-0000-0000-000000000000	86	osu45xweaxsm	dcb46489-e209-4aa5-81a9-9895f1c474c8	f	2025-11-19 19:09:11.167253+00	2025-11-19 19:09:11.167253+00	\N	9a6e5b48-d752-4eb0-833a-1f9c3afbdd32
+00000000-0000-0000-0000-000000000000	87	gicve5ym6v2c	dcb46489-e209-4aa5-81a9-9895f1c474c8	f	2025-11-19 19:09:44.935877+00	2025-11-19 19:09:44.935877+00	\N	3facee83-c194-48bb-ae28-f7eb5638278f
+00000000-0000-0000-0000-000000000000	88	2v3pf2s76hzk	dcb46489-e209-4aa5-81a9-9895f1c474c8	f	2025-11-19 19:10:21.611759+00	2025-11-19 19:10:21.611759+00	\N	3c422914-67bb-4514-88fc-03fc75438ccb
+00000000-0000-0000-0000-000000000000	89	yt27ksst46t7	dcb46489-e209-4aa5-81a9-9895f1c474c8	f	2025-11-19 19:43:39.109849+00	2025-11-19 19:43:39.109849+00	\N	d8364fd5-f632-4220-89b1-9cb0d9894911
+00000000-0000-0000-0000-000000000000	90	sar2e77awvkt	dcb46489-e209-4aa5-81a9-9895f1c474c8	f	2025-11-19 19:52:21.675101+00	2025-11-19 19:52:21.675101+00	\N	232a0feb-621d-4b8e-b342-659822ee320a
+\.
+
+
+--
+-- Data for Name: saml_providers; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.saml_providers (id, sso_provider_id, entity_id, metadata_xml, metadata_url, attribute_mapping, created_at, updated_at, name_id_format) FROM stdin;
+\.
+
+
+--
+-- Data for Name: saml_relay_states; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.saml_relay_states (id, sso_provider_id, request_id, for_email, redirect_to, created_at, updated_at, flow_state_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: schema_migrations; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.schema_migrations (version) FROM stdin;
+20171026211738
+20171026211808
+20171026211834
+20180103212743
+20180108183307
+20180119214651
+20180125194653
+00
+20210710035447
+20210722035447
+20210730183235
+20210909172000
+20210927181326
+20211122151130
+20211124214934
+20211202183645
+20220114185221
+20220114185340
+20220224000811
+20220323170000
+20220429102000
+20220531120530
+20220614074223
+20220811173540
+20221003041349
+20221003041400
+20221011041400
+20221020193600
+20221021073300
+20221021082433
+20221027105023
+20221114143122
+20221114143410
+20221125140132
+20221208132122
+20221215195500
+20221215195800
+20221215195900
+20230116124310
+20230116124412
+20230131181311
+20230322519590
+20230402418590
+20230411005111
+20230508135423
+20230523124323
+20230818113222
+20230914180801
+20231027141322
+20231114161723
+20231117164230
+20240115144230
+20240214120130
+20240306115329
+20240314092811
+20240427152123
+20240612123726
+20240729123726
+20240802193726
+20240806073726
+20241009103726
+20250717082212
+20250731150234
+20250804100000
+20250901200500
+20250903112500
+20250904133000
+20250925093508
+20251007112900
+\.
+
+
+--
+-- Data for Name: sessions; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.sessions (id, user_id, created_at, updated_at, factor_id, aal, not_after, refreshed_at, user_agent, ip, tag, oauth_client_id, refresh_token_hmac_key, refresh_token_counter) FROM stdin;
+920226be-7d53-48b4-b794-f3b256fea075	dcb46489-e209-4aa5-81a9-9895f1c474c8	2025-11-11 15:12:44.023384+00	2025-11-19 19:08:43.196234+00	\N	aal1	\N	2025-11-19 19:08:43.195485	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36	94.62.192.228	\N	\N	\N	\N
+9a6e5b48-d752-4eb0-833a-1f9c3afbdd32	dcb46489-e209-4aa5-81a9-9895f1c474c8	2025-11-19 19:09:11.158519+00	2025-11-19 19:09:11.158519+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36	94.62.192.228	\N	\N	\N	\N
+3facee83-c194-48bb-ae28-f7eb5638278f	dcb46489-e209-4aa5-81a9-9895f1c474c8	2025-11-19 19:09:44.933844+00	2025-11-19 19:09:44.933844+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36	94.62.192.228	\N	\N	\N	\N
+3c422914-67bb-4514-88fc-03fc75438ccb	dcb46489-e209-4aa5-81a9-9895f1c474c8	2025-11-19 19:10:21.608129+00	2025-11-19 19:10:21.608129+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36	94.62.192.228	\N	\N	\N	\N
+d8364fd5-f632-4220-89b1-9cb0d9894911	dcb46489-e209-4aa5-81a9-9895f1c474c8	2025-11-19 19:43:39.098125+00	2025-11-19 19:43:39.098125+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36	94.62.192.228	\N	\N	\N	\N
+232a0feb-621d-4b8e-b342-659822ee320a	dcb46489-e209-4aa5-81a9-9895f1c474c8	2025-11-19 19:52:21.663616+00	2025-11-19 19:52:21.663616+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36	94.62.192.228	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: sso_domains; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.sso_domains (id, sso_provider_id, domain, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: sso_providers; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.sso_providers (id, resource_id, created_at, updated_at, disabled) FROM stdin;
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, invited_at, confirmation_token, confirmation_sent_at, recovery_token, recovery_sent_at, email_change_token_new, email_change, email_change_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, created_at, updated_at, phone, phone_confirmed_at, phone_change, phone_change_token, phone_change_sent_at, email_change_token_current, email_change_confirm_status, banned_until, reauthentication_token, reauthentication_sent_at, is_sso_user, deleted_at, is_anonymous) FROM stdin;
+00000000-0000-0000-0000-000000000000	dcb46489-e209-4aa5-81a9-9895f1c474c8	authenticated	authenticated	catarinarebocho30@gmail.com	$2a$06$0Jyd15BRjIzAOs07Ms1dg.nWMQ9Bt4aK219gVFevya6KoObKbzIsm	2025-10-31 16:28:27.776595+00	2025-10-31 16:27:58.103662+00		\N	d4c9717c424b7221818e233a46d77c41a56d948098a2c1da4231064b	2025-11-05 15:50:16.379651+00			\N	2025-11-19 19:52:21.662743+00	{"provider": "email", "providers": ["email"]}	{"email_verified": true}	\N	2025-10-31 16:27:58.057603+00	2025-11-19 19:52:21.689598+00	\N	\N			\N		0	\N		\N	f	\N	f
+\.
+
+
+--
+-- Data for Name: custom_orders; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.custom_orders (id, customer_name, customer_email, title, description, delivery_deadline, images, created_at) FROM stdin;
+86a4b03c-7fac-4ecd-aec4-be72bda71e15	iuyho y	catarinarebocho30@gmail.com	oiuhuuuuuuuuuu	shshshs sjsjsjsjsjs	2026-01-30	["https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/custom-orders/1762449553412-0.6684863487054966.png"]	2025-11-06 17:19:25.213012+00
+0fde530c-268d-4ee7-9d89-eed33748075c	Cristina	cristinarebocho@sapo.pt	Peça personalizada bla bla	quero uma cena bla bla bla bla	2026-01-30	["https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/custom-orders/1762808206519-0.5985415347249605.png"]	2025-11-10 20:56:58.951874+00
+5f52878a-f77a-4136-b29c-00929e91cffe	kdhuds ds	catarinarebocho30@gmail.com	uhiu iuhiyiyh	fdgdugdehueihdeoideoihdedede	2026-02-01	["https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/custom-orders/1762810513530-0.2918720171976631.png"]	2025-11-10 21:35:22.177579+00
+\.
+
+
+--
+-- Data for Name: email_templates; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.email_templates (id, template_type, subject, html_content, updated_at, created_at) FROM stdin;
+0ac8e3bb-d5a2-4403-a8bf-be8e5e3b17a5	custom_order_customer	ReBoho | Pedido de Orçamento Recebido	<!DOCTYPE html>\n<html>\n  <head>\n    <style>\n      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n      .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n      .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n      .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }\n      h1 { margin: 0; font-size: 24px; }\n    </style>\n  </head>\n  <body>\n    <div class="container">\n      <div class="header">\n        <h1>Pedido de orçamento recebido!</h1>\n      </div>\n      <div class="content">\n        <p>Olá {{customerName}},</p>\n        <p>Recebemos o teu pedido de orçamento para uma peça personalizada!</p>\n        <p>Vamos analisar e entraremos em contacto contigo em breve.</p>\n        <p>Com carinho,<br><strong>ReBoho</strong></p>\n      </div>\n    </div>\n  </body>\n</html>	2025-11-10 20:54:03.337236+00	2025-11-10 18:25:53.143403+00
+d5e27b30-2eba-4599-9dc8-207232575cdd	custom_order_store	ReBoho | Novo Pedido de Orçamento	<!DOCTYPE html>\n<html>\n  <head>\n    <style>\n      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n      .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n      .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n      .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }\n      .info-block { background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #D4A574; }\n      .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }\n      h1 { margin: 0; font-size: 24px; }\n      h2 { color: #D4A574; font-size: 18px; margin-top: 0; }\n      .label { font-weight: bold; color: #666; }\n    </style>\n  </head>\n  <body>\n    <div class="container">\n      <div class="header">\n        <h1>{{subject}}</h1>\n      </div>\n      <div class="content">\n        <h2>Detalhes do pedido de orçamento</h2>\n        <div class="info-block">\n          <p><span class="label">Nome:</span> {{customerName}}</p>\n          <p><span class="label">Email:</span> {{customerEmail}}</p>\n        </div>\n        <h2>Descrição da peça</h2>\n        <div class="info-block">\n          {{details}}\n        </div>\n      </div>\n      <div class="footer">\n        <p>ReBoho - Email automático</p>\n      </div>\n    </div>\n  </body>\n</html>	2025-11-10 20:54:08.169446+00	2025-11-10 18:25:53.143403+00
+a5e52a0c-f8a3-47ad-8f5f-9eb15174acfc	cart_order_customer	ReBoho | Encomenda recebida	<!DOCTYPE html>\n<html>\n  <head>\n    <style>\n      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n      .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n      .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n      .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }\n      h1 { margin: 0; font-size: 24px; }\n    </style>\n  </head>\n  <body>\n    <div class="container">\n      <div class="header">\n        <h1>Obrigada pela tua encomenda!</h1>\n      </div>\n      <div class="content">\n        <p>Ola {{customerName}},</p>\n        <p>Recebemos a tua encomenda com sucesso!</p>\n        <p>Iremos entrar em contacto contigo brevemente com as informações de pagamento e envio.</p>\n        <p>Com carinho,<br><strong>ReBoho</strong></p>\n      </div>\n    </div>\n  </body>\n</html>	2025-11-10 20:53:51.92427+00	2025-11-10 18:25:53.143403+00
+116f29da-b15c-4c20-9f93-0d965f922e10	cart_order_store	ReBoho | Nova encomenda	<!DOCTYPE html>\n<html>\n  <head>\n    <style>\n      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n      .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n      .header { background: linear-gradient(135deg, #D4A574 0%, #B8956A 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n      .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }\n      .info-block { background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #D4A574; }\n      .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }\n      h1 { margin: 0; font-size: 24px; }\n      h2 { color: #D4A574; font-size: 18px; margin-top: 0; }\n      .label { font-weight: bold; color: #666; }\n    </style>\n  </head>\n  <body>\n    <div class="container">\n      <div class="header">\n        <h1>{{subject}}</h1>\n      </div>\n      <div class="content">\n        <h2>Detalhes da encomenda</h2>\n        <div class="info-block">\n          <p><span class="label">Nome:</span> {{customerName}}</p>\n          <p><span class="label">Email:</span> {{customerEmail}}</p>\n        </div>\n        <h2>Produtos</h2>\n        <div class="info-block">\n          {{details}}\n        </div>\n      </div>\n      <div class="footer">\n        <p>ReBoho - Email automático</p>\n      </div>\n    </div>\n  </body>\n</html>	2025-11-10 20:53:57.219702+00	2025-11-10 18:25:53.143403+00
+\.
+
+
+--
+-- Data for Name: logos; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.logos (id, url, is_active, created_at) FROM stdin;
+58a7e9cf-5a94-45e9-8a19-98df37ab61b6	https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/logo-1762445008016.png	f	2025-11-06 16:03:28.755887+00
+a35cc33a-939f-416b-80e9-cb083533e8df	https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/logo-1762444999795.png	t	2025-11-06 16:03:20.71938+00
+\.
+
+
+--
+-- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.orders (id, customer_name, customer_email, total_amount, items, created_at) FROM stdin;
+e39adfb2-6bf2-40cc-acc3-457f6cff9a8d	uuwuwuw ww	catarinarebocho30@gmail.com	70.00	[{"quantity": 1, "subtotal": 32, "product_id": "7ed09b98-c7a7-4a00-a8f4-36fdef928372", "product_price": 32, "product_title": "Woven Storage Basket"}, {"quantity": 1, "subtotal": 38, "product_id": "d808bb2d-0d80-46b5-9fec-cf8d8a7f5c87", "product_price": 38, "product_title": "Ceramic Planter Set"}]	2025-11-06 17:18:35.167051+00
+7c214d32-b249-446b-807d-c5e3f17f70c6	Maria Francisca	catarinarebocho30@gmail.com	70.00	[{"quantity": 1, "subtotal": 32, "product_id": "7ed09b98-c7a7-4a00-a8f4-36fdef928372", "product_price": 32, "product_title": "Woven Storage Basket"}, {"quantity": 1, "subtotal": 38, "product_id": "d808bb2d-0d80-46b5-9fec-cf8d8a7f5c87", "product_price": 38, "product_title": "Ceramic Planter Set"}]	2025-11-10 19:09:17.839245+00
+361c012e-002b-45ca-80e9-ec588bfc37e9	Maria Maria	catarinarebocho30@gmail.com	76.00	[{"quantity": 2, "subtotal": 76, "product_id": "d808bb2d-0d80-46b5-9fec-cf8d8a7f5c87", "product_price": 38, "product_title": "Ceramic Planter Set"}]	2025-11-10 19:23:14.124501+00
+566b48a6-852e-4edb-9098-7a56f4cae3ed	X X	catarinarebocho30@gmail.com	90.00	[{"quantity": 2, "subtotal": 90, "product_id": "c677334d-bbc3-4b40-a991-d46bb184e5ca", "product_price": 45, "product_title": "Macramé Wall Hanging"}]	2025-11-10 19:30:41.87076+00
+373c1dba-ba6e-4e67-b3ca-c00842044ac2	Catarina	catarinarebocho30@gmail.com	76.00	[{"quantity": 2, "subtotal": 76, "product_id": "d808bb2d-0d80-46b5-9fec-cf8d8a7f5c87", "product_price": 38, "product_title": "Ceramic Planter Set"}]	2025-11-10 19:43:14.135346+00
+e903c637-b940-4c16-b21c-d9125a81f536	diud d	catarinarebocho30@gmail.com	70.00	[{"quantity": 1, "subtotal": 32, "product_id": "7ed09b98-c7a7-4a00-a8f4-36fdef928372", "product_price": 32, "product_title": "Woven Storage Basket"}, {"quantity": 1, "subtotal": 38, "product_id": "d808bb2d-0d80-46b5-9fec-cf8d8a7f5c87", "product_price": 38, "product_title": "Ceramic Planter Set"}]	2025-11-10 20:54:41.164562+00
+dee19239-ab57-4d3c-8fa5-9459916e60c3	Eu	catarinarebocho30@gmail.com	38.00	[{"quantity": 1, "subtotal": 38, "product_id": "d808bb2d-0d80-46b5-9fec-cf8d8a7f5c87", "product_price": 38, "product_title": "Ceramic Planter Set"}]	2025-11-10 21:06:33.452489+00
+d1fa37f5-5c8c-4db1-b3d5-ad739eb17638	sss sssus	catarinarebocho30@gmail.com	70.00	[{"quantity": 1, "subtotal": 38, "product_id": "d808bb2d-0d80-46b5-9fec-cf8d8a7f5c87", "product_price": 38, "product_title": "Ceramic Planter Set"}, {"quantity": 1, "subtotal": 32, "product_id": "7ed09b98-c7a7-4a00-a8f4-36fdef928372", "product_price": 32, "product_title": "Woven Storage Basket"}]	2025-11-10 21:34:25.862383+00
+\.
+
+
+--
+-- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.products (id, title, description, image, images, price, category, active, created_at, updated_at) FROM stdin;
+7ed09b98-c7a7-4a00-a8f4-36fdef928372	Woven Storage Basket	Natural seagrass basket with organic patterns. Functional art for mindful living.	https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800	{https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800}	32.00	Storage	t	2025-10-31 11:21:03.697358+00	2025-10-31 11:21:03.697358+00
+d808bb2d-0d80-46b5-9fec-cf8d8a7f5c87	Ceramic Planter Set	Hand-painted terracotta planters in earthy tones. Perfect for your favorite greenery.	https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/1761912275856-0.41257535240094745.png	{https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/1761912275856-0.41257535240094745.png,https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/1761912285174-0.33022357896429333.png}	38.00	Home Decor	t	2025-10-31 11:21:03.697358+00	2025-10-31 12:04:51.869139+00
+eadef5ce-4466-4349-955b-320b3f7a208c	dergergergerg	gergggggggggggggggg	https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/product-1762368156885-ehwadp.png	{https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/product-1762368156885-ehwadp.png,https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/product-1762368164177-21o3y9.png}	21.00	Home Decor	t	2025-11-05 18:42:52.781973+00	2025-11-05 18:42:52.781973+00
+c677334d-bbc3-4b40-a991-d46bb184e5ca	Macramé Wall Hanging	Handwoven cotton macramé with natural wood accent. Adds texture and warmth to any space.	product-macrame-wall.jpg	{product-macrame-wall.jpg}	45.00	Wall Art	t	2025-11-06 11:23:18.06927+00	2025-11-06 11:23:18.06927+00
+db58c932-2402-4309-ae31-b9ba52ce22a8	Abstract Canvas Art	Original painting on canvas featuring warm desert tones and organic shapes.	product-canvas-art.jpg	{product-canvas-art.jpg}	65.00	Wall Art	t	2025-11-06 11:23:18.06927+00	2025-11-06 11:23:18.06927+00
+\.
+
+
+--
+-- Data for Name: site_settings; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.site_settings (id, key, value, created_at, updated_at) FROM stdin;
+6166640b-d30c-4a53-834e-88e51d42cabf	logo_url	https://gyvtgzdkuhypteiyhtaq.supabase.co/storage/v1/object/public/product-images/logo-1762444805660.png	2025-11-06 15:29:40.748527+00	2025-11-06 16:00:07.053075+00
+\.
+
+
+--
+-- Data for Name: user_roles; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.user_roles (id, user_id, role, created_at) FROM stdin;
+ec051ec9-1e26-486e-bf8a-1f1cc61b5f7a	dcb46489-e209-4aa5-81a9-9895f1c474c8	admin	2025-11-03 16:47:03.530794+00
+\.
+
