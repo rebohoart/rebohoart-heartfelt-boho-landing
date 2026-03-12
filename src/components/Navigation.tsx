@@ -73,7 +73,7 @@ const Navigation = () => {
                     variant="ghost"
                     className="text-foreground hover:text-primary hover:bg-primary/10 rounded-full font-medium"
                   >
-                    Contacto
+                    Contactos
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-sm">
