@@ -44,6 +44,7 @@ const Auth = () => {
 
   // Detect password recovery event from email link
   useEffect(() => {
+    console.log('🔍 Setting up auth state change listener');
 
     // Check URL for password recovery token (hash fragment or query params)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -53,6 +54,7 @@ const Auth = () => {
     const hasAccessToken = hashParams.get('access_token') || queryParams.get('access_token');
     const tokenType = hashParams.get('type') || queryParams.get('type');
 
+    console.log('🔍 URL Check:', {
       hash: window.location.hash,
       search: window.location.search,
       hasAccessToken: !!hasAccessToken,
@@ -63,6 +65,7 @@ const Auth = () => {
     // If there's an access token and type is recovery, activate password reset mode
     // Only process if we haven't already triggered reset
     if (hasAccessToken && tokenType === 'recovery' && !hasTriggeredResetRef.current) {
+      console.log('🔐 Recovery token detected in URL - switching to password reset mode');
       hasTriggeredResetRef.current = true;
       setIsPasswordReset(true);
       setIsRecovery(false);
@@ -74,9 +77,11 @@ const Auth = () => {
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔔 Auth state changed:', event, session?.user?.email);
 
       // Only process PASSWORD_RECOVERY if we haven't already triggered reset
       if (event === 'PASSWORD_RECOVERY' && !hasTriggeredResetRef.current) {
+        console.log('🔐 PASSWORD_RECOVERY event detected - switching to password reset mode');
         hasTriggeredResetRef.current = true;
         setIsPasswordReset(true);
         setIsRecovery(false);
@@ -89,17 +94,20 @@ const Auth = () => {
 
       // Clean URL after session is established (not immediately)
       if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session && !urlCleanedRef.current) {
+        console.log('🧹 Cleaning URL after session established');
         urlCleanedRef.current = true;
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
       // If password was updated successfully, clear the reset flag
       if (event === 'USER_UPDATED') {
+        console.log('✅ USER_UPDATED event - password changed successfully');
         setIsProcessingReset(false);
       }
     });
 
     return () => {
+      console.log('🔌 Unsubscribing from auth state changes');
       subscription.unsubscribe();
     };
   }, []); // Empty dependencies - only run once on mount
@@ -125,6 +133,7 @@ const Auth = () => {
 
       if (isPasswordReset) {
         // Password reset mode - validate new password and confirmation
+        console.log('🔄 Password reset mode - updating password');
         const validation = passwordResetSchema.safeParse({
           password: trimmedPassword,
           confirmPassword: confirmPassword
@@ -137,6 +146,7 @@ const Auth = () => {
         }
 
         try {
+          console.log('🔐 Updating password...');
           setIsProcessingReset(true);
 
           // Check if there's an active session before attempting password update
@@ -149,6 +159,7 @@ const Auth = () => {
             return;
           }
 
+          console.log('✅ Active session found, proceeding with password update');
 
           const { error } = await updatePassword(trimmedPassword);
 
@@ -168,6 +179,7 @@ const Auth = () => {
             }
             setIsProcessingReset(false);
           } else {
+            console.log('✅ Password updated successfully');
             toast.success("Password atualizada com sucesso! Pode agora fazer login.");
 
             // Clear form and reset state
@@ -190,6 +202,7 @@ const Auth = () => {
         }
       } else if (isRecovery) {
         // Password recovery mode - only validate email
+        console.log('📧 Password recovery mode - sending reset email');
         const emailValidation = z.string().email({ message: "Email inválido" }).max(255).safeParse(trimmedEmail);
         if (!emailValidation.success) {
           console.error('❌ Email validation failed:', emailValidation.error.errors[0].message);
@@ -201,6 +214,8 @@ const Auth = () => {
         // IMPORTANT: This URL must be in the Supabase "Redirect URLs" whitelist
         // Configure at: Supabase Dashboard > Authentication > URL Configuration
         const redirectUrl = `${window.location.origin}/auth`;
+        console.log('🔐 Sending password reset email to:', trimmedEmail);
+        console.log('🔗 Redirect URL:', redirectUrl);
 
         const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
           redirectTo: redirectUrl,
@@ -210,6 +225,7 @@ const Auth = () => {
           console.error('❌ Error sending password reset email:', error);
           toast.error("Erro ao enviar email de recuperação");
         } else {
+          console.log('✅ Password reset email sent successfully');
           toast.success("Email de recuperação enviado! Verifique a sua caixa de entrada.");
           setIsRecovery(false);
           setEmail("");
@@ -222,6 +238,7 @@ const Auth = () => {
           return;
         }
 
+        console.log('🔐 Attempting login with:', { email: trimmedEmail, passwordLength: trimmedPassword.length });
 
         try {
           const { error } = await signIn(trimmedEmail, trimmedPassword);
@@ -252,6 +269,7 @@ const Auth = () => {
       // ALWAYS clear timeout and reset loading state
       clearTimeout(timeoutId);
       setLoading(false);
+      console.log('🔄 Loading state reset to false');
     }
   };
 
@@ -396,6 +414,7 @@ const Auth = () => {
             <button
               type="button"
               onClick={() => {
+                console.log('🔑 Switching to password recovery mode');
                 setIsRecovery(true);
                 setPassword("");
                 setShowPassword(false);
@@ -410,6 +429,7 @@ const Auth = () => {
             <button
               type="button"
               onClick={() => {
+                console.log('🔙 Returning to login mode');
                 setIsRecovery(false);
                 setIsPasswordReset(false);
                 setIsProcessingReset(false);
