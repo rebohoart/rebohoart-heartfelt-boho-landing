@@ -25,45 +25,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkAdminStatus = async (userId: string) => {
     try {
-      const result = await Promise.race([
-        supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
-        new Promise<{ data: null; error: Error }>((resolve) =>
-          setTimeout(() => resolve({ data: null, error: new Error("timeout") }), 5000)
-        ),
-      ]);
-      setIsAdmin(!!(result as any).data);
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      setIsAdmin(!!data);
     } catch {
       setIsAdmin(false);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    let cancelled = false;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (cancelled) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkAdminStatus(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    }).catch(() => { if (!cancelled) setLoading(false); });
+    // Set up auth state listener FIRST (recommended by Supabase)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (cancelled) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkAdminStatus(session.user.id);
-      } else {
-        setIsAdmin(false);
+        if (currentSession?.user) {
+          // Use setTimeout to avoid Supabase deadlock on auth state change
+          setTimeout(() => {
+            checkAdminStatus(currentSession.user.id);
+          }, 0);
+        } else {
+          setIsAdmin(false);
+        }
+
+        if (event === "SIGNED_OUT") {
+          setIsAdmin(false);
+        }
+
         setLoading(false);
       }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      if (currentSession?.user) {
+        checkAdminStatus(currentSession.user.id);
+      }
+      setLoading(false);
     });
-    return () => { cancelled = true; subscription.unsubscribe(); };
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -72,20 +80,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/` } });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
     return { error };
   };
 
   const signOut = async () => {
-    setUser(null); setSession(null); setIsAdmin(false);
+    setUser(null);
+    setSession(null);
+    setIsAdmin(false);
     localStorage.removeItem("rebohoart-cart");
-    await supabase.auth.signOut();
+
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Error during signOut:", error);
+    }
+
     navigate("/auth");
   };
 
   const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    return { error };
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      return { error };
+    } catch (err) {
+      return { error: err as AuthError };
+    }
   };
 
   return (
@@ -97,6 +121,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) throw new Error("useAuth must be used within an AuthProvider");
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
   return context;
 };
