@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
@@ -36,6 +37,10 @@ const ProductHighlights = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomOffset, setZoomOffset] = useState({ x: 0, y: 0 });
+  const pinchRef = React.useRef<{ dist: number; x: number; y: number } | null>(null);
+  const dragRef = React.useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
  
   const openDetail = (product: Product) => {
     setSelectedProduct(product);
@@ -46,6 +51,58 @@ const ProductHighlights = () => {
     setSelectedProduct(null);
     setZoomImage(null);
     setCurrentImageIndex(0);
+  };
+ 
+  const openZoom = (img: string) => {
+    setZoomImage(img);
+    setZoomScale(1);
+    setZoomOffset({ x: 0, y: 0 });
+  };
+ 
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    setZoomScale(s => Math.min(5, Math.max(1, s - e.deltaY * 0.005)));
+  };
+ 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchRef.current = {
+        dist: Math.hypot(dx, dy),
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      };
+    } else if (e.touches.length === 1) {
+      dragRef.current = {
+        startX: e.touches[0].clientX,
+        startY: e.touches[0].clientY,
+        ox: zoomOffset.x,
+        oy: zoomOffset.y,
+      };
+    }
+  };
+ 
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchRef.current) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / pinchRef.current.dist;
+      setZoomScale(s => Math.min(5, Math.max(1, s * ratio)));
+      pinchRef.current.dist = dist;
+    } else if (e.touches.length === 1 && dragRef.current && zoomScale > 1) {
+      const dx = e.touches[0].clientX - dragRef.current.startX;
+      const dy = e.touches[0].clientY - dragRef.current.startY;
+      setZoomOffset({ x: dragRef.current.ox + dx, y: dragRef.current.oy + dy });
+    }
+  };
+ 
+  const handleTouchEnd = () => {
+    pinchRef.current = null;
+    dragRef.current = null;
+    if (zoomScale <= 1) setZoomOffset({ x: 0, y: 0 });
   };
  
   const prevImage = () => {
@@ -205,11 +262,11 @@ const ProductHighlights = () => {
                   src={currentImg}
                   alt={selectedProduct.title}
                   className="w-full h-full object-cover cursor-zoom-in"
-                  onClick={() => setZoomImage(currentImg)}
+                  onClick={() => openZoom(currentImg)}
                 />
                 <button
-                  onClick={() => setZoomImage(currentImg)}
-                  className="absolute top-3 right-3 bg-background/80 rounded-full p-1.5"
+                  onClick={() => openZoom(currentImg)}
+                  className="absolute bottom-3 right-3 bg-background/80 rounded-full p-1.5"
                   aria-label="Ampliar imagem"
                 >
                   <ZoomIn className="w-4 h-4" />
@@ -257,15 +314,46 @@ const ProductHighlights = () => {
       </Dialog>
  
       {/* Modal de zoom */}
-      <Dialog open={!!zoomImage} onOpenChange={(open) => { if (!open) setZoomImage(null); }}>
-        <DialogContent className="max-w-4xl p-2">
+      <Dialog open={!!zoomImage} onOpenChange={(open) => { if (!open) { setZoomImage(null); setZoomScale(1); setZoomOffset({ x: 0, y: 0 }); } }}>
+        <DialogContent className="max-w-4xl p-2 overflow-hidden">
           <DialogTitle className="sr-only">Zoom</DialogTitle>
           {zoomImage && (
-            <img
-              src={zoomImage}
-              alt="Zoom"
-              className="w-full h-auto rounded-lg max-h-[85vh] object-contain"
-            />
+            <div
+              className="relative flex items-center justify-center overflow-hidden"
+              style={{ height: '85vh', cursor: zoomScale > 1 ? 'grab' : 'zoom-in', touchAction: 'none' }}
+              onWheel={handleWheel}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <img
+                src={zoomImage}
+                alt="Zoom"
+                draggable={false}
+                style={{
+                  transform: `scale(${zoomScale}) translate(${zoomOffset.x / zoomScale}px, ${zoomOffset.y / zoomScale}px)`,
+                  transition: pinchRef.current ? 'none' : 'transform 0.1s ease',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  userSelect: 'none',
+                }}
+              />
+              {/* Zoom controls */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-background/80 backdrop-blur-sm rounded-full px-4 py-2 border border-border/40">
+                <button
+                  onClick={() => { setZoomScale(s => Math.max(1, s - 0.5)); if (zoomScale <= 1.5) setZoomOffset({ x: 0, y: 0 }); }}
+                  className="w-8 h-8 flex items-center justify-center text-lg font-bold rounded-full hover:bg-muted transition-colors"
+                  aria-label="Diminuir zoom"
+                >−</button>
+                <span className="text-sm font-medium min-w-[40px] text-center">{Math.round(zoomScale * 100)}%</span>
+                <button
+                  onClick={() => setZoomScale(s => Math.min(5, s + 0.5))}
+                  className="w-8 h-8 flex items-center justify-center text-lg font-bold rounded-full hover:bg-muted transition-colors"
+                  aria-label="Aumentar zoom"
+                >+</button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
