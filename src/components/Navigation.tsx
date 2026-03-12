@@ -15,21 +15,20 @@ const Navigation = () => {
   const { totalItems } = useCart();
 
   const { data: logos } = useQuery({
-    queryKey: ['logos'],
+    queryKey: ["logos"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('logos')
-        .select('*')
-        .eq('is_active', true)
+        .from("logos")
+        .select("*")
+        .eq("is_active", true)
         .limit(1);
-
       if (error) throw error;
       return data;
     },
   });
 
   const customLogoUrl = logos?.[0]?.url;
-  const logoUrl = (!logoError && customLogoUrl) ? customLogoUrl : logo;
+  const logoUrl = !logoError && customLogoUrl ? customLogoUrl : logo;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -54,7 +53,7 @@ const Navigation = () => {
             <a href="/" className="flex items-center">
               <img
                 src={logoUrl}
-                alt="Reboho"
+                alt="Reboho Art"
                 className="h-8 md:h-10 w-auto"
                 onError={(e) => {
                   setLogoError(true);
@@ -73,17 +72,18 @@ const Navigation = () => {
                   <Button
                     variant="ghost"
                     className="text-foreground hover:text-primary hover:bg-primary/10 rounded-full font-medium"
-                    aria-label="Contacto"
                   >
                     Contacto
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-sm">
                   <DialogHeader>
-                    <DialogTitle className="font-serif text-xl text-center">Entra em contacto</DialogTitle>
+                    <DialogTitle className="font-serif text-xl text-center">
+                      Entra em contacto
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="flex flex-col gap-3 py-2">
-                    
+                    <a
                       href="mailto:rebohoart@gmail.com?subject=Contacto%20via%20site"
                       className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
                     >
@@ -93,7 +93,7 @@ const Navigation = () => {
                         <p className="text-sm text-muted-foreground">rebohoart@gmail.com</p>
                       </div>
                     </a>
-                    
+                    <a
                       href="https://ig.me/rebohoart"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -115,7 +115,7 @@ const Navigation = () => {
                 size="icon"
                 className="relative text-foreground hover:text-primary hover:bg-primary/10 rounded-full"
                 onClick={() => setCartOpen(true)}
-                aria-label="Shopping Cart"
+                aria-label="Carrinho de compras"
               >
                 <ShoppingCart className="w-5 h-5" />
                 {totalItems > 0 && (
