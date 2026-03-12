@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Mail, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/CartContext";
 import CartDrawer from "./CartDrawer";
 import logo from "@/assets/logo-reboho-transparent.png";
@@ -66,6 +67,48 @@ const Navigation = () => {
 
             {/* Navigation Actions */}
             <div className="flex items-center gap-2 md:gap-4">
+              {/* Contacto */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="text-foreground hover:text-primary hover:bg-primary/10 rounded-full font-medium"
+                    aria-label="Contacto"
+                  >
+                    Contacto
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle className="font-serif text-xl text-center">Entra em contacto</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-3 py-2">
+                    
+                      href="mailto:rebohoart@gmail.com?subject=Contacto%20via%20site"
+                      className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
+                    >
+                      <Mail className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" aria-hidden="true" />
+                      <div>
+                        <p className="font-semibold text-foreground">Email</p>
+                        <p className="text-sm text-muted-foreground">rebohoart@gmail.com</p>
+                      </div>
+                    </a>
+                    
+                      href="https://ig.me/rebohoart"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
+                    >
+                      <Instagram className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" aria-hidden="true" />
+                      <div>
+                        <p className="font-semibold text-foreground">Instagram</p>
+                        <p className="text-sm text-muted-foreground">@rebohoart</p>
+                      </div>
+                    </a>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               {/* Cart */}
               <Button
                 variant="ghost"
