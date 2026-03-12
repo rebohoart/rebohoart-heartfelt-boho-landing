@@ -93,5 +93,21 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  h1 {
+    font-family: 'Meow Script', cursive;
+    font-size: 64px !important;
+  }
+
+  h2 {
+    font-family: 'Meow Script', cursive;
+    font-size: 44px !important;
+  }
+
+  h3 {
+    font-family: 'Meow Script', cursive;
+    font-size: 28px !important;
   }
 }

@@ -12,9 +12,9 @@ const CustomOrderButton = () => {
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Sparkles className="w-6 h-6 text-primary" />
-            <h3 className="font-serif text-2xl md:text-3xl font-bold text-foreground">
+            <h2 className="font-serif text-2xl md:text-3xl font-bold text-foreground">
               Peça Personalizada
-            </h3>
+            </h2>
             <Sparkles className="w-6 h-6 text-primary" />
           </div>
           <p className="text-muted-foreground mb-6">

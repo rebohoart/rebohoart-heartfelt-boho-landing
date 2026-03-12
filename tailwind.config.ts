@@ -50,8 +50,9 @@ export default {
         },
       },
       fontFamily: {
-        serif: ['Cinzel', 'serif'],
+        serif: ['"Meow Script"', 'cursive'],
         sans: ['Montserrat', 'sans-serif'],
+        display: ['"Meow Script"', 'cursive'],
       },
       backgroundImage: {
         'gradient-warm': 'var(--gradient-warm)',
