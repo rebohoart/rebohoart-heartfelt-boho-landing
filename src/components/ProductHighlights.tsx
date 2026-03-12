@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -21,6 +23,32 @@ const imageMap: Record<string, string> = {
 
 const ProductHighlights = () => {
   const { addItem } = useCart();
+  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const openDetail = (product: typeof products[0]) => {
+    setSelectedProduct(product);
+    setCurrentImageIndex(0);
+  };
+
+  const closeDetail = () => {
+    setSelectedProduct(null);
+    setZoomImage(null);
+    setCurrentImageIndex(0);
+  };
+
+  const prevImage = () => {
+    if (!selectedProduct) return;
+    const imgs = selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images : [selectedProduct.image];
+    setCurrentImageIndex((i) => (i - 1 + imgs.length) % imgs.length);
+  };
+
+  const nextImage = () => {
+    if (!selectedProduct) return;
+    const imgs = selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images : [selectedProduct.image];
+    setCurrentImageIndex((i) => (i + 1) % imgs.length);
+  };
 
   const { data: products = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['products'],
@@ -131,8 +159,9 @@ const ProductHighlights = () => {
           {products.map((product, index) => (
             <Card 
               key={product.id}
-              className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in bg-card flex flex-col"
+              className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in bg-card flex flex-col cursor-pointer"
               style={{ animationDelay: `${index * 100}ms` }}
+              onClick={() => openDetail(product)}
             >
               <ProductImageGallery 
                 images={product.images && product.images.length > 0 ? product.images : [product.image]} 
@@ -153,15 +182,26 @@ const ProductHighlights = () => {
                   {product.description}
                 </p>
 
-                <Button
-                  onClick={() => handleAddToCart(product)}
-                  variant="default"
-                  size="default"
-                  className="w-full rounded-full mt-auto"
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Adicionar
-                </Button>
+                <div className="flex gap-2 mt-auto">
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); openDetail(product); }}
+                    variant="outline"
+                    size="default"
+                    className="flex-1 rounded-full"
+                  >
+                    <ZoomIn className="w-4 h-4 mr-2" />
+                    Ver detalhes
+                  </Button>
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }}
+                    variant="default"
+                    size="default"
+                    className="flex-1 rounded-full"
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
