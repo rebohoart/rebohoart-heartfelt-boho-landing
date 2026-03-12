@@ -15,6 +15,8 @@ import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import { validateImageFile } from "@/lib/sanitize";
 import Dashboard from "@/components/Dashboard";
 import EmailTemplatesTab from "@/components/EmailTemplatesTab";
+import CategoriesTab from "@/components/CategoriesTab";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Product {
   id: string;
@@ -68,6 +70,19 @@ const Backoffice = () => {
 
       if (error) throw error;
       return data as Product[];
+    },
+    enabled: !!user && isAdmin,
+  });
+
+  const { data: adminCategories = [] } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; name: string }[];
     },
     enabled: !!user && isAdmin,
   });
@@ -406,6 +421,7 @@ const Backoffice = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="products">Produtos</TabsTrigger>
+            <TabsTrigger value="categories">Categorias</TabsTrigger>
             <TabsTrigger value="emails">Templates de Email</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
@@ -508,12 +524,26 @@ const Backoffice = () => {
 
               <div>
                 <Label htmlFor="category">Categoria</Label>
-                <Input
-                  id="category"
+                <Select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                />
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Selecionar categoria..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {adminCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {adminCategories.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Cria categorias no tab "Categorias" antes de associar produtos.
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">
@@ -593,6 +623,12 @@ const Backoffice = () => {
         </Card>
           </TabsContent>
 
+
+          <TabsContent value="categories">
+            <Card className="p-6">
+              <CategoriesTab />
+            </Card>
+          </TabsContent>
 
           <TabsContent value="emails">
             <Card className="p-6">

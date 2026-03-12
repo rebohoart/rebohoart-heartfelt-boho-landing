@@ -13,14 +13,14 @@ import macrameWall from "@/assets/product-macrame-wall.jpg";
 import ceramicPlanter from "@/assets/product-ceramic-planter.jpg";
 import wovenBasket from "@/assets/product-woven-basket.jpg";
 import canvasArt from "@/assets/product-canvas-art.jpg";
- 
+
 const imageMap: Record<string, string> = {
   'product-macrame-wall.jpg': macrameWall,
   'product-ceramic-planter.jpg': ceramicPlanter,
   'product-woven-basket.jpg': wovenBasket,
   'product-canvas-art.jpg': canvasArt,
 };
- 
+
 interface Product {
   id: string;
   title: string;
@@ -31,7 +31,7 @@ interface Product {
   category: string;
   active: boolean;
 }
- 
+
 const ProductHighlights = () => {
   const { addItem } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -39,31 +39,44 @@ const ProductHighlights = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [zoomScale, setZoomScale] = useState(1);
   const [zoomOffset, setZoomOffset] = useState({ x: 0, y: 0 });
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const pinchRef = React.useRef<{ dist: number; x: number; y: number } | null>(null);
   const dragRef = React.useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
- 
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+  });
+
   const openDetail = (product: Product) => {
     setSelectedProduct(product);
     setCurrentImageIndex(0);
   };
- 
+
   const closeDetail = () => {
     setSelectedProduct(null);
     setZoomImage(null);
     setCurrentImageIndex(0);
   };
- 
+
   const openZoom = (img: string) => {
     setZoomImage(img);
     setZoomScale(1);
     setZoomOffset({ x: 0, y: 0 });
   };
- 
+
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     setZoomScale(s => Math.min(5, Math.max(1, s - e.deltaY * 0.005)));
   };
- 
+
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -82,7 +95,7 @@ const ProductHighlights = () => {
       };
     }
   };
- 
+
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2 && pinchRef.current) {
       e.preventDefault();
@@ -98,25 +111,25 @@ const ProductHighlights = () => {
       setZoomOffset({ x: dragRef.current.ox + dx, y: dragRef.current.oy + dy });
     }
   };
- 
+
   const handleTouchEnd = () => {
     pinchRef.current = null;
     dragRef.current = null;
     if (zoomScale <= 1) setZoomOffset({ x: 0, y: 0 });
   };
- 
+
   const prevImage = () => {
     if (!selectedProduct) return;
     const imgs = selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images : [selectedProduct.image];
     setCurrentImageIndex((i) => (i - 1 + imgs.length) % imgs.length);
   };
- 
+
   const nextImage = () => {
     if (!selectedProduct) return;
     const imgs = selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images : [selectedProduct.image];
     setCurrentImageIndex((i) => (i + 1) % imgs.length);
   };
- 
+
   const { data: products = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
@@ -125,9 +138,9 @@ const ProductHighlights = () => {
         .select('*')
         .eq('active', true)
         .order('created_at', { ascending: true });
- 
+
       if (error) throw error;
- 
+
       return data.map(product => {
         const imagesArray = product.images && product.images.length > 0
           ? product.images
@@ -143,12 +156,16 @@ const ProductHighlights = () => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 5 * 60 * 1000,
   });
- 
+
   const handleAddToCart = (product: typeof products[0]) => {
     addItem(product);
     toast.success(`${product.title} adicionado ao carrinho!`, { duration: 2000 });
   };
- 
+
+  const filteredProducts = activeCategory
+    ? products.filter(p => p.category === activeCategory)
+    : products;
+
   if (isLoading) {
     return (
       <section id="products-section" className="py-20 px-4 bg-gradient-natural">
@@ -158,7 +175,7 @@ const ProductHighlights = () => {
       </section>
     );
   }
- 
+
   if (isError) {
     return (
       <section id="products-section" className="py-20 px-4 bg-gradient-natural">
@@ -174,7 +191,7 @@ const ProductHighlights = () => {
       </section>
     );
   }
- 
+
   if (products.length === 0) {
     return (
       <section id="products-section" className="py-20 px-4 bg-gradient-natural">
@@ -186,12 +203,12 @@ const ProductHighlights = () => {
       </section>
     );
   }
- 
+
   const detailImgs = selectedProduct
     ? (selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images : [selectedProduct.image])
     : [];
   const currentImg = detailImgs[currentImageIndex] ?? '';
- 
+
   return (
     <>
       <section id="products-section" className="py-20 px-4 bg-gradient-natural">
@@ -201,9 +218,37 @@ const ProductHighlights = () => {
               Peças Disponíveis
             </h2>
           </div>
- 
+
+          {categories.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mb-10">
+              <button
+                onClick={() => setActiveCategory(null)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                  activeCategory === null
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-transparent text-foreground border-border hover:border-primary hover:text-primary'
+                }`}
+              >
+                Todas
+              </button>
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.name)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                    activeCategory === cat.name
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-transparent text-foreground border-border hover:border-primary hover:text-primary'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {products.map((product, index) => (
+            {filteredProducts.map((product, index) => (
               <Card
                 key={product.id}
                 className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in bg-card flex flex-col cursor-pointer"
@@ -250,7 +295,7 @@ const ProductHighlights = () => {
           </div>
         </div>
       </section>
- 
+
       {/* Modal de detalhe — fora da <section> para evitar conflitos de portal/z-index */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => { if (!open) closeDetail(); }}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
@@ -312,7 +357,7 @@ const ProductHighlights = () => {
           )}
         </DialogContent>
       </Dialog>
- 
+
       {/* Modal de zoom */}
       <Dialog open={!!zoomImage} onOpenChange={(open) => { if (!open) { setZoomImage(null); setZoomScale(1); setZoomOffset({ x: 0, y: 0 }); } }}>
         <DialogContent className="max-w-4xl p-2 overflow-hidden">
@@ -360,5 +405,5 @@ const ProductHighlights = () => {
     </>
   );
 };
- 
+
 export default ProductHighlights;
