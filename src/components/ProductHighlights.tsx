@@ -21,13 +21,24 @@ const imageMap: Record<string, string> = {
   'product-canvas-art.jpg': canvasArt,
 };
 
+interface Product {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  images?: string[];
+  price: number;
+  category: string;
+  active: boolean;
+}
+
 const ProductHighlights = () => {
   const { addItem } = useCart();
-  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const openDetail = (product: typeof products[0]) => {
+  const openDetail = (product: Product) => {
     setSelectedProduct(product);
     setCurrentImageIndex(0);
   };
