@@ -158,7 +158,7 @@ const ProductHighlights = () => {
                   title={product.title}
                 />
                 <div className="p-6 flex flex-col flex-1">
-                  <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start justify-between mb-4">
                     <h3 className="font-serif text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
                       {product.title}
                     </h3>
@@ -166,27 +166,25 @@ const ProductHighlights = () => {
                       €{product.price.toFixed(2)}
                     </p>
                   </div>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-1">
-                    {product.description}
-                  </p>
-                  <div className="flex gap-2 mt-auto">
-                    <Button
-                      onClick={(e) => { e.stopPropagation(); openDetail(product); }}
-                      variant="outline"
-                      size="default"
-                      className="flex-1 rounded-full"
-                    >
-                      <ZoomIn className="w-4 h-4 mr-2" />
-                      Ver detalhes
-                    </Button>
+                  {/* description removed from card — visible only in detail modal */}
+                  <div className="flex flex-col gap-2 mt-auto">
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }}
                       variant="default"
                       size="default"
-                      className="flex-1 rounded-full"
+                      className="w-full rounded-full"
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
                       Adicionar
+                    </Button>
+                    <Button
+                      onClick={(e) => { e.stopPropagation(); openDetail(product); }}
+                      variant="outline"
+                      size="default"
+                      className="w-full rounded-full"
+                    >
+                      <ZoomIn className="w-4 h-4 mr-2" />
+                      Ver detalhes
                     </Button>
                   </div>
                 </div>
@@ -276,4 +274,3 @@ const ProductHighlights = () => {
 };
  
 export default ProductHighlights;
- 
