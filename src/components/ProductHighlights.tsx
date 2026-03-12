@@ -218,6 +218,39 @@ const ProductHighlights = () => {
           ))}
         </div>
       </div>
+      {selectedProduct && (() => {
+        const imgs = (selectedProduct.images && selectedProduct.images.length > 0) ? selectedProduct.images : [selectedProduct.image];
+        const currentImg = imgs[currentImageIndex];
+        return (
+          <>
+            <Dialog open={true} onOpenChange={(open) => { if (!open) closeDetail(); }}>
+              <DialogContent className="max-w-3xl p-0 overflow-hidden">
+                <DialogTitle className="sr-only">{selectedProduct.title}</DialogTitle>
+                <div className="grid md:grid-cols-2">
+                  <div className="relative bg-muted aspect-square">
+                    <img src={currentImg} alt={selectedProduct.title} className="w-full h-full object-cover cursor-zoom-in" onClick={() => setZoomImage(currentImg)} />
+                    <button onClick={() => setZoomImage(currentImg)} className="absolute top-3 right-3 bg-background/80 rounded-full p-1.5" aria-label="Ampliar imagem"><ZoomIn className="w-4 h-4" /></button>
+                    {imgs.length > 1 && (<><button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 rounded-full p-1.5" aria-label="Anterior"><ChevronLeft className="w-4 h-4" /></button><button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 rounded-full p-1.5" aria-label="Seguinte"><ChevronRight className="w-4 h-4" /></button></>)}
+                  </div>
+                  <div className="p-6 flex flex-col">
+                    <h2 className="font-serif text-2xl font-bold mb-1">{selectedProduct.title}</h2>
+                    {selectedProduct.category && <span className="text-xs text-muted-foreground uppercase tracking-wider mb-3">{selectedProduct.category}</span>}
+                    <p className="text-2xl font-bold text-primary mb-4">€{selectedProduct.price.toFixed(2)}</p>
+                    <p className="text-muted-foreground leading-relaxed flex-1">{selectedProduct.description}</p>
+                    <Button onClick={() => { handleAddToCart(selectedProduct); closeDetail(); }} className="w-full rounded-full mt-6" size="lg"><ShoppingCart className="w-5 h-5 mr-2" />Adicionar ao carrinho</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={!!zoomImage} onOpenChange={(open) => { if (!open) setZoomImage(null); }}>
+              <DialogContent className="max-w-4xl p-2">
+                <DialogTitle className="sr-only">Zoom</DialogTitle>
+                {zoomImage && <img src={zoomImage} alt="Zoom" className="w-full h-auto rounded-lg max-h-[85vh] object-contain" />}
+              </DialogContent>
+            </Dialog>
+          </>
+        );
+      })()}
     </section>
   );
 };
