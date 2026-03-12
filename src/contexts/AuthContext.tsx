@@ -34,41 +34,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsAdmin(!!data);
     } catch {
       setIsAdmin(false);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST (recommended by Supabase)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
         if (currentSession?.user) {
-          // Use setTimeout to avoid Supabase deadlock on auth state change
           setTimeout(() => {
             checkAdminStatus(currentSession.user.id);
           }, 0);
         } else {
           setIsAdmin(false);
+          setLoading(false);
         }
-
-        if (event === "SIGNED_OUT") {
-          setIsAdmin(false);
-        }
-
-        setLoading(false);
       }
     );
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       if (currentSession?.user) {
         checkAdminStatus(currentSession.user.id);
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -93,13 +88,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setSession(null);
     setIsAdmin(false);
     localStorage.removeItem("rebohoart-cart");
-
     try {
       await supabase.auth.signOut();
     } catch (error) {
       console.error("Error during signOut:", error);
     }
-
     navigate("/auth");
   };
 
