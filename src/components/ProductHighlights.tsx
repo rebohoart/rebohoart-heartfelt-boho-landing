@@ -207,52 +207,47 @@ const ProductHighlights = () => {
   const detailImgs = selectedProduct
     ? (selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images : [selectedProduct.image])
     : [];
-  const currentImg = detailImgs[currentImageIndex] ?? '';
+  const currentImg = detailImgs[currentImageIndex] ?? detailImgs[0];
 
   return (
     <>
       <section id="products-section" className="py-20 px-4 bg-gradient-natural">
         <div className="container mx-auto">
-          <div className="text-center mb-16 animate-fade-in">
-            <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4 text-foreground">
-              Peças Disponíveis
-            </h2>
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4">Peças Disponíveis</h2>
+            <p className="text-muted-foreground text-lg">Cada peça é única, feita com amor e dedicação</p>
           </div>
 
+          {/* Filtros de categoria */}
           {categories.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mb-10">
-              <button
+              <Button
+                variant={activeCategory === null ? "default" : "outline"}
                 onClick={() => setActiveCategory(null)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                  activeCategory === null
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-transparent text-foreground border-border hover:border-primary hover:text-primary'
-                }`}
+                className="rounded-full"
+                size="sm"
               >
                 Todas
-              </button>
+              </Button>
               {categories.map(cat => (
-                <button
+                <Button
                   key={cat.id}
+                  variant={activeCategory === cat.name ? "default" : "outline"}
                   onClick={() => setActiveCategory(cat.name)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                    activeCategory === cat.name
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-transparent text-foreground border-border hover:border-primary hover:text-primary'
-                  }`}
+                  className="rounded-full"
+                  size="sm"
                 >
                   {cat.name}
-                </button>
+                </Button>
               ))}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {filteredProducts.map((product, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProducts.map((product) => (
               <Card
                 key={product.id}
-                className="group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-warm animate-fade-in bg-card flex flex-col cursor-pointer"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="group overflow-hidden hover:shadow-warm transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col"
                 onClick={() => openDetail(product)}
               >
                 <ProductImageGallery
@@ -358,14 +353,14 @@ const ProductHighlights = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de zoom */}
+      {/* Modal de zoom — full-width em mobile, max-w-4xl em desktop */}
       <Dialog open={!!zoomImage} onOpenChange={(open) => { if (!open) { setZoomImage(null); setZoomScale(1); setZoomOffset({ x: 0, y: 0 }); } }}>
-        <DialogContent className="max-w-4xl p-2 overflow-hidden">
+        <DialogContent className="w-screen max-w-none sm:max-w-4xl p-0 overflow-hidden rounded-none sm:rounded-lg">
           <DialogTitle className="sr-only">Zoom</DialogTitle>
           {zoomImage && (
             <div
               className="relative flex items-center justify-center overflow-hidden"
-              style={{ height: '85vh', cursor: zoomScale > 1 ? 'grab' : 'zoom-in', touchAction: 'none' }}
+              style={{ height: '100dvh', cursor: zoomScale > 1 ? 'grab' : 'zoom-in', touchAction: 'none' }}
               onWheel={handleWheel}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}

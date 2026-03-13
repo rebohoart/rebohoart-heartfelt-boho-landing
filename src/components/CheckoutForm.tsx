@@ -1,8 +1,6 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { escapeHtml } from "@/lib/sanitize";
@@ -19,37 +17,48 @@ interface CheckoutFormProps {
   }>;
   totalPrice: number;
   onSuccess: () => void;
+  onSubmitRef?: (fn: () => void) => void;
 }
 
-const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-  });
+const CheckoutForm = ({ items, totalPrice, onSuccess, onSubmitRef }: CheckoutFormProps) => {
+  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
 
-    if (!formData.name || !formData.email) {
-      toast.error("Por favor, preencha todos os campos");
-      return;
-    }
-
+  const validate = () => {
+    const newErrors: { name?: string; email?: string } = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error("Por favor, insira um email válido");
-      return;
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Como te chamas?";
     }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Precisamos do teu email para te contactar";
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Este email não parece correto (ex: maria@gmail.com)";
+    }
+
+    setErrors(newErrors);
+
+    if (newErrors.name) { nameRef.current?.focus(); return false; }
+    if (newErrors.email) { emailRef.current?.focus(); return false; }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
 
     setIsSubmitting(true);
 
     try {
-      // Escape user input to prevent XSS attacks
       const safeName = escapeHtml(formData.name);
       const safeEmail = escapeHtml(formData.email);
 
-      // Save order to database
       const orderData = {
         customer_name: formData.name,
         customer_email: formData.email,
@@ -73,18 +82,15 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
       }
 
       const details = items
-        .map(
-          (item) => {
-            // Escape product title (even though it comes from DB, good practice)
-            const safeTitle = escapeHtml(item.product.title);
-            return `<tr>
+        .map((item) => {
+          const safeTitle = escapeHtml(item.product.title);
+          return `<tr>
               <td style="padding: 10px; border-bottom: 1px solid #eee;">${safeTitle}</td>
               <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
               <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">€${item.product.price.toFixed(2)}</td>
               <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">€${(item.product.price * item.quantity).toFixed(2)}</td>
             </tr>`;
-          }
-        )
+        })
         .join("");
 
       const emailDetails = `
@@ -118,19 +124,15 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
         },
       });
 
-      // Check for errors in response
       if (response.error) {
         console.error("Function invocation error:", response.error);
         throw response.error;
       }
 
-      // Check HTTP status
       if (!response.data || response.data.success === false) {
         console.error("Email sending failed:", response.data);
         throw new Error(response.data?.error || "Failed to send email");
       }
-
-      console.log("Order email sent successfully:", response.data);
 
       toast.success("Encomenda enviada com sucesso! Aguarda o nosso contacto.", {
         duration: 5000,
@@ -138,49 +140,68 @@ const CheckoutForm = ({ items, totalPrice, onSuccess }: CheckoutFormProps) => {
       onSuccess();
     } catch (error: unknown) {
       console.error("Checkout form error:", error);
-      // Don't expose detailed error messages to users
       toast.error("Erro ao enviar encomenda. Por favor, tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (onSubmitRef) onSubmitRef(handleSubmit);
+
+  const errorClass = "border-destructive focus-visible:ring-destructive";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">* campos obrigatórios</p>
+
       <div className="space-y-2">
-        <Label htmlFor="checkout-name">O Teu Nome</Label>
+        <Label htmlFor="checkout-name">
+          Nome <span className="text-destructive">*</span>
+        </Label>
         <Input
+          ref={nameRef}
           id="checkout-name"
           placeholder="Ex: Maria Silva"
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          required
+          onChange={(e) => {
+            setFormData({ ...formData, name: e.target.value });
+            if (errors.name) setErrors({ ...errors, name: undefined });
+          }}
           disabled={isSubmitting}
+          className={errors.name ? errorClass : ""}
         />
+        {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="checkout-email">O Teu Email</Label>
+        <Label htmlFor="checkout-email">
+          Email <span className="text-destructive">*</span>
+        </Label>
         <Input
+          ref={emailRef}
           id="checkout-email"
           type="email"
-          placeholder="Ex: maria@exemplo.com"
+          placeholder="Ex: maria@gmail.com"
           value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          required
+          onChange={(e) => {
+            setFormData({ ...formData, email: e.target.value });
+            if (errors.email) setErrors({ ...errors, email: undefined });
+          }}
           disabled={isSubmitting}
+          className={errors.email ? errorClass : ""}
         />
+        {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
       </div>
 
-      <Button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6 text-lg font-semibold shadow-warm"
-      >
-        <ShoppingBag className="w-5 h-5 mr-2" />
-        {isSubmitting ? "A enviar..." : "Finalizar Encomenda"}
-      </Button>
-    </form>
+      {/* Informação de pagamento */}
+      <div className="flex items-start gap-3 rounded-xl bg-muted/60 border border-border px-4 py-3 text-sm text-muted-foreground">
+        <span className="mt-0.5 text-base">💳</span>
+        <p>
+          Após finalizar, entraremos em contacto por email para confirmar a sua encomenda e enviar os dados de pagamento{" "}
+          <span className="font-medium text-foreground">(MB Way ou Transferência bancária)</span>.
+        </p>
+      </div>
+    </div>
   );
 };
 
