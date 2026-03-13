@@ -16,6 +16,7 @@ import { validateImageFile } from "@/lib/sanitize";
 import Dashboard from "@/components/Dashboard";
 import EmailTemplatesTab from "@/components/EmailTemplatesTab";
 import CategoriesTab from "@/components/CategoriesTab";
+import TestimonialsTab from "@/components/TestimonialsTab";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Product {
@@ -117,19 +118,16 @@ const Backoffice = () => {
 
     try {
       for (const file of Array.from(files)) {
-        // Validate file before upload
         const validation = validateImageFile(file);
         if (!validation.isValid) {
           toast.error(validation.error || "Ficheiro inválido");
           hasErrors = true;
-          continue; // Skip this file and continue with others
+          continue;
         }
 
         const fileExt = file.name.split('.').pop();
         const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${fileName}`;
-
-        console.log('📤 Uploading file:', fileName);
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('product-images')
@@ -139,19 +137,15 @@ const Backoffice = () => {
           });
 
         if (uploadError) {
-          console.error('❌ Upload error:', uploadError);
           toast.error(`Erro ao carregar ${file.name}: ${uploadError.message}`);
           hasErrors = true;
           continue;
         }
 
-        console.log('✅ Upload successful:', uploadData);
-
         const { data: { publicUrl } } = supabase.storage
           .from('product-images')
           .getPublicUrl(filePath);
 
-        console.log('🔗 Public URL:', publicUrl);
         uploadedUrls.push(publicUrl);
       }
 
@@ -162,12 +156,10 @@ const Backoffice = () => {
         toast.error("Nenhuma imagem foi carregada devido a erros.");
       }
     } catch (error: unknown) {
-      console.error('❌ Unexpected error during upload:', error);
       const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast.error(`Erro ao carregar imagens: ${message}`);
     } finally {
       setUploading(false);
-      // Reset the input so the same file can be selected again
       e.target.value = '';
     }
   };
@@ -290,7 +282,6 @@ const Backoffice = () => {
     setLogoUploading(true);
 
     try {
-      // Validate file before upload
       const validation = validateImageFile(file);
       if (!validation.isValid) {
         toast.error(validation.error || "Ficheiro inválido");
@@ -303,29 +294,19 @@ const Backoffice = () => {
       const fileName = `logo-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      console.log('📤 Uploading logo:', fileName);
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
         });
 
-      if (uploadError) {
-        console.error('❌ Logo upload error:', uploadError);
-        throw uploadError;
-      }
-
-      console.log('✅ Logo upload successful:', uploadData);
+      if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('product-images')
         .getPublicUrl(filePath);
 
-      console.log('🔗 Logo public URL:', publicUrl);
-
-      // Add logo to logos table (not active by default)
       const { error: insertError } = await supabase
         .from('logos')
         .insert({
@@ -333,17 +314,11 @@ const Backoffice = () => {
           is_active: false
         });
 
-      if (insertError) {
-        console.error('❌ Error inserting logo:', insertError);
-        throw insertError;
-      }
-
-      console.log('✅ Logo added to gallery');
+      if (insertError) throw insertError;
 
       queryClient.invalidateQueries({ queryKey: ['logos'] });
       toast.success("Logo adicionado à galeria!");
     } catch (error: unknown) {
-      console.error('❌ Unexpected error during logo upload:', error);
       const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast.error(`Erro ao carregar logo: ${message}`);
     } finally {
@@ -373,21 +348,17 @@ const Backoffice = () => {
     if (!confirm("Tem a certeza que quer eliminar este logo?")) return;
 
     try {
-      // Extract filename from URL
       const urlParts = logoUrl.split('/');
       const fileName = urlParts[urlParts.length - 1];
 
-      // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('product-images')
         .remove([fileName]);
 
       if (storageError) {
         console.error('⚠️ Error deleting from storage:', storageError);
-        // Continue anyway, as the file might not exist
       }
 
-      // Delete from database
       const { error: dbError } = await supabase
         .from('logos')
         .delete()
@@ -422,6 +393,7 @@ const Backoffice = () => {
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="products">Produtos</TabsTrigger>
             <TabsTrigger value="categories">Categorias</TabsTrigger>
+            <TabsTrigger value="testemunhos">Testemunhos</TabsTrigger>
             <TabsTrigger value="emails">Templates de Email</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
@@ -440,193 +412,198 @@ const Backoffice = () => {
                   </h2>
 
                   <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="title">Título</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="image-upload">Imagens do Produto</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  <Input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    disabled={uploading}
-                    aria-label="Upload de imagens do produto"
-                  />
-                  <label htmlFor="image-upload" className="cursor-pointer block">
-                    <Upload className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {uploading ? "A carregar..." : "Clique para adicionar imagens"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      A primeira imagem será a principal
-                    </p>
-                  </label>
-                </div>
-                
-                {uploadedImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-3 mt-4">
-                    {uploadedImages.map((url, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={url}
-                          alt={`Imagem do produto ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-md border border-border"
-                        />
-                        <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded">
-                          {index === 0 ? "Principal" : index + 1}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeUploadedImage(index)}
-                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          aria-label={`Remover imagem ${index + 1}`}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="price">Preço (€)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Selecionar categoria..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {adminCategories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.name}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {adminCategories.length === 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Cria categorias no tab "Categorias" antes de associar produtos.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="active"
-                  checked={formData.active}
-                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
-                />
-                <Label htmlFor="active">Visível no site</Label>
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  {editingProduct ? "Atualizar" : "Criar"}
-                </Button>
-                {editingProduct && (
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancelar
-                  </Button>
-                )}
-              </div>
-            </form>
-          </div>
-
-          {/* Products List */}
-          <div className="space-y-4">
-            <h2 className="font-serif text-2xl font-bold">Produtos</h2>
-            
-            {isLoading ? (
-              <p>A carregar...</p>
-            ) : (
-              <div className="space-y-4">
-                {products.map((product) => (
-                  <Card key={product.id} className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{product.title}</h3>
-                        <p className="text-sm text-muted-foreground">{product.category}</p>
-                        <p className="text-sm font-bold text-primary mt-1">
-                          €{product.price.toFixed(2)}
-                        </p>
-                        <p className={`text-sm mt-2 ${product.active ? 'text-green-600' : 'text-red-600'}`}>
-                          {product.active ? 'Visível' : 'Oculto'}
-                        </p>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => handleToggleActive(product)}
-                        >
-                          <Switch checked={product.active} />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => startEdit(product)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          onClick={() => handleDelete(product.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <div>
+                      <Label htmlFor="title">Título</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        required
+                      />
                     </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        </Card>
-          </TabsContent>
 
+                    <div>
+                      <Label htmlFor="description">Descrição</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="image-upload">Imagens do Produto</Label>
+                      <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                        <Input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          disabled={uploading}
+                          aria-label="Upload de imagens do produto"
+                        />
+                        <label htmlFor="image-upload" className="cursor-pointer block">
+                          <Upload className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground mb-1">
+                            {uploading ? "A carregar..." : "Clique para adicionar imagens"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            A primeira imagem será a principal
+                          </p>
+                        </label>
+                      </div>
+
+                      {uploadedImages.length > 0 && (
+                        <div className="grid grid-cols-4 gap-3 mt-4">
+                          {uploadedImages.map((url, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={url}
+                                alt={`Imagem do produto ${index + 1}`}
+                                className="w-full h-24 object-cover rounded-md border border-border"
+                              />
+                              <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded">
+                                {index === 0 ? "Principal" : index + 1}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeUploadedImage(index)}
+                                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label={`Remover imagem ${index + 1}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="price">Preço (€)</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="category">Categoria</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={(value) => setFormData({ ...formData, category: value })}
+                      >
+                        <SelectTrigger id="category">
+                          <SelectValue placeholder="Selecionar categoria..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {adminCategories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {adminCategories.length === 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Cria categorias no tab "Categorias" antes de associar produtos.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="active"
+                        checked={formData.active}
+                        onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+                      />
+                      <Label htmlFor="active">Visível no site</Label>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1">
+                        {editingProduct ? "Atualizar" : "Criar"}
+                      </Button>
+                      {editingProduct && (
+                        <Button type="button" variant="outline" onClick={resetForm}>
+                          Cancelar
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+
+                {/* Products List */}
+                <div className="space-y-4">
+                  <h2 className="font-serif text-2xl font-bold">Produtos</h2>
+
+                  {isLoading ? (
+                    <p>A carregar...</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {products.map((product) => (
+                        <Card key={product.id} className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg">{product.title}</h3>
+                              <p className="text-sm text-muted-foreground">{product.category}</p>
+                              <p className="text-sm font-bold text-primary mt-1">
+                                €{product.price.toFixed(2)}
+                              </p>
+                              <p className={`text-sm mt-2 ${product.active ? 'text-green-600' : 'text-red-600'}`}>
+                                {product.active ? 'Visível' : 'Oculto'}
+                              </p>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleToggleActive(product)}
+                              >
+                                <Switch checked={product.active} />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => startEdit(product)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                onClick={() => handleDelete(product.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="categories">
             <Card className="p-6">
               <CategoriesTab />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="testemunhos">
+            <Card className="p-6">
+              <TestimonialsTab />
             </Card>
           </TabsContent>
 
