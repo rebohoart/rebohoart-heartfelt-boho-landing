@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, Mail, Instagram } from "lucide-react";
+import { ShoppingCart, Mail, Instagram, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/CartContext";
@@ -49,7 +49,6 @@ const Navigation = () => {
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Logo */}
             <a href="/" className="flex items-center">
               <img
                 src={logoUrl}
@@ -63,10 +62,7 @@ const Navigation = () => {
                 }}
               />
             </a>
-
-            {/* Navigation Actions */}
             <div className="flex items-center gap-2 md:gap-4">
-              {/* Contacto */}
               <Dialog>
                 <DialogTrigger asChild>
                   <Button
@@ -94,7 +90,19 @@ const Navigation = () => {
                       </div>
                     </a>
                     <a
-                      href="https://ig.me/rebohoart"
+                      href="https://wa.me/351926258799?text=Ol%C3%A1%20ReBoho%21%20Tenho%20uma%20d%C3%BAvida.%20Consegues%20ajudar-me%2C%20por%20favor%3F"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
+                    >
+                      <Phone className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" aria-hidden="true" />
+                      <div>
+                        <p className="font-semibold text-foreground">WhatsApp</p>
+                        <p className="text-sm text-muted-foreground">+351 926 258 799</p>
+                      </div>
+                    </a>
+                    <a
+                      href="https://www.instagram.com/rebohoart/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
@@ -108,8 +116,6 @@ const Navigation = () => {
                   </div>
                 </DialogContent>
               </Dialog>
-
-              {/* Cart */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -128,7 +134,6 @@ const Navigation = () => {
           </div>
         </div>
       </header>
-
       <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
     </>
   );
