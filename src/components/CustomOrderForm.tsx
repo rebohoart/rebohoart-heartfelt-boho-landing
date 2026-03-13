@@ -227,7 +227,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[500px] h-full sm:h-auto sm:max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-none sm:rounded-2xl">
         <DialogTitle className="sr-only">Peça Personalizada</DialogTitle>
 
         {/* Área com scroll */}

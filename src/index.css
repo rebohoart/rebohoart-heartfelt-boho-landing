@@ -34,6 +34,7 @@ All colors MUST be HSL.
     --accent: 71 23% 48%;
     --accent-foreground: 37 38% 89%;
 
+    /* Destructive / error red */
     --destructive: 0 84% 60%;
     --destructive-foreground: 37 38% 89%;
 
@@ -41,7 +42,7 @@ All colors MUST be HSL.
     --input: 37 34% 75%;
     --ring: 27 42% 44%;
 
-    --radius: 0.25rem;
+    --radius: 1.5rem;
 
     /* Gradients usando cores do brand guide */
     --gradient-warm: linear-gradient(135deg, hsl(27 42% 44%), hsl(37 34% 75%));
@@ -77,6 +78,7 @@ All colors MUST be HSL.
     --accent: 71 23% 48%;
     --accent-foreground: 37 38% 89%;
 
+    /* Destructive / error red */
     --destructive: 0 84% 60%;
     --destructive-foreground: 37 38% 89%;
 

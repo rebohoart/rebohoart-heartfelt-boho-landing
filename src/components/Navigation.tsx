@@ -52,7 +52,7 @@ const Navigation = () => {
             <a href="/" className="flex items-center">
               <img
                 src={logoUrl}
-                alt="Reboho Art"
+                alt="ReBoho Art"
                 className="h-8 md:h-10 w-auto"
                 onError={(e) => {
                   setLogoError(true);
@@ -81,7 +81,7 @@ const Navigation = () => {
                   <div className="flex flex-col gap-3 py-2">
                     <a
                       href="mailto:rebohoart@gmail.com?subject=Contacto%20via%20site"
-                      className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-muted/40 hover:bg-primary/10 transition-all group"
                     >
                       <Mail className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" aria-hidden="true" />
                       <div>
@@ -93,7 +93,7 @@ const Navigation = () => {
                       href="https://wa.me/351926258799?text=Ol%C3%A1%20ReBoho%21%20Tenho%20uma%20d%C3%BAvida.%20Consegues%20ajudar-me%2C%20por%20favor%3F"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-muted/40 hover:bg-primary/10 transition-all group"
                     >
                       <Phone className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" aria-hidden="true" />
                       <div>
@@ -105,7 +105,7 @@ const Navigation = () => {
                       href="https://www.instagram.com/rebohoart/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-muted/40 hover:bg-primary/10 transition-all group"
                     >
                       <Instagram className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" aria-hidden="true" />
                       <div>

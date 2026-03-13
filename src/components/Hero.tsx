@@ -46,7 +46,7 @@ const Hero = () => {
         <div className="max-w-4xl mx-auto">
           <img
             src={logoUrl}
-            alt="Reboho"
+            alt="ReBoho"
             className="h-48 md:h-64 lg:h-80 w-auto mx-auto mb-2"
             onError={(e) => {
               setLogoError(true);

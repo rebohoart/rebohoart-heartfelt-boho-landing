@@ -293,7 +293,7 @@ const ProductHighlights = () => {
 
       {/* Modal de detalhe — fora da <section> para evitar conflitos de portal/z-index */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => { if (!open) closeDetail(); }}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden h-full sm:h-auto rounded-none sm:rounded-2xl">
           <DialogTitle className="sr-only">{selectedProduct?.title}</DialogTitle>
           {selectedProduct && (
             <div className="grid md:grid-cols-2">
