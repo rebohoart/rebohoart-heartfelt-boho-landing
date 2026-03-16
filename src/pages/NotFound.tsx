@@ -1,10 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-reboho-transparent.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 
 const NotFound = () => {
   const location = useLocation();
@@ -14,11 +13,7 @@ const NotFound = () => {
   const { data: logos } = useQuery({
     queryKey: ["logos"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("logos")
-        .select("*")
-        .eq("is_active", true)
-        .limit(1);
+      const { data, error } = await supabase.from("logos").select("*").eq("is_active", true).limit(1);
       if (error) throw error;
       return data;
     },
@@ -26,11 +21,11 @@ const NotFound = () => {
 
   const customLogoUrl = logos?.[0]?.url;
 
-  const logoUrl = !logoError && customLogoUrl ? customLogoUrl : logo;
-
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);
+
+  const logoUrl = !logoError && customLogoUrl ? customLogoUrl : logo;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
