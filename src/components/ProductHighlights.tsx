@@ -28,6 +28,7 @@ interface Product {
   image: string;
   images?: string[];
   price: number;
+  stock: number;
   category: string;
   active: boolean;
 }
@@ -220,32 +221,35 @@ const ProductHighlights = () => {
 
           {/* Filtros de categoria */}
           {categories.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2 mb-10">
-              <Button
-                variant={activeCategory === null ? "default" : "outline"}
-                onClick={() => setActiveCategory(null)}
-                className="rounded-full"
-                size="sm"
-              >
-                Todas
-              </Button>
-              {categories.map(cat => {
-                const count = products.filter(p => p.category === cat.name && p.active).length;
-                return (
-                  <Button
-                    key={cat.id}
-                    variant={activeCategory === cat.name ? "default" : "outline"}
-                    onClick={() => setActiveCategory(cat.name)}
-                    className="rounded-full"
-                    size="sm"
-                  >
-                    {cat.name} ({count})
-                  </Button>
-                );
-              })}
+            <div className="sticky top-0 z-10 bg-gradient-natural py-3 mb-8 -mx-4 px-4 border-b border-border/30">
+              <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <Button
+                  variant={activeCategory === null ? "default" : "outline"}
+                  onClick={() => setActiveCategory(null)}
+                  className="rounded-full flex-shrink-0"
+                  size="sm"
+                >
+                  Todas ({products.filter(p => p.active !== false).length})
+                </Button>
+                {categories.map(cat => {
+                  const count = products.filter(p => p.category === cat.name).length;
+                  return (
+                    <Button
+                      key={cat.id}
+                      variant={activeCategory === cat.name ? "default" : "outline"}
+                      onClick={() => setActiveCategory(cat.name)}
+                      className="rounded-full flex-shrink-0"
+                      size="sm"
+                    >
+                      {cat.name} ({count})
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
+          <div className="grid
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map((product) => (
               <Card
@@ -253,10 +257,17 @@ const ProductHighlights = () => {
                 className="group overflow-hidden hover:shadow-warm transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col"
                 onClick={() => openDetail(product)}
               >
-                <ProductImageGallery
-                  images={product.images && product.images.length > 0 ? product.images : [product.image]}
-                  title={product.title}
-                />
+                <div className="relative">
+                  <ProductImageGallery
+                    images={product.images && product.images.length > 0 ? product.images : [product.image]}
+                    title={product.title}
+                  />
+                  {product.category && (
+                    <span className="absolute top-2 left-2 bg-white/90 text-primary text-xs font-medium px-2 py-1 rounded-full border border-primary/20">
+                      {product.category}
+                    </span>
+                  )}
+                </div>
                 <div className="p-6 flex flex-col flex-1">
                   <div className="flex items-start justify-between mb-4">
                     <h3 className="font-serif text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -269,20 +280,13 @@ const ProductHighlights = () => {
                   {/* description removed from card — visible only in detail modal */}
                   <div className="flex flex-col gap-2 mt-auto">
                     {product.stock === 0 ? (
-                    <p className="text-sm text-red-500">Esgotado</p>
-                  ) : product.stock <= 2 ? (
-                    <p className="text-sm text-amber-500">Última unidade</p>
-                  ) : (
-                    <p className="text-sm text-green-600">Disponível</p>
-                  )}
-                  {product.stock === 0 ? (
-                    <p className="text-sm text-red-500 mb-1">Esgotado</p>
-                  ) : product.stock <= 2 ? (
-                    <p className="text-sm text-amber-500 mb-1">Última unidade</p>
-                  ) : (
-                    <p className="text-sm text-green-600 mb-1">Disponível</p>
-                  )}
-                  <Button
+                      <p className="text-sm text-red-500">Esgotado</p>
+                    ) : product.stock <= 2 ? (
+                      <p className="text-sm text-amber-500">Última unidade</p>
+                    ) : (
+                      <p className="text-sm text-green-600">Disponível</p>
+                    )}
+                    <Button
                       onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }}
                       variant="default"
                       size="default"
