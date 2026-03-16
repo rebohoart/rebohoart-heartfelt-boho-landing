@@ -170,8 +170,22 @@ const ProductHighlights = () => {
   if (isLoading) {
     return (
       <section id="products-section" className="py-20 px-4 bg-gradient-natural">
-        <div className="container mx-auto text-center">
-          <p className="text-muted-foreground">A carregar produtos...</p>
+        <div className="container mx-auto">
+          <div className="text-center mb-16">
+            <div className="h-10 w-64 bg-muted rounded-full mx-auto animate-pulse" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-lg overflow-hidden border border-border/50 bg-card animate-pulse">
+                <div className="aspect-square bg-muted" />
+                <div className="p-6 space-y-3">
+                  <div className="h-5 bg-muted rounded-full w-3/4" />
+                  <div className="h-5 bg-muted rounded-full w-1/4" />
+                  <div className="h-10 bg-muted rounded-full mt-4" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
