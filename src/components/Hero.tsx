@@ -1,5 +1,4 @@
 import { useState } from "react";
-import CustomOrderForm from "./CustomOrderForm";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-reboho-transparent.png";
 import { MessageCircle } from "lucide-react";
@@ -8,7 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 
 const Hero = () => {
   const [logoError, setLogoError] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
 
   const { data: logos } = useQuery({
     queryKey: ['logos'],
@@ -64,11 +62,10 @@ const Hero = () => {
             <Button size="lg" onClick={scrollToProducts} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-warm transition-all hover:scale-105 px-8 py-6 text-lg rounded-full font-medium">
               Explora as peças
             </Button>
-            <Button size="lg" variant="outline" onClick={() => setFormOpen(true)} className="border-primary text-primary hover:bg-primary/10 transition-all hover:scale-105 px-8 py-6 text-lg rounded-full font-medium">
+            <Button size="lg" variant="outline" onClick={() => { const el = document.getElementById("custom-order-section"); if (el) el.scrollIntoView({ behavior: "smooth" }); }} className="border-primary text-primary hover:bg-primary/10 transition-all hover:scale-105 px-8 py-6 text-lg rounded-full font-medium">
               Cria a tua peça
             </Button>
           </div>
-          <CustomOrderForm open={formOpen} onOpenChange={setFormOpen} />
 
           <p className="mt-8 text-sm text-muted-foreground italic">Feito à mão em Portugal</p>
         </div>
