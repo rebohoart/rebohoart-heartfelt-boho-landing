@@ -9,6 +9,9 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState as useStateForLogo } from "react";
+import logo from "@/assets/logo-reboho-transparent.png";
+import { useQuery } from "@tanstack/react-query";
 
 const authSchema = z.object({
   email: z.string().email({ message: "Email inválido" }).max(255),
@@ -273,9 +276,23 @@ const Auth = () => {
     }
   };
 
+  const [logoError, setLogoError] = useStateForLogo(false);
+  const { data: logos } = useQuery({
+    queryKey: ["logos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("logos").select("*").eq("is_active", true).limit(1);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const customLogoUrl = logos?.[0]?.url;
+  const logoUrl = !logoError && customLogoUrl ? customLogoUrl : logo;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-natural px-4">
-      <Card className="w-full max-w-md p-8 shadow-soft border-2">
+      <div className="w-full max-w-md flex flex-col items-center">
+        <img src={logoUrl} alt="ReBoho" className="h-24 w-auto mb-6" onError={() => setLogoError(true)} />
+        <Card className="w-full p-8 shadow-soft border-2">
         <h1 className="font-serif text-3xl font-bold text-center mb-6 text-primary">
           {isPasswordReset ? "Definir Nova Password" : isRecovery ? "Recuperar Password" : "Login"}
         </h1>
@@ -447,7 +464,8 @@ const Auth = () => {
             </button>
           )}
         </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };
