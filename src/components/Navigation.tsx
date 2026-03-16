@@ -119,13 +119,13 @@ const Navigation = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative text-foreground hover:text-primary hover:bg-primary/10 rounded-full"
+                className="relative text-foreground hover:text-secondary hover:bg-secondary/10 rounded-full"
                 onClick={() => setCartOpen(true)}
                 aria-label="Carrinho de compras"
               >
                 <ShoppingCart className="w-5 h-5" />
                 {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center animate-scale-in">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-secondary text-secondary-foreground text-xs font-bold rounded-full flex items-center justify-center animate-scale-in">
                     {totalItems}
                   </span>
                 )}

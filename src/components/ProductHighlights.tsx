@@ -265,7 +265,14 @@ const ProductHighlights = () => {
                   </div>
                   {/* description removed from card — visible only in detail modal */}
                   <div className="flex flex-col gap-2 mt-auto">
-                    <Button
+                    {product.stock === 0 ? (
+                    <p className="text-sm text-red-500">Esgotado</p>
+                  ) : product.stock <= 2 ? (
+                    <p className="text-sm text-amber-500">Última unidade</p>
+                  ) : (
+                    <p className="text-sm text-green-600">Disponível</p>
+                  )}
+                  <Button
                       onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }}
                       variant="default"
                       size="default"

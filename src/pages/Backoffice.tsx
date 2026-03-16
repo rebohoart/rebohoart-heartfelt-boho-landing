@@ -54,6 +54,7 @@ const Backoffice = () => {
     image: "",
     images: "",
     price: 0,
+    stock: 0,
     category: "",
     active: true,
   });
@@ -181,6 +182,7 @@ const Backoffice = () => {
         image: mainImage,
         images: imagesArray,
         price: formData.price,
+        stock: formData.stock,
         category: formData.category,
         active: formData.active,
       };
@@ -255,6 +257,7 @@ const Backoffice = () => {
       image: product.image,
       images: product.images ? product.images.join('\n') : product.image,
       price: product.price,
+      stock: product.stock,
       category: product.category,
       active: product.active,
     });

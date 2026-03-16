@@ -29,7 +29,7 @@ const AboutMe = () => {
 
           {/* Texto */}
           <div className="w-full md:w-3/5 animate-fade-in-up space-y-6">
-            <h2 className="font-serif text-foreground">
+            <h2 className="font-serif text-4xl md:text-5xl font-bold text-foreground">
               ReBoho
             </h2>
 
