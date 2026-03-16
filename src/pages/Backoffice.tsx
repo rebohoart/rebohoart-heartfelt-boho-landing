@@ -272,6 +272,7 @@ const Backoffice = () => {
       image: "",
       images: "",
       price: 0,
+      stock: 0,
       category: "",
       active: true,
     });
@@ -498,7 +499,18 @@ const Backoffice = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="category">Categoria</Label>
+                      <Label htmlFor="stock">Stock</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      min="0"
+                      value={formData.stock}
+                      onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">0 = esgotado · 1-2 = última unidade · 3+ = disponível</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Categoria</Label>
                       <Select
                         value={formData.category}
                         onValueChange={(value) => setFormData({ ...formData, category: value })}

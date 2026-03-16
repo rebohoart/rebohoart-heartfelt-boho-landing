@@ -229,17 +229,20 @@ const ProductHighlights = () => {
               >
                 Todas
               </Button>
-              {categories.map(cat => (
-                <Button
-                  key={cat.id}
-                  variant={activeCategory === cat.name ? "default" : "outline"}
-                  onClick={() => setActiveCategory(cat.name)}
-                  className="rounded-full"
-                  size="sm"
-                >
-                  {cat.name}
-                </Button>
-              ))}
+              {categories.map(cat => {
+                const count = products.filter(p => p.category === cat.name && p.active).length;
+                return (
+                  <Button
+                    key={cat.id}
+                    variant={activeCategory === cat.name ? "default" : "outline"}
+                    onClick={() => setActiveCategory(cat.name)}
+                    className="rounded-full"
+                    size="sm"
+                  >
+                    {cat.name} ({count})
+                  </Button>
+                );
+              })}
             </div>
           )}
 
@@ -272,6 +275,13 @@ const ProductHighlights = () => {
                   ) : (
                     <p className="text-sm text-green-600">Disponível</p>
                   )}
+                  {product.stock === 0 ? (
+                    <p className="text-sm text-red-500 mb-1">Esgotado</p>
+                  ) : product.stock <= 2 ? (
+                    <p className="text-sm text-amber-500 mb-1">Última unidade</p>
+                  ) : (
+                    <p className="text-sm text-green-600 mb-1">Disponível</p>
+                  )}
                   <Button
                       onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }}
                       variant="default"
@@ -281,15 +291,12 @@ const ProductHighlights = () => {
                       <ShoppingCart className="w-4 h-4 mr-2" />
                       Adicionar
                     </Button>
-                    <Button
+                    <button
                       onClick={(e) => { e.stopPropagation(); openDetail(product); }}
-                      variant="outline"
-                      size="default"
-                      className="w-full rounded-full"
+                      className="w-full text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-2 py-1 bg-transparent border-none cursor-pointer"
                     >
-                      <ZoomIn className="w-4 h-4 mr-2" />
                       Ver detalhes
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </Card>
