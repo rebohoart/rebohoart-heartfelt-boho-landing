@@ -35,7 +35,7 @@ const Footer = () => {
           Envios para Portugal Continental
         </p>
         <p className="text-xs text-muted-foreground">
-          © 2025 Rebohoart. Feito com ♥ em Portugal
+          {new Date().getFullYear()} Rebohoart. Feito com ♥ em Portugal
         </p>
       </div>
     </footer>

@@ -44,10 +44,12 @@ const Hero = () => {
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 py-20 text-center animate-fade-in-up">
         <div className="max-w-4xl mx-auto">
+          <h1 className="sr-only">ReBoho Art — Peças Artesanais Feitas com o Coração</h1>
           <img
             src={logoUrl}
             alt="ReBoho"
             className="h-48 md:h-64 lg:h-80 w-auto mx-auto mb-2"
+            fetchPriority="high"
             onError={(e) => {
               setLogoError(true);
               if (e.currentTarget.src !== logo) {
