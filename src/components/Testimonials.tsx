@@ -30,6 +30,7 @@ const Testimonials = () => {
 
   const { data: testimonials = [] } = useQuery({
     queryKey: ["testimonials"],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("testimonials")

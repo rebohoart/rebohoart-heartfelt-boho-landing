@@ -16,6 +16,7 @@ const Navigation = () => {
 
   const { data: logos } = useQuery({
     queryKey: ["logos"],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("logos")

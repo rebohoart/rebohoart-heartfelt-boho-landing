@@ -46,6 +46,7 @@ const ProductHighlights = () => {
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('categories')
