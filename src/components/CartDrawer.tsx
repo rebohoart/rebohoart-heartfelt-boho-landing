@@ -40,11 +40,22 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
 
         {/* Header — fixo no topo */}
         <div className="px-6 pt-6 pb-4 border-b border-border">
-          <SheetTitle className="font-serif text-2xl">
+          <SheetTitle className="font-serif text-2xl mb-3">
             {step === 1 ? "A minha encomenda" : "Finalizar encomenda"}
           </SheetTitle>
+          <div className="flex items-center gap-0">
+            <div className="flex items-center gap-2">
+              <div className={"w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 " + (step === 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground border border-border")}>1</div>
+              <span className={"text-sm " + (step === 1 ? "font-medium text-foreground" : "text-muted-foreground")}>Carrinho</span>
+            </div>
+            <div className="flex-1 h-px bg-border mx-3" />
+            <div className="flex items-center gap-2">
+              <div className={"w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 " + (step === 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground border border-border")}>2</div>
+              <span className={"text-sm " + (step === 2 ? "font-medium text-foreground" : "text-muted-foreground")}>Os teus dados</span>
+            </div>
+          </div>
           {step === 1 && (
-            <SheetDescription>
+            <SheetDescription className="mt-2">
               {totalQuantity === 0
                 ? "Nenhum item"
                 : `${totalQuantity} ${totalQuantity === 1 ? "item" : "itens"}`}
