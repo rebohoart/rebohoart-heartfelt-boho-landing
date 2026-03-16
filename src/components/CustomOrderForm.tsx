@@ -369,7 +369,7 @@ const CustomOrderForm = ({ open, onOpenChange }: CustomOrderFormProps) => {
                     <div key={index} className="relative group">
                       <img
                         src={url}
-                        alt={`Imagem de referência ${index + 1}`}
+                        alt={`Imagem de referência ${index + 1}`} loading="lazy"
                         className="w-full h-20 object-cover rounded-md"
                       />
                       <button
