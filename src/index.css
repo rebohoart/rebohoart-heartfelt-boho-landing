@@ -102,3 +102,9 @@ All colors MUST be HSL.
     @apply font-serif;
   }
 }
+
+/* Sobe o botão WhatsApp quando o CartDrawer está aberto */
+body[data-scroll-locked] .whatsapp-float {
+  transform: translateY(-80px);
+  transition: transform 0.3s ease;
+}
