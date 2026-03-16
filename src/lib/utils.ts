@@ -7,6 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function optimizeImage(url: string, width: number = 600, quality: number = 80): string {
   if (!url || !url.includes('supabase')) return url;
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}width=${width}&quality=${quality}&format=webp`;
+  const optimized = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  const separator = optimized.includes('?') ? '&' : '?';
+  return `${optimized}${separator}width=${width}&quality=${quality}&format=webp`;
 }
