@@ -8,7 +8,7 @@ const CustomOrderButton = () => {
 
   return (
     <>
-      <div className="py-12 text-center">
+      <div className="py-16 text-center bg-[hsl(37,34%,75%)]">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Sparkles className="w-6 h-6 text-primary" />

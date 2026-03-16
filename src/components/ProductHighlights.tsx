@@ -212,44 +212,40 @@ const ProductHighlights = () => {
 
   return (
     <>
-      <section id="products-section" className="py-20 px-4 bg-gradient-natural">
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4">Peças Disponíveis</h2>
-            <p className="text-muted-foreground text-lg">Cada peça é única, feita com amor e dedicação</p>
-          </div>
-
-          {/* Filtros de categoria */}
-          {categories.length > 0 && (
-            <div className="sticky top-0 z-10 bg-gradient-natural py-3 mb-8 -mx-4 px-4 border-b border-border/30">
-              <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                <Button
-                  variant={activeCategory === null ? "default" : "outline"}
-                  onClick={() => setActiveCategory(null)}
-                  className="rounded-full flex-shrink-0"
-                  size="sm"
-                >
-                  Todas ({products.filter(p => p.active !== false).length})
-                </Button>
-                {categories.map(cat => {
-                  const count = products.filter(p => p.category === cat.name).length;
-                  return (
-                    <Button
-                      key={cat.id}
-                      variant={activeCategory === cat.name ? "default" : "outline"}
-                      onClick={() => setActiveCategory(cat.name)}
-                      className="rounded-full flex-shrink-0"
-                      size="sm"
-                    >
-                      {cat.name} ({count})
-                    </Button>
-                  );
-                })}
-              </div>
+      <section id="products-section" className="py-20 bg-[hsl(37,34%,75%)]">
+        <div className="text-center mb-12 px-4 container mx-auto">
+          <h2 className="font-serif text-4xl md:text-5xl font-bold mb-4">Peças Disponíveis</h2>
+          <p className="text-muted-foreground text-lg">Cada peça é única, feita com amor e dedicação</p>
+        </div>
+        {categories.length > 0 && (
+          <div className="sticky top-16 md:top-20 z-10 py-4 mb-8 bg-[hsl(37,34%,75%)]">
+            <div className="flex gap-2 overflow-x-auto justify-center px-4 pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <Button
+                variant={activeCategory === null ? "default" : "outline"}
+                onClick={() => setActiveCategory(null)}
+                className="rounded-full flex-shrink-0"
+                size="sm"
+              >
+                Todas ({products.filter(p => p.active !== false).length})
+              </Button>
+              {categories.map(cat => {
+                const count = products.filter(p => p.category === cat.name).length;
+                return (
+                  <Button
+                    key={cat.id}
+                    variant={activeCategory === cat.name ? "default" : "outline"}
+                    onClick={() => setActiveCategory(cat.name)}
+                    className="rounded-full flex-shrink-0"
+                    size="sm"
+                  >
+                    {cat.name} ({count})
+                  </Button>
+                );
+              })}
             </div>
-          )}
-
-          <div className="grid
+          </div>
+        )}
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map((product) => (
               <Card
