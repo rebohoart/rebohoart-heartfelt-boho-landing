@@ -1,3 +1,4 @@
+import { optimizeImage } from "@/lib/utils";
 import { useState, useRef } from "react";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -81,8 +82,8 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
               {items.map(item => (
                 <div key={item.product.id} className="flex gap-4 p-4 bg-card rounded-lg border border-border">
                   <img
-                    src={item.product.image || "/src/assets/logo-reboho-no-bg.png"}
-                    alt={`Imagem de ${item.product.title}`}
+                    src={optimizeImage(item.product.image || "/src/assets/logo-reboho-no-bg.png", 200)}
+                    alt={`Imagem de ${item.product.title}`} loading="lazy"
                     className="w-20 h-20 object-cover rounded-md"
                     onError={e => { e.currentTarget.src = "/src/assets/logo-reboho-no-bg.png"; }}
                   />

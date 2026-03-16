@@ -1,3 +1,4 @@
+import { optimizeImage } from "@/lib/utils";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,9 +34,9 @@ const ProductImageGallery = ({ images, title }: ProductImageGalleryProps) => {
   return (
     <div className="relative overflow-hidden aspect-square group">
       <img
-        src={images[currentIndex]}
-        alt={`${title} - Imagem ${currentIndex + 1}`}
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        src={optimizeImage(images[currentIndex])}
+        alt={`${title} - Imagem ${currentIndex + 1}`} loading="lazy"
+        loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
       />
       
       {images.length > 1 && (
