@@ -335,7 +335,7 @@ const ProductHighlights = () => {
           {selectedProduct && (
             <div className="grid md:grid-cols-2">
               <div className="relative bg-muted aspect-square">
-                <img
+                <img loading="lazy"
                   src={currentImg}
                   alt={selectedProduct.title}
                   className="w-full h-full object-cover cursor-zoom-in"
@@ -403,7 +403,7 @@ const ProductHighlights = () => {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
-              <img
+              <img loading="lazy"
                 src={zoomImage}
                 alt="Zoom"
                 draggable={false}

@@ -35,8 +35,7 @@ const ProductImageGallery = ({ images, title }: ProductImageGalleryProps) => {
     <div className="relative overflow-hidden aspect-square group">
       <img
         src={optimizeImage(images[currentIndex])}
-        alt={`${title} - Imagem ${currentIndex + 1}`} loading="lazy"
-        loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        alt={`${title} - Imagem ${currentIndex + 1}`} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
       />
       
       {images.length > 1 && (
