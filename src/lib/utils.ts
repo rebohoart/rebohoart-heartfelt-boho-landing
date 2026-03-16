@@ -5,9 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function optimizeImage(url: string, width: number = 600, quality: number = 80): string {
-  if (!url || !url.includes('supabase')) return url;
-  const optimized = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-  const separator = optimized.includes('?') ? '&' : '?';
-  return `${optimized}${separator}width=${width}&quality=${quality}&format=webp`;
+export function optimizeImage(url: string, _width: number = 600, _quality: number = 80): string {
+  return url;
 }
