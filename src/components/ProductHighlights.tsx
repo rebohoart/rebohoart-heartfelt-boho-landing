@@ -276,11 +276,20 @@ const ProductHighlights = () => {
                   {/* description removed from card — visible only in detail modal */}
                   <div className="flex flex-col gap-2 mt-auto">
                     {product.stock === 0 ? (
-                      <p className="text-sm text-red-500">Esgotado</p>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-muted text-muted-foreground px-2.5 py-1 rounded-full w-fit">
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground inline-block"></span>
+                        Esgotado
+                      </span>
                     ) : product.stock <= 2 ? (
-                      <p className="text-sm text-amber-500">Última unidade</p>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full w-fit">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+                        Última unidade
+                      </span>
                     ) : (
-                      <p className="text-sm text-green-600">Disponível</p>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-secondary/10 text-secondary px-2.5 py-1 rounded-full w-fit">
+                        <span className="w-1.5 h-1.5 rounded-full bg-secondary inline-block"></span>
+                        Disponível
+                      </span>
                     )}
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }}
