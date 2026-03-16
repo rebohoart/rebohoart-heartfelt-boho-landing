@@ -1,29 +1,9 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/logo-reboho-transparent.png";
+import { useLogo } from "@/hooks/useLogo";
 import { MessageCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 
 const Hero = () => {
-  const [logoError, setLogoError] = useState(false);
-
-  const { data: logos } = useQuery({
-    queryKey: ['logos'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('logos')
-        .select('*')
-        .eq('is_active', true)
-        .limit(1);
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const customLogoUrl = logos?.[0]?.url;
-  const logoUrl = (!logoError && customLogoUrl) ? customLogoUrl : logo;
+  const { logoUrl, logoError, setLogoError } = useLogo();
 
   const scrollToProducts = () => {
     const productsSection = document.getElementById('products-section');
@@ -49,7 +29,7 @@ const Hero = () => {
             src={logoUrl}
             alt="ReBoho"
             className="h-48 md:h-64 lg:h-80 w-auto mx-auto mb-2"
-            fetchPriority="high"
+            fetchpriority="high"
             onError={(e) => {
               setLogoError(true);
               if (e.currentTarget.src !== logo) {

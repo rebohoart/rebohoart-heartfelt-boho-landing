@@ -4,32 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/CartContext";
 import CartDrawer from "./CartDrawer";
-import logo from "@/assets/logo-reboho-transparent.png";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useLogo } from "@/hooks/useLogo";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [logoError, setLogoError] = useState(false);
+  const { logoUrl, logoError, setLogoError } = useLogo();
   const { totalItems } = useCart();
-
-  const { data: logos } = useQuery({
-    queryKey: ["logos"],
-    staleTime: 5 * 60 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("logos")
-        .select("*")
-        .eq("is_active", true)
-        .limit(1);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const customLogoUrl = logos?.[0]?.url;
-  const logoUrl = !logoError && customLogoUrl ? customLogoUrl : logo;
 
   useEffect(() => {
     const handleScroll = () => {
