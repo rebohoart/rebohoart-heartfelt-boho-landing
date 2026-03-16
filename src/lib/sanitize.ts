@@ -46,7 +46,7 @@ const ALLOWED_IMAGE_TYPES = [
 /**
  * Maximum file size in bytes (5MB)
  */
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 /**
  * Validates if a file is a valid image
@@ -58,7 +58,7 @@ export const validateImageFile = (file: File): { isValid: boolean; error?: strin
   if (file.size > MAX_FILE_SIZE) {
     return {
       isValid: false,
-      error: `O ficheiro ${file.name} é muito grande. Tamanho máximo: 5MB`,
+      error: `O ficheiro ${file.name} é muito grande. Tamanho máximo: 10MB`,
     };
   }
 

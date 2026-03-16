@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import { validateImageFile } from "@/lib/sanitize";
+import { compressImage } from "@/lib/utils";
 import Dashboard from "@/components/Dashboard";
 import EmailTemplatesTab from "@/components/EmailTemplatesTab";
 import CategoriesTab from "@/components/CategoriesTab";
@@ -130,9 +131,11 @@ const Backoffice = () => {
         const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${fileName}`;
 
+        const compressed = await compressImage(file);
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('product-images')
-          .upload(filePath, file, {
+          .upload(filePath, compressed, {
             cacheControl: '3600',
             upsert: false
           });
